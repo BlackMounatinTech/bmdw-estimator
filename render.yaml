@@ -1,0 +1,21 @@
+# Render service definition. Once committed, Render will use this on next
+# deploy instead of (or in addition to) settings in the web UI.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: bmdw-estimator
+    runtime: python
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run Quoting.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
+    envVars:
+      # Set the actual values in the Render dashboard, not here.
+      # `sync: false` means Render won't overwrite the value if you change it via UI.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: BMDW_APP_PASSWORD
+        sync: false
+    autoDeploy: true
