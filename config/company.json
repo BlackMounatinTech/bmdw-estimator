@@ -1,0 +1,28 @@
+{
+  "_README": "BMDW brand assets for the customer-facing PDF and email. Fill in the real values when Michael provides them.",
+
+  "legal_name": "Black Mountain Dirt Works",
+  "trading_name": "Black Mountain Dirt Works",
+  "address": "TBD",
+  "phone": "TBD",
+  "email": "TBD",
+  "website": "TBD",
+  "wcb_number": "TBD",
+  "insurance_certificate_path": "config/branding/insurance.pdf",
+  "logo_path": "config/branding/logo.png",
+  "brand_color_primary": "#TBD",
+  "brand_color_secondary": "#TBD",
+  "default_markup_pct": 40.0,
+  "default_tax_pct": 12.0,
+  "default_rental_insurance_pct": 16.0,
+  "current_diesel_price_per_litre": 2.25,
+  "quote_validity_days": 30,
+  "quote_terms": "Quote valid for 30 days. Final invoiced amount may vary based on site conditions discovered during work.",
+
+  "_business_rules": {
+    "tax": "12% flat (GST + PST), applied at the end of the quote.",
+    "rental_insurance": "16% surcharge on equipment subtotal per quote. Equipment items don't carry it individually."
+  },
+
+  "google_sheet_id": "TBD"
+}

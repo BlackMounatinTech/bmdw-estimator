@@ -1,0 +1,6 @@
+{
+  "_README": "Global spoil/dump rates. Dump charges by weight; calculator/AI parser converts cu yd → tons via cu_yd_to_tons_conversion. Import (delivery of clean fill) is NOT a flat fee — it's material × truck hours, calculated per-quote in the Materials + Trucking buckets. Swell factor is NOT auto-applied — Michael accounts for swell in his notes when needed.",
+
+  "dump_fee_per_ton": 10.0,
+  "cu_yd_to_tons_conversion": 1.25
+}

@@ -1,0 +1,17 @@
+{
+  "_README": "Global labour rates. Per-job-type productivity (e.g. blocks per hour) is per-rule, not here. lead_hand is Michael's billable rate when he's working the job; helper is his ground-crew rate.",
+
+  "_settings": {
+    "default_crew": ["lead_hand", "helper"],
+    "default_role": "lead_hand"
+  },
+
+  "lead_hand": {
+    "name": "Lead hand (Michael / supervising)",
+    "hourly_rate": 90.0
+  },
+  "helper": {
+    "name": "Helper / ground crew",
+    "hourly_rate": 50.0
+  }
+}

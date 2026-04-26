@@ -1,0 +1,15 @@
+.env
+credentials.json
+token.json
+config/google_service_account.json
+config/gmail_client_secret.json
+config/gmail_token.json
+data/bmdw.db
+data/bmdw.db-journal
+data/jobs/
+.tmp/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store

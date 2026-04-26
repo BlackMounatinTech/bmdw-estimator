@@ -1,0 +1,139 @@
+{
+  "_README": "Materials catalogue. Costs are delivered cost per unit unless noted. Aggregate prices are supplier-specific — `supplier` field tagged on each entry. Currently loaded: Upland's Gravel. Northwin Gravel prices to be added as parallel entries (key suffix `_northwin`).",
+
+  "lock_block_no1": {
+    "sku": "BLK-LOCK-N1",
+    "name": "Lock block (No. 1)",
+    "unit": "each",
+    "cost_per_unit": 150.0,
+    "weight_lb": 5000,
+    "notes": "5 ft × 2.5 ft × 2.5 ft, ~5,000 lb each. Trucking: 16 blocks/load at $850/load (heavy haul). Use trucking key block_delivery."
+  },
+  "lock_block_no2": {
+    "sku": "BLK-LOCK-N2",
+    "name": "Lock block (No. 2)",
+    "unit": "each",
+    "cost_per_unit": 130.0,
+    "weight_lb": 5000,
+    "notes": "5 ft × 2.5 ft × 2.5 ft, ~5,000 lb each. Trucking: 16 blocks/load at $850/load (heavy haul). Use trucking key block_delivery."
+  },
+  "magnum_stone_block": {
+    "sku": "BLK-MAGNUM-4x2x2",
+    "name": "Magnum stone block (4 ft × 2 ft × 2 ft)",
+    "unit": "each",
+    "cost_per_unit": 205.0,
+    "weight_lb": 1800,
+    "notes": "~1,800 lb each. Trucking: 26 blocks/load at $850/load (heavy haul). Use trucking key block_delivery."
+  },
+
+  "diesel": {
+    "sku": "FUEL-DIESEL",
+    "name": "Diesel (fuel estimate)",
+    "unit": "litre",
+    "cost_per_unit": 2.25,
+    "notes": "Per-litre rate at $2.25 (2026-04-25). For a quick dollar estimate, add a freeform Materials line instead — set quantity=1 and unit_cost=$600 (or whatever)."
+  },
+
+  "pit_run_uplands": {
+    "sku": "AGG-PITRUN-UP",
+    "name": "Pit run (Upland's)",
+    "unit": "cu_yd",
+    "cost_per_unit": 12.0,
+    "supplier": "Upland's Gravel"
+  },
+  "sgsb_3in_uplands": {
+    "sku": "AGG-SGSB-3IN-UP",
+    "name": "3\" Select Granular Sub-Base / SGSB (Upland's)",
+    "unit": "cu_yd",
+    "cost_per_unit": 14.0,
+    "supplier": "Upland's Gravel"
+  },
+  "road_crush_34_uplands": {
+    "sku": "AGG-RC-34-UP",
+    "name": "3/4\" road crush (Upland's)",
+    "unit": "cu_yd",
+    "cost_per_unit": 22.50,
+    "supplier": "Upland's Gravel"
+  },
+  "blue_chip_uplands": {
+    "sku": "AGG-BLUECHIP-UP",
+    "name": "Blue chip (Upland's)",
+    "unit": "cu_yd",
+    "cost_per_unit": 46.0,
+    "supplier": "Upland's Gravel"
+  },
+  "drain_rock_uplands": {
+    "sku": "AGG-DRAINROCK-UP",
+    "name": "Drain rock (Upland's)",
+    "unit": "cu_yd",
+    "cost_per_unit": 36.0,
+    "supplier": "Upland's Gravel"
+  },
+  "rip_rap_1_3ft_uplands": {
+    "sku": "RR-1-3FT-UP",
+    "name": "Rip rap 1-3 ft (Upland's)",
+    "unit": "ton",
+    "cost_per_unit": 28.0,
+    "supplier": "Upland's Gravel",
+    "notes": "$39/cu_yd alternative if billed by volume. ~3/4 ton per 3-ft boulder for AI estimating."
+  },
+  "rip_rap_3plus_uplands": {
+    "sku": "RR-3PLUS-UP",
+    "name": "Rip rap 3 ft+ (Upland's)",
+    "unit": "ton",
+    "cost_per_unit": 28.0,
+    "supplier": "Upland's Gravel",
+    "notes": "$39/cu_yd alternative if billed by volume. ~3/4 ton per 3-ft boulder for AI estimating."
+  },
+
+  "pit_run_northwin": {
+    "sku": "AGG-PITRUN-NW",
+    "name": "Pit run (Northwin)",
+    "unit": "cu_yd",
+    "cost_per_unit": 13.0,
+    "supplier": "Northwin Gravel"
+  },
+  "sgsb_3in_northwin": {
+    "sku": "AGG-SGSB-3IN-NW",
+    "name": "3\" Select Granular Sub-Base / SGSB (Northwin)",
+    "unit": "cu_yd",
+    "cost_per_unit": 23.0,
+    "supplier": "Northwin Gravel"
+  },
+  "screen_topsoil_northwin": {
+    "sku": "TOPSOIL-NW",
+    "name": "Screen topsoil (Northwin)",
+    "unit": "cu_yd",
+    "cost_per_unit": 70.0,
+    "supplier": "Northwin Gravel"
+  },
+  "blue_chip_northwin": {
+    "sku": "AGG-BLUECHIP-NW",
+    "name": "Blue chip (Northwin)",
+    "unit": "cu_yd",
+    "cost_per_unit": 65.0,
+    "supplier": "Northwin Gravel"
+  },
+
+  "drain_pipe": {
+    "sku": "PIPE-PERF-100FT",
+    "name": "4\" perforated drain pipe (100 ft roll)",
+    "unit": "roll",
+    "cost_per_unit": 120.0,
+    "notes": "Sold in 100 ft rolls only. 1 roll covers any wall ≤ 100 ft. 2 rolls for 100-200 ft, etc."
+  },
+  "filter_fabric": {
+    "sku": "FAB-NW-ROLL",
+    "name": "Filter fabric (roll)",
+    "unit": "roll",
+    "cost_per_unit": 280.0,
+    "notes": "Standard pricing for retaining walls < 50 ft. Bigger walls may need custom pricing — flag in quick notes."
+  },
+  "geogrid": {
+    "sku": "GEO-UX1500",
+    "name": "Uniaxial geogrid",
+    "unit": "sf",
+    "cost_per_unit": 1.10,
+    "notes": "PLACEHOLDER price — confirm with Michael."
+  }
+}

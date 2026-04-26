@@ -1,0 +1,95 @@
+{
+  "_README": "Equipment catalogue (on-site iron). Mobilization is NOT here — it's a separate Trucking line item billed per trip. `rental_insurance_eligible` controls whether the 16% rental insurance surcharge applies to this item (true for rentals, false for vehicles with their own commercial insurance like dump trucks).",
+
+  "excavator_2t": {
+    "sku": "EXC-2T",
+    "name": "2-ton excavator (4,000 lb)",
+    "weight_lb": 4000,
+    "daily_rate": 365.0,
+    "weekly_rate": 1139.0,
+    "monthly_rate": 3249.0,
+    "rental_insurance_eligible": true
+  },
+  "excavator_4t": {
+    "sku": "EXC-4T",
+    "name": "4-ton excavator",
+    "daily_rate": 455.0,
+    "weekly_rate": 1470.0,
+    "monthly_rate": 4144.0,
+    "rental_insurance_eligible": true
+  },
+  "excavator_9t": {
+    "sku": "EXC-9T",
+    "name": "9-ton excavator",
+    "daily_rate": 481.0,
+    "weekly_rate": 1721.0,
+    "monthly_rate": 4323.0,
+    "rental_insurance_eligible": true
+  },
+  "excavator_15t": {
+    "sku": "EXC-15T",
+    "name": "15-ton excavator",
+    "daily_rate": 1355.0,
+    "weekly_rate": 3333.0,
+    "monthly_rate": 10000.0,
+    "rental_insurance_eligible": true
+  },
+  "excavator_25t": {
+    "sku": "EXC-25T",
+    "name": "25-ton excavator",
+    "daily_rate": 1313.0,
+    "weekly_rate": 4500.0,
+    "monthly_rate": 10000.0,
+    "rental_insurance_eligible": true
+  },
+  "skid_steer": {
+    "sku": "SKID-S70",
+    "name": "Skid steer",
+    "hourly_rate": 95.0,
+    "rental_insurance_eligible": true
+  },
+  "plate_compactor": {
+    "sku": "COMP-PLATE",
+    "name": "Plate compactor",
+    "daily_rate": 95.0,
+    "rental_insurance_eligible": true
+  },
+  "tandem_dump": {
+    "sku": "TRK-TANDEM",
+    "name": "Tandem dump truck",
+    "hourly_rate": 170.0,
+    "rental_insurance_eligible": false,
+    "notes": "9-10 yd^3 per load. Travel time per-bid (Campbell River ~1 hr each way as baseline). Trucks have commercial insurance, not rental insurance."
+  },
+  "truck_and_pup": {
+    "sku": "TRK-PUP",
+    "name": "Truck and pup",
+    "hourly_rate": 205.0,
+    "rental_insurance_eligible": false,
+    "notes": "~16 yd^3 per load (tandem + pup trailer). Travel time per-bid. Trucks have commercial insurance, not rental insurance."
+  },
+  "dump_trailer_10_12ft": {
+    "sku": "TRL-DUMP-10-12",
+    "name": "10-12 ft dump trailer",
+    "daily_rate": 133.0,
+    "weekly_rate": 391.0,
+    "monthly_rate": 1134.0,
+    "rental_insurance_eligible": true
+  },
+  "buggy_dumper": {
+    "sku": "BUGGY-DMP",
+    "name": "Buggy dumper",
+    "daily_rate": 180.0,
+    "weekly_rate": 900.0,
+    "monthly_rate": 1906.0,
+    "rental_insurance_eligible": true
+  },
+  "laser_level": {
+    "sku": "LASER-LEV",
+    "name": "Laser level",
+    "daily_rate": 70.0,
+    "weekly_rate": 254.0,
+    "monthly_rate": 780.0,
+    "rental_insurance_eligible": true
+  }
+}
