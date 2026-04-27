@@ -840,16 +840,29 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                             unsafe_allow_html=True,
                         )
 
-            # ---- Phase 3 second-round review questions (redundancy pass) ----
+            # ---- Phase 3 ITERATION — running conversation about the spreadsheet ----
+            # Anything Michael wants to change after seeing the line items goes here:
+            # add/remove/modify materials, equipment, trucking, labour, etc.
+            # AI's review questions (if any) are surfaced as suggestions above the
+            # textarea — but the textarea is freeform and accepts ANY iteration.
+            st.markdown("&nbsp;", unsafe_allow_html=True)
+            section_header("Iterate — what would you change?")
+            st.markdown(
+                '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
+                "Look at the spreadsheet above. Dictate anything you want to "
+                "add, remove, or adjust — more trucking, less of a material, "
+                "swap supplier, add a project line, fix a quantity, etc. "
+                "Then hit <strong>🔄 Update quote</strong> and the AI re-generates "
+                "with your changes. Or skip straight to Lock in if it looks good."
+                "</div>",
+                unsafe_allow_html=True,
+            )
             review_qs = st.session_state.review_questions
             if review_qs:
-                st.markdown("&nbsp;", unsafe_allow_html=True)
-                section_header("Final review — anything to refine?")
                 st.markdown(
-                    '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
-                    "AI looked at the generated quote and flagged these final confirmations. "
-                    "Answer any that need correcting, then hit Regenerate. Or skip and Lock in."
-                    "</div>",
+                    '<div style="color:#94a3b8;font-size:11px;font-weight:700;'
+                    'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
+                    "💡 AI suggestions — things worth confirming</div>",
                     unsafe_allow_html=True,
                 )
                 for i, rq in enumerate(review_qs, start=1):
@@ -857,31 +870,41 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                         f'<div style="background:#111827;border:1px solid #1e293b;'
                         f'border-left:4px solid #f59e0b;border-radius:8px;'
                         f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
-                        f'<strong style="color:#f1f5f9;">R{i}.</strong> {rq}</div>',
+                        f'<strong style="color:#f1f5f9;">{i}.</strong> {rq}</div>',
                         unsafe_allow_html=True,
                     )
-                review_answers = st.text_area(
-                    "Review answers (voice or type)",
-                    value=st.session_state.review_answers,
-                    height=140,
-                    placeholder="e.g. R1: pit round trip is actually 2 hours, not 1. R2: yes use Browns River.",
-                    label_visibility="collapsed",
-                    key="phase3_review_answers",
-                )
-                st.session_state.review_answers = review_answers
+                st.markdown("&nbsp;", unsafe_allow_html=True)
+
+            review_answers = st.text_area(
+                "Iteration",
+                value=st.session_state.review_answers,
+                height=160,
+                placeholder=(
+                    "e.g.\n"
+                    "• Add another tandem load of base material — bigger pad than I thought.\n"
+                    "• Drop the dump trailer, customer doesn't need it.\n"
+                    "• Bump fuel up to $400.\n"
+                    "• Change the wall length to 35 ft.\n"
+                    "• Pit round-trip is actually 2 hours not 1."
+                ),
+                label_visibility="collapsed",
+                key="phase3_review_answers",
+            )
+            st.session_state.review_answers = review_answers
 
             st.markdown("&nbsp;", unsafe_allow_html=True)
             b1, b2, b3 = st.columns(3)
             with b1:
                 if st.button("← Revise (Phase 2)", use_container_width=True,
-                             help="Go back to Phase 2 to update your answers, then regenerate."):
+                             help="Go back to Phase 2 to update your earlier clarifying answers."):
                     st.session_state.quote_phase = 2
                     st.rerun()
             with b2:
                 regen_disabled = not (parser_configured() and st.session_state.review_answers.strip())
-                if st.button("🔄 Regenerate with review", use_container_width=True,
+                if st.button("🔄 Update quote with changes", use_container_width=True,
                              disabled=regen_disabled,
-                             help="Re-run the parser with your review answers added to the input."):
+                             help="Re-run the AI with your iteration text — produces an "
+                                  "updated spreadsheet. Stay in Phase 3 to keep iterating."):
                     try:
                         with st.spinner("Re-generating with review answers..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
