@@ -1,0 +1,16 @@
+# Streamlit theme — dark base with BMT-aligned colors. This makes the built-in
+# selectbox / textinput / button / popover components render with dark backgrounds
+# automatically, instead of fighting the default light theme via CSS overrides.
+[theme]
+base = "dark"
+primaryColor = "#3b82f6"           # accent blue (matches our primary buttons)
+backgroundColor = "#0a0f1a"        # main app background
+secondaryBackgroundColor = "#111827"  # cards, inputs, dropdown panels
+textColor = "#f1f5f9"              # body / heading text
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

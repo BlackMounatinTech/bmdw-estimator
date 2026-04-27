@@ -547,8 +547,10 @@ if not is_editing:
                               {"line_items": len(q.line_items),
                                "had_clarifying_questions": len(st.session_state.clarifying_questions)})
                     _reset_draft_state(reset_id=True)
-                    # NOTE: do NOT call st.query_params.clear() — it triggers a
-                    # rerun that interrupts the click handler. Just set + switch.
+                    # st.query_params writes don't always flush before
+                    # st.switch_page navigates. Stash in session_state too;
+                    # Job Hub picks up whichever is set.
+                    st.session_state["_pending_quote_id"] = saved_id
                     st.query_params["quote_id"] = saved_id
                     st.switch_page("pages/4_Job_Hub.py")
 
@@ -718,6 +720,8 @@ with a2:
         saved_id = save_quote(q)
         log_event(saved_id, "quote_drafted", {"line_items": len(q.line_items)})
         _reset_draft_state(reset_id=True)
-        # See Phase 3 lock-in note — clear() causes a rerun that drops the click.
+        # See Phase 3 lock-in note — query_params don't always flush before
+        # switch_page; use session_state as the reliable handoff.
+        st.session_state["_pending_quote_id"] = saved_id
         st.query_params["quote_id"] = saved_id
         st.switch_page("pages/4_Job_Hub.py")

@@ -260,50 +260,9 @@ def apply_theme() -> None:
             border-bottom: 1px solid #1e293b;
         }
 
-        /* --- Selectbox / dropdown text contrast fix.
-           Streamlit's baseweb Select renders the displayed value washed-out
-           against the dark theme. Brute-force readable color on every nested
-           element, every state. --- */
-        [data-testid="stSelectbox"],
-        [data-testid="stSelectbox"] *,
-        [data-testid="stSelectbox"] div[role="combobox"],
-        [data-testid="stSelectbox"] div[role="combobox"] *,
-        [data-baseweb="select"],
-        [data-baseweb="select"] *,
-        [data-baseweb="select"] > div,
-        [data-baseweb="select"] [class*="ValueContainer"],
-        [data-baseweb="select"] [class*="SingleValue"],
-        [data-baseweb="select"] input,
-        [data-baseweb="popover"] [role="option"],
-        [data-baseweb="popover"] [role="listbox"],
-        [data-baseweb="popover"] li {
-            color: #f1f5f9 !important;
-            opacity: 1 !important;
-            -webkit-text-fill-color: #f1f5f9 !important;
-        }
-        /* Dark background for the dropdown popover panel itself
-           (otherwise it's white → white text invisible). */
-        [data-baseweb="popover"],
-        [data-baseweb="popover"] [data-baseweb="menu"],
-        [data-baseweb="popover"] ul,
-        [data-baseweb="popover"] [role="listbox"] {
-            background: #111827 !important;
-            border: 1px solid #1e293b !important;
-        }
-        [data-testid="stSelectbox"] label {
-            /* Field label above the box ("Urgency", "Job type") — slightly dimmer
-               so it doesn't compete with the selected value. */
-            color: #cbd5e1 !important;
-            -webkit-text-fill-color: #cbd5e1 !important;
-            opacity: 1 !important;
-        }
-        [data-baseweb="popover"] [role="option"][aria-selected="true"] {
-            color: #f1f5f9 !important;
-            background: #1e293b !important;
-        }
-        [data-baseweb="popover"] [role="option"]:hover {
-            background: #1e293b !important;
-        }
+        /* Selectbox + dropdown styling is handled by Streamlit's dark theme
+           config (.streamlit/config.toml). No manual CSS overrides needed —
+           previous attempts caused white-on-white. */
 
         /* --- Primary button — make it clearly visible on dark background.
            Streamlit's default primary blue blends in; give it a bright outline

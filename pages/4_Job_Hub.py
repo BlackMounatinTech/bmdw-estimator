@@ -106,6 +106,13 @@ def _entry_from_catalogue(bucket: CostBucket, cat_key: str, qty: float) -> LineI
 
 quote_id = st.query_params.get("quote_id")
 if not quote_id:
+    # Fallback for the case where another page just saved a quote and routed
+    # us here — st.query_params may not have flushed yet, but session_state did.
+    quote_id = st.session_state.pop("_pending_quote_id", None)
+    if quote_id:
+        st.query_params["quote_id"] = quote_id
+
+if not quote_id:
     st.error("No quote selected. Open a quote from the Customers page.")
     st.stop()
 
