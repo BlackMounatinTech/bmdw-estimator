@@ -77,6 +77,9 @@ defaults = {
     "review_questions": [],           # Phase 3 follow-up list[str] from AI (reviewing the generated quote)
     "review_answers": "",             # Phase 3 follow-up answers for regenerate
     "voice_edit_mode": False,         # True when editing an existing quote via voice
+    # Phase 3 editable line items — hydrated once from parsed_preview, then
+    # mutated by the data_editor. Lock-in uses these (not re-hydrated parsed_preview).
+    "phase3_line_items": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -103,6 +106,7 @@ def _reset_draft_state(reset_id: bool = True) -> None:
     st.session_state.review_questions = []
     st.session_state.review_answers = ""
     st.session_state.voice_edit_mode = False
+    st.session_state.phase3_line_items = None
     if reset_id:
         st.session_state.current_editing_id = None
         st.session_state.loaded_quote_id = None
@@ -593,6 +597,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                         with st.spinner("Applying changes (10-15s)..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
                         st.session_state.parsed_preview = result
+                        st.session_state.phase3_line_items = None  # force re-hydrate
                         st.session_state.quote_phase = 3
                         st.rerun()
                     except Exception as exc:
@@ -717,10 +722,14 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     unsafe_allow_html=True,
                 )
 
-            # Hydrate the parsed preview into JobLineItems with real prices,
-            # then render as a sortable spreadsheet (same look as Quote Detail).
+            # Hydrate parsed_preview into editable JobLineItems once;
+            # re-hydrate only when parsed_preview changes (regen sets the flag).
             import pandas as _pd
-            hydrated_preview = hydrate_to_line_items(parsed)
+            from server.schemas import LineItemEntry as _LIE
+
+            if st.session_state.phase3_line_items is None:
+                st.session_state.phase3_line_items = hydrate_to_line_items(parsed)
+            phase3_items = st.session_state.phase3_line_items
 
             BUCKET_ORDER_PHASE3 = [
                 CostBucket.EQUIPMENT,
@@ -729,68 +738,113 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                 CostBucket.TRUCKING,
                 CostBucket.SPOIL,
             ]
-            bucket_label_phase3 = {
+            BUCKET_LABELS = {
                 CostBucket.EQUIPMENT: "Equipment",
                 CostBucket.MATERIALS: "Materials",
                 CostBucket.LABOUR: "Labour",
                 CostBucket.TRUCKING: "Trucking",
                 CostBucket.SPOIL: "Spoil",
             }
+            BUCKET_BY_LABEL = {v: k for k, v in BUCKET_LABELS.items()}
 
-            # One project = one labelled section + one spreadsheet
-            grand_total_internal = 0.0
-            for li in hydrated_preview:
+            st.caption(
+                "Spreadsheet is **editable** — tap any cell to change description, "
+                "qty, unit, or unit cost. Add a row by clicking the bottom blank line; "
+                "delete with the row's checkbox + the trash icon. Changes apply on lock-in."
+            )
+
+            for li_idx, li in enumerate(phase3_items):
                 section_header(f"◆ {li.label}")
+
                 rows = []
                 for bucket in BUCKET_ORDER_PHASE3:
                     for e in li.entries:
                         if e.bucket != bucket:
                             continue
                         rows.append({
-                            "Bucket": bucket_label_phase3[bucket],
+                            "Bucket": BUCKET_LABELS[bucket],
                             "Description": e.description,
-                            "Qty": e.quantity,
+                            "Qty": float(e.quantity),
                             "Unit": e.unit,
-                            "Unit Cost": e.unit_cost,
-                            "Line Total": e.total_cost,
+                            "Unit Cost": float(e.unit_cost),
+                            "Line Total": float(e.total_cost),
                         })
-                if not rows:
-                    st.caption("(no line items in this project)")
-                    continue
 
-                df = _pd.DataFrame(rows)
-                st.dataframe(
+                df = _pd.DataFrame(rows or [{
+                    "Bucket": "Materials", "Description": "", "Qty": 0.0,
+                    "Unit": "", "Unit Cost": 0.0, "Line Total": 0.0,
+                }]).head(0 if not rows else None)
+                if not rows:
+                    df = _pd.DataFrame(columns=["Bucket", "Description", "Qty", "Unit", "Unit Cost", "Line Total"])
+
+                edited_df = st.data_editor(
                     df,
                     use_container_width=True,
                     hide_index=True,
+                    num_rows="dynamic",
                     column_config={
-                        "Qty": st.column_config.NumberColumn(format="%.2f"),
-                        "Unit Cost": st.column_config.NumberColumn(format="$%.2f"),
-                        "Line Total": st.column_config.NumberColumn(format="$%.2f"),
+                        "Bucket": st.column_config.SelectboxColumn(
+                            options=list(BUCKET_LABELS.values()),
+                            required=True,
+                            width="small",
+                        ),
+                        "Description": st.column_config.TextColumn(width="medium"),
+                        "Qty": st.column_config.NumberColumn(format="%.2f", width="small"),
+                        "Unit": st.column_config.TextColumn(width="small"),
+                        "Unit Cost": st.column_config.NumberColumn(format="$%.2f", width="small"),
+                        "Line Total": st.column_config.NumberColumn(
+                            format="$%.2f", disabled=True, width="small",
+                            help="Auto-computed: Qty × Unit Cost",
+                        ),
                     },
+                    key=f"phase3_editor_{li_idx}",
                 )
 
-                # Per-bucket subtotals strip below the spreadsheet
+                # Sync edits back to li.entries
+                new_entries = []
+                for _, row in edited_df.iterrows():
+                    bucket_str = str(row.get("Bucket") or "Materials")
+                    bucket = BUCKET_BY_LABEL.get(bucket_str, CostBucket.MATERIALS)
+                    desc = str(row.get("Description") or "").strip()
+                    if not desc:
+                        continue  # skip blank rows
+                    try:
+                        qty = float(row.get("Qty") or 0)
+                    except Exception:
+                        qty = 0.0
+                    try:
+                        cost = float(row.get("Unit Cost") or 0)
+                    except Exception:
+                        cost = 0.0
+                    new_entries.append(_LIE(
+                        bucket=bucket,
+                        description=desc,
+                        quantity=qty,
+                        unit=str(row.get("Unit") or "each"),
+                        unit_cost=cost,
+                        rental_insurance_eligible=(bucket == CostBucket.EQUIPMENT),
+                    ))
+                li.entries = new_entries
+
+                # Per-bucket subtotals reflect edits
                 sub_cols = st.columns(5)
                 for col, bucket in zip(sub_cols, BUCKET_ORDER_PHASE3):
-                    col.metric(bucket_label_phase3[bucket], fmt_money(li.bucket_total(bucket)))
+                    col.metric(BUCKET_LABELS[bucket], fmt_money(li.bucket_total(bucket)))
 
-                proj_internal = li.internal_cost
-                grand_total_internal += proj_internal
                 st.markdown(
                     f'<div style="color:#94a3b8;font-size:12px;margin-top:6px;'
                     f'margin-bottom:16px;text-align:right;">'
                     f"Project internal cost (pre-markup, pre-tax): "
-                    f'<strong style="color:#f1f5f9;">{fmt_money(proj_internal)}</strong></div>',
+                    f'<strong style="color:#f1f5f9;">{fmt_money(li.internal_cost)}</strong></div>',
                     unsafe_allow_html=True,
                 )
 
-            # Quote-wide totals using the actual Quote pricing chain
+            # Quote-wide totals using the edited line items
             from server.schemas import Quote as _Q, Markup as _M
             tmp_q = _Q(
                 quote_id="PREVIEW",
                 customer=st.session_state.draft_customer,
-                line_items=hydrated_preview,
+                line_items=phase3_items,
                 markup=_M(overall_pct=st.session_state.draft_markup_pct),
                 discount_pct=st.session_state.draft_discount_pct,
                 tax_pct=st.session_state.draft_tax_pct,
@@ -909,6 +963,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                         with st.spinner("Re-generating with review answers..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
                         st.session_state.parsed_preview = result
+                        st.session_state.phase3_line_items = None  # force re-hydrate
                         # Generate fresh review questions for this new pass
                         st.session_state.review_questions = []
                         st.session_state.review_answers = ""
@@ -930,7 +985,11 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                 if st.button("✓ Lock in & open Quote Detail", use_container_width=True,
                              type="primary",
                              help="Save this quote and open the Quote Detail for review."):
-                    new_items = hydrate_to_line_items(parsed)
+                    # Use the user's EDITED line items from the Phase 3 spreadsheet,
+                    # not a fresh hydration of parsed_preview (which would lose edits).
+                    new_items = (st.session_state.phase3_line_items
+                                 if st.session_state.phase3_line_items is not None
+                                 else hydrate_to_line_items(parsed))
                     st.session_state.draft_line_items = new_items
                     # Polish the raw voice notes into a clean 1-2 sentence brief
                     # so Description / Customers / Quote Detail show something
