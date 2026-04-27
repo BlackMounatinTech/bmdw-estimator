@@ -15,6 +15,7 @@ from tools.storage import (
     init_db,
     list_customers,
     list_quotes_for_customer,
+    update_customer_full,
     update_customer_meta,
 )
 
@@ -132,13 +133,46 @@ if cust.get("email"):
 if cust.get("address"):
     contact_bits.append(f"📍 {cust['address']}")
 st.markdown(
-    f'<div style="color:#64748b;font-size:13px;margin-bottom:18px;">'
-    f"{' · '.join(contact_bits)}</div>",
+    f'<div style="color:#64748b;font-size:13px;margin-bottom:8px;">'
+    f"{' · '.join(contact_bits) if contact_bits else 'No contact info on file.'}</div>",
     unsafe_allow_html=True,
 )
 
 
+# ---- Contact info editor (name / phone / email / address) -------------
+section_header("Contact info")
+st.caption(
+    "Fix typos or update contact info. Changes propagate into every existing quote "
+    "for this customer (so old PDFs/contracts you regenerate use the corrected info)."
+)
+
+with st.form("contact_form"):
+    cf1, cf2 = st.columns(2)
+    with cf1:
+        new_name = st.text_input("Name", value=cust.get("name") or "")
+        new_phone = st.text_input("Phone", value=cust.get("phone") or "")
+    with cf2:
+        new_email = st.text_input("Email", value=cust.get("email") or "")
+        new_address = st.text_input("Address", value=cust.get("address") or "")
+
+    if st.form_submit_button("Save contact info", type="primary"):
+        result = update_customer_full(
+            cust["customer_id"],
+            name=new_name.strip() or cust.get("name"),
+            email=new_email.strip(),
+            phone=new_phone.strip(),
+            address=new_address.strip(),
+            propagate_to_quotes=True,
+        )
+        st.success(
+            f"Saved. Propagated to {result['quotes_propagated']} existing quote"
+            f"{'s' if result['quotes_propagated'] != 1 else ''}."
+        )
+        st.rerun()
+
+
 # Lead status + notes editor
+st.markdown("&nbsp;", unsafe_allow_html=True)
 section_header("Lead status + notes")
 
 c1, c2 = st.columns([1, 3])

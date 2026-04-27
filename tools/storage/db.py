@@ -119,6 +119,69 @@ def upsert_customer_from_quote(q: Quote) -> str:
         conn.close()
 
 
+def update_customer_full(
+    customer_id: str,
+    name: Optional[str] = None,
+    email: Optional[str] = None,
+    phone: Optional[str] = None,
+    address: Optional[str] = None,
+    propagate_to_quotes: bool = True,
+) -> dict:
+    """Update customer contact info + (by default) propagate the change into every
+    quote JSON blob for this customer so existing quotes show the corrected info.
+
+    Returns a status dict with how many quotes were updated.
+    """
+    updates = {"customer_updated": False, "quotes_propagated": 0}
+    conn = _connect()
+    try:
+        # Update customer row
+        sets, args = [], []
+        for col, val in [("name", name), ("email", email), ("phone", phone), ("address", address)]:
+            if val is not None:
+                sets.append(f"{col}=?")
+                args.append(val)
+        if sets:
+            args.append(customer_id)
+            conn.execute(f"UPDATE customers SET {', '.join(sets)} WHERE customer_id=?", args)
+            updates["customer_updated"] = True
+
+        if not propagate_to_quotes:
+            conn.commit()
+            return updates
+
+        # Propagate into quote JSON blobs so existing quotes show corrected info
+        rows = conn.execute(
+            "SELECT quote_id, quote_json FROM quotes WHERE customer_id=?",
+            (customer_id,),
+        ).fetchall()
+        for row in rows:
+            try:
+                blob = json.loads(row["quote_json"])
+                cust = blob.get("customer", {})
+                if name is not None:
+                    cust["name"] = name
+                if email is not None:
+                    cust["email"] = email or None
+                if phone is not None:
+                    cust["phone"] = phone or None
+                if address is not None:
+                    cust["address"] = address
+                blob["customer"] = cust
+                conn.execute(
+                    "UPDATE quotes SET quote_json=?, updated_at=? WHERE quote_id=?",
+                    (json.dumps(blob), _now(), row["quote_id"]),
+                )
+                updates["quotes_propagated"] += 1
+            except Exception:
+                # If a single blob fails to parse/update, skip it — don't kill the whole transaction.
+                continue
+        conn.commit()
+        return updates
+    finally:
+        conn.close()
+
+
 def update_customer_meta(customer_id: str, lead_status: str = None, notes: str = None) -> None:
     conn = _connect()
     try:

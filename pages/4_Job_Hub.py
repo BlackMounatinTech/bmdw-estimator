@@ -129,10 +129,17 @@ if q.customer.phone:
 if q.customer.email:
     contact_bits.append(q.customer.email)
 contact_line = " · ".join(contact_bits)
+
+from tools.storage.db import _slug as _customer_slug
+customer_id_for_link = f"CUST-{_customer_slug(q.customer.name)[:20] or 'unnamed'}"
+
 st.markdown(
     f'<div style="color:#64748b;font-size:13px;margin-bottom:8px;">'
     f"📍 {q.effective_site_address}"
     f"{'<br>📞 ' + contact_line if contact_line else ''}"
+    f'<br><a href="/Customers?customer_id={customer_id_for_link}" target="_self" '
+    f'style="color:#3b82f6;font-size:12px;text-decoration:none;">'
+    f"✏ Edit customer info →</a>"
     f"</div>",
     unsafe_allow_html=True,
 )
@@ -275,7 +282,7 @@ b5.metric("Spoil", fmt_money(q.bucket_total(CostBucket.SPOIL)))
 section_header("Job Details")
 
 tab_desc, tab_takeoff, tab_takeoff_table, tab_math, tab_contract, tab_plan, tab_events, tab_attach = st.tabs(
-    ["Description", "Takeoff (edit)", "Material Takeoff", "Math Breakdown", "Contract", "Plan", "Events", "Attachments"]
+    ["Description", "✏ Edit Quote", "Material Takeoff", "Math Breakdown", "Contract", "Plan", "Events", "Attachments"]
 )
 
 with tab_desc:
@@ -287,8 +294,18 @@ with tab_desc:
 
 
 with tab_takeoff:
-    st.markdown("### Takeoff — projects → buckets → entries")
-    st.caption("Tap a project to expand; tap a bucket tab to see entries. Edit inline; add new from the catalogue or freeform.")
+    st.markdown("### Edit quote — every line, every project")
+    st.markdown(
+        '<div style="background:#111827;border:1px solid #1e293b;'
+        'border-left:4px solid #3b82f6;border-radius:8px;'
+        'padding:12px 16px;margin-bottom:12px;color:#cbd5e1;font-size:13px;">'
+        "📝 <strong>This is where you fix anything in the quote after the AI generated it.</strong> "
+        "Tap a project to expand → tap a bucket tab (Labour / Materials / Equipment / Trucking / Spoil) "
+        "→ tap the ✏ button next to a line to edit, or use the forms at the bottom of each bucket "
+        "to add from the catalogue or as a freeform line. Changes save automatically."
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     job_type_labels = {j["key"]: j["label"] for j in JOB_TYPES}
     edited = False

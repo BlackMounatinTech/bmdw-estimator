@@ -11,6 +11,7 @@ from .db import (
     mark_status,
     next_quote_id,
     save_quote,
+    update_customer_full,
     update_customer_meta,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "mark_status",
     "next_quote_id",
     "save_quote",
+    "update_customer_full",
     "update_customer_meta",
 ]
