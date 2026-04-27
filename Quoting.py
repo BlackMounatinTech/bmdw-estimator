@@ -734,9 +734,9 @@ if (not is_editing) or st.session_state.voice_edit_mode:
             BUCKET_ORDER_PHASE3 = [
                 CostBucket.EQUIPMENT,
                 CostBucket.MATERIALS,
-                CostBucket.LABOUR,
-                CostBucket.TRUCKING,
                 CostBucket.SPOIL,
+                CostBucket.TRUCKING,
+                CostBucket.LABOUR,
             ]
             BUCKET_LABELS = {
                 CostBucket.EQUIPMENT: "Equipment",
@@ -1008,11 +1008,22 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                             pass  # keep raw notes on failure
                     q = _draft_quote()
                     saved_id = save_quote(q)
+                    # Capture any custom (non-catalogue) line items into the
+                    # user catalogue so they can be reused on future quotes.
+                    try:
+                        from tools.storage.user_catalogue import (
+                            capture_quote_customs as _cap_customs,
+                            static_catalogue_skus as _static_skus,
+                        )
+                        custom_count = _cap_customs(q.line_items, _static_skus())
+                    except Exception:
+                        custom_count = 0
                     log_event(saved_id,
                               "quote_voice_edited" if st.session_state.voice_edit_mode else "quote_locked_in",
                               {"line_items": len(q.line_items),
                                "had_clarifying_questions": len(st.session_state.clarifying_questions),
                                "had_review_questions": len(st.session_state.review_questions),
+                               "custom_items_captured": custom_count,
                                "voice_edit": st.session_state.voice_edit_mode})
                     # Don't reset draft state — preserve in case lock-in fails or
                     # user navigates back. Explicit "Start fresh" still resets.

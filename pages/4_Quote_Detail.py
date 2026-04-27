@@ -643,13 +643,14 @@ with tab_sheet:
     if not q.line_items:
         st.info("No projects yet.")
     else:
-        # Bucket display order per Michael's preference (Equipment first).
+        # Bucket display order per Michael's preference: Equipment, Materials,
+        # Spoil, Trucking, Labour (2026-04-27).
         BUCKET_ORDER = [
             CostBucket.EQUIPMENT,
             CostBucket.MATERIALS,
-            CostBucket.LABOUR,
-            CostBucket.TRUCKING,
             CostBucket.SPOIL,
+            CostBucket.TRUCKING,
+            CostBucket.LABOUR,
         ]
         bucket_label = {
             CostBucket.EQUIPMENT: "Equipment",

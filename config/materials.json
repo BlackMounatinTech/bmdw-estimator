@@ -173,10 +173,10 @@
   },
   "filter_fabric": {
     "sku": "FAB-NW-ROLL",
-    "name": "Filter fabric (roll)",
+    "name": "Landscape / filter fabric (roll)",
     "unit": "roll",
-    "cost_per_unit": 280.0,
-    "notes": "Standard pricing for retaining walls < 50 ft. Bigger walls may need custom pricing — flag in quick notes."
+    "cost_per_unit": 230.0,
+    "notes": "Same product whether called 'landscape fabric' or 'filter fabric' (geotextile). $230/roll. Standard pricing for retaining walls < 50 ft. Bigger walls may need custom pricing — flag in quick notes."
   },
   "geogrid": {
     "sku": "GEO-UX1500",
