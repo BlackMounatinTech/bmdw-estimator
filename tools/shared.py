@@ -298,6 +298,39 @@ def apply_theme() -> None:
             background: #1e293b !important;
         }
 
+        /* --- Primary button — make it clearly visible on dark background.
+           Streamlit's default primary blue blends in; give it a bright outline
+           and lift it off the surrounding form with extra top margin. --- */
+        [data-testid="stButton"] button[kind="primary"],
+        button[data-testid="baseButton-primary"],
+        button[data-testid="stBaseButton-primary"] {
+            background: #3b82f6 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: 0 0 0 1px #3b82f6, 0 4px 12px rgba(59, 130, 246, 0.35) !important;
+            font-weight: 700 !important;
+            padding: 12px 18px !important;
+            margin-top: 14px !important;
+        }
+        [data-testid="stButton"] button[kind="primary"]:hover,
+        button[data-testid="baseButton-primary"]:hover,
+        button[data-testid="stBaseButton-primary"]:hover {
+            background: #2563eb !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 0 1px #2563eb, 0 6px 16px rgba(59, 130, 246, 0.5) !important;
+        }
+        [data-testid="stButton"] button[kind="primary"]:disabled,
+        button[data-testid="baseButton-primary"]:disabled,
+        button[data-testid="stBaseButton-primary"]:disabled {
+            background: #1e293b !important;
+            color: #64748b !important;
+            -webkit-text-fill-color: #64748b !important;
+            border: 2px solid #334155 !important;
+            box-shadow: none !important;
+            cursor: not-allowed !important;
+        }
+
         /* --- Mobile responsive overrides (Section 5 of design system) --- */
         @media (max-width: 768px) {
             /* Global zoom-out so the whole UI feels less crammed on iPhone. */
