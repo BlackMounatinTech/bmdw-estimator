@@ -262,18 +262,39 @@ def apply_theme() -> None:
 
         /* --- Selectbox / dropdown text contrast fix.
            Streamlit's baseweb Select renders the displayed value washed-out
-           against the dark theme. Force readable color on all states. --- */
+           against the dark theme. Brute-force readable color on every nested
+           element, every state. --- */
+        [data-testid="stSelectbox"],
+        [data-testid="stSelectbox"] *,
+        [data-testid="stSelectbox"] div[role="combobox"],
+        [data-testid="stSelectbox"] div[role="combobox"] *,
+        [data-baseweb="select"],
+        [data-baseweb="select"] *,
         [data-baseweb="select"] > div,
         [data-baseweb="select"] [class*="ValueContainer"],
         [data-baseweb="select"] [class*="SingleValue"],
         [data-baseweb="select"] input,
+        [data-baseweb="popover"],
+        [data-baseweb="popover"] *,
         [data-baseweb="popover"] [role="option"],
+        [data-baseweb="popover"] [role="listbox"],
         [data-baseweb="popover"] li {
             color: #f1f5f9 !important;
+            opacity: 1 !important;
+            -webkit-text-fill-color: #f1f5f9 !important;
+        }
+        [data-testid="stSelectbox"] label {
+            /* Field label above the box ("Urgency", "Job type") — slightly dimmer
+               so it doesn't compete with the selected value. */
+            color: #cbd5e1 !important;
+            -webkit-text-fill-color: #cbd5e1 !important;
             opacity: 1 !important;
         }
         [data-baseweb="popover"] [role="option"][aria-selected="true"] {
             color: #f1f5f9 !important;
+            background: #1e293b !important;
+        }
+        [data-baseweb="popover"] [role="option"]:hover {
             background: #1e293b !important;
         }
 
