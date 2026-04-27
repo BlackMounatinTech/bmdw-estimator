@@ -99,7 +99,7 @@ Examples for a gravel driveway with imported aggregate:
   Day 4 — Surface finish layer; final compaction passes
   ...
 
-Format as { "day": <int>, "description": "..." } objects in the project_plan
+Format as {{ "day": <int>, "description": "..." }} objects in the project_plan
 list. Use the same day number for multiple steps that happen on the same day.
 Days start at 1 for the first day of WORK on each project (the contract
 template handles the pre-work day numbering).
