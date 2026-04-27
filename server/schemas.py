@@ -164,6 +164,13 @@ class Quote(BaseModel):
     notes: Optional[str] = None
     quick_notes: Optional[str] = None
     contract_text: Optional[str] = None  # editable contract; if None, draft_contract_text() is used
+    # Phase-state fields — captured on every autosave so you can close the app
+    # mid-quote and resume exactly where you left off.
+    quote_phase: int = 1                              # 1 = input, 2 = clarify, 3 = quote
+    clarifying_questions: List[str] = Field(default_factory=list)
+    clarifying_answers: str = ""
+    review_questions: List[str] = Field(default_factory=list)
+    review_answers: str = ""
 
     @property
     def effective_site_address(self) -> str:

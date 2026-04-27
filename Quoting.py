@@ -5,6 +5,8 @@ customer info, quick notes, AI parser, project + 5-bucket takeoff, running
 pricing summary, save/review.
 """
 
+from typing import Optional
+
 import streamlit as st
 
 from server.schemas import (
@@ -194,7 +196,8 @@ def _parsed_quote_summary_for_review(parsed) -> str:
 
 
 def _load_draft_into_session(quote_id: str) -> bool:
-    """Load an existing quote into session state for editing. Returns True on success."""
+    """Load an existing quote into session state for editing. Returns True on success.
+    Restores phase + clarifying-state fields too so user can resume mid-flow."""
     q = load_quote(quote_id)
     if q is None:
         return False
@@ -211,7 +214,39 @@ def _load_draft_into_session(quote_id: str) -> bool:
     st.session_state.draft_insurance_pct = q.rental_insurance_pct
     st.session_state.current_editing_id = quote_id
     st.session_state.loaded_quote_id = quote_id
+    # Resume phase + Q&A state if it was saved on a previous autosave
+    st.session_state.quote_phase = int(getattr(q, "quote_phase", 1) or 1)
+    st.session_state.clarifying_questions = list(getattr(q, "clarifying_questions", []) or [])
+    st.session_state.clarifying_answers = getattr(q, "clarifying_answers", "") or ""
+    st.session_state.review_questions = list(getattr(q, "review_questions", []) or [])
+    st.session_state.review_answers = getattr(q, "review_answers", "") or ""
     return True
+
+
+def _autosave_draft() -> Optional[str]:
+    """Save current session-state as a draft quote. Called at every phase
+    transition so a refresh / app-switch never loses progress.
+
+    Returns the saved quote_id, or None on failure (silent — never blocks).
+    """
+    try:
+        # Skip autosave if we have literally nothing yet (no name, no notes,
+        # no customer name) — avoid cluttering drafts list with blank rows.
+        cust_name = (st.session_state.draft_customer.name or "").strip()
+        notes = (st.session_state.draft_quick_notes or "").strip()
+        proj_name = (st.session_state.draft_project_name or "").strip()
+        if not (cust_name or notes or proj_name):
+            return None
+
+        draft = _draft_quote()
+        saved_id = save_quote(draft)
+        st.session_state.current_editing_id = saved_id
+        st.session_state.loaded_quote_id = saved_id
+        # Don't update query_params here — it could trigger a rerun. Just
+        # stash so anything reading session_state can find the active quote.
+        return saved_id
+    except Exception:
+        return None
 
 
 # Honor ?quote_id=X — load that quote into the draft for editing.
@@ -246,6 +281,12 @@ def _draft_quote() -> Quote:
         tax_pct=st.session_state.draft_tax_pct,
         rental_insurance_pct=st.session_state.draft_insurance_pct,
         quick_notes=st.session_state.draft_quick_notes or None,
+        # Phase state — captured so autosave can resume mid-flow
+        quote_phase=int(st.session_state.quote_phase),
+        clarifying_questions=list(st.session_state.clarifying_questions),
+        clarifying_answers=st.session_state.clarifying_answers,
+        review_questions=list(st.session_state.review_questions),
+        review_answers=st.session_state.review_answers,
     )
 
 
@@ -513,6 +554,10 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                 st.session_state.clarifying_questions = result["questions"]
                 st.session_state.clarifier_error = None
                 st.session_state.quote_phase = 2
+                # AUTOSAVE before rerun — if the user closes the app now,
+                # they can come back to a draft showing exactly Phase 2 with
+                # these questions ready to answer.
+                _autosave_draft()
                 st.rerun()
             else:
                 st.session_state.clarifier_error = result.get("reason") or "Unknown failure."
@@ -599,6 +644,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                         st.session_state.parsed_preview = result
                         st.session_state.phase3_line_items = None  # force re-hydrate
                         st.session_state.quote_phase = 3
+                        _autosave_draft()
                         st.rerun()
                     except Exception as exc:
                         st.error(
@@ -688,6 +734,9 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                                 # Non-fatal — Phase 3 still loads, just without review questions.
                                 pass
                         st.session_state.quote_phase = 3
+                        # AUTOSAVE — Phase 3 just generated, persist before rerun
+                        # so the line items + review questions survive an app close.
+                        _autosave_draft()
                         st.rerun()
                     except Exception as exc:
                         st.error(
@@ -978,6 +1027,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                                     st.session_state.review_questions = review["questions"]
                             except Exception:
                                 pass
+                        _autosave_draft()
                         st.rerun()
                     except Exception as exc:
                         st.error(f"Regenerate failed: {exc}")
