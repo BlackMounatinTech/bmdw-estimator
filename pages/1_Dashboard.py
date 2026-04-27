@@ -57,7 +57,7 @@ if not quotes:
 else:
     for q in quotes:
         color = STATUS_COLORS.get(q["status"], "#64748b")
-        link = f"4_Job_Hub?quote_id={q['quote_id']}"
+        link = f"Job_Hub?quote_id={q['quote_id']}"
         st.markdown(
             f'<a href="/{link}" target="_self" style="text-decoration:none;">'
             f'<div style="background:#111827;border:1px solid #1e293b;'

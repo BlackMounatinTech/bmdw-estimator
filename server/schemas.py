@@ -88,6 +88,8 @@ class JobLineItem(BaseModel):
     inputs: Dict  # raw parameter dict the calculator received
     entries: List[LineItemEntry] = Field(default_factory=list)
     notes: Optional[str] = None
+    project_notes: Optional[str] = None  # free-form notes about THIS project (site notes, reminders, etc.)
+    attachments: List[str] = Field(default_factory=list)  # relative paths under data/attachments/<quote_id>/<idx>/
 
     def bucket_total(self, bucket: CostBucket) -> float:
         return round(sum(e.total_cost for e in self.entries if e.bucket == bucket), 2)

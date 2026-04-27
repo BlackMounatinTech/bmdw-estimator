@@ -341,7 +341,7 @@ def apply_theme() -> None:
         /* --- Mobile responsive overrides (Section 5 of design system) --- */
         @media (max-width: 768px) {
             /* Global zoom-out so the whole UI feels less crammed on iPhone. */
-            html { zoom: 0.85; -webkit-text-size-adjust: 85%; }
+            html { zoom: 0.8; -webkit-text-size-adjust: 80%; }
             /* Tighten Streamlit's default outer padding so content uses the
                full viewport. Default is ~1rem on each side; cut roughly in half. */
             .main .block-container,

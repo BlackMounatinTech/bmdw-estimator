@@ -440,6 +440,91 @@ with tab_takeoff:
                             ))
                             edited = True
 
+            # ---- Per-project NOTES + FILES (BC One Call, permits, plans, photos) ----
+            st.markdown("&nbsp;", unsafe_allow_html=True)
+            st.markdown(
+                '<div style="color:#64748b;font-size:11px;font-weight:700;'
+                'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
+                "Project notes + files</div>",
+                unsafe_allow_html=True,
+            )
+
+            note_val = st.text_area(
+                "Project notes",
+                value=li.project_notes or "",
+                key=f"pnotes_{li_idx}",
+                height=100,
+                placeholder="Site reminders, customer asks, deviations, anything specific to THIS project.",
+                label_visibility="collapsed",
+            )
+            if note_val != (li.project_notes or ""):
+                li.project_notes = note_val or None
+                edited = True
+
+            # File upload — accepts photos, PDFs, anything. Saves under
+            # data/attachments/<quote_id>/<project_idx>/.
+            attach_dir = (Path(__file__).resolve().parents[1]
+                          / "data" / "attachments" / q.quote_id / str(li_idx))
+
+            uploaded = st.file_uploader(
+                "Upload photos / plans / permits / BC One Call docs",
+                accept_multiple_files=True,
+                key=f"upload_{q.quote_id}_{li_idx}",
+                type=None,  # any file type
+            )
+            if uploaded:
+                attach_dir.mkdir(parents=True, exist_ok=True)
+                added = 0
+                for f in uploaded:
+                    target = attach_dir / f.name
+                    target.write_bytes(f.read())
+                    rel = str(target.relative_to(Path(__file__).resolve().parents[1]))
+                    if rel not in li.attachments:
+                        li.attachments.append(rel)
+                        added += 1
+                if added:
+                    log_event(q.quote_id, "project_files_added",
+                              {"project": li.label, "count": added})
+                    edited = True
+                    st.success(f"Added {added} file(s).")
+
+            # Existing attachments list
+            if li.attachments:
+                st.markdown(
+                    '<div style="color:#94a3b8;font-size:11px;'
+                    'margin-top:8px;margin-bottom:4px;">'
+                    f"📎 {len(li.attachments)} file(s) on this project</div>",
+                    unsafe_allow_html=True,
+                )
+                root = Path(__file__).resolve().parents[1]
+                for a_idx, rel_path in list(enumerate(li.attachments)):
+                    full = root / rel_path
+                    fname = Path(rel_path).name
+                    fcols = st.columns([5, 1, 1])
+                    fcols[0].markdown(
+                        f'<div style="color:#cbd5e1;font-size:13px;padding:6px 0;">'
+                        f"📄 {fname}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    if full.exists():
+                        with fcols[1]:
+                            st.download_button(
+                                "⬇", data=full.read_bytes(), file_name=fname,
+                                key=f"dl_{q.quote_id}_{li_idx}_{a_idx}",
+                                use_container_width=True,
+                            )
+                    with fcols[2]:
+                        if st.button("✕", key=f"rm_{q.quote_id}_{li_idx}_{a_idx}",
+                                     use_container_width=True, help="Remove from list"):
+                            li.attachments.pop(a_idx)
+                            try:
+                                if full.exists():
+                                    full.unlink()
+                            except Exception:
+                                pass
+                            edited = True
+                            st.rerun()
+
             # Project actions at bottom
             st.markdown("&nbsp;", unsafe_allow_html=True)
             pa1, pa2 = st.columns([3, 1])
