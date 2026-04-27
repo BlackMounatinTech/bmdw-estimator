@@ -228,8 +228,26 @@ def next_quote_id() -> str:
         conn.close()
 
 
+def _snapshot_quote(q: Quote) -> None:
+    """Write a per-quote JSON snapshot to <data_dir>/backups/<quote_id>.json.
+    Belt-and-suspenders backup: if the SQLite DB ever gets corrupted, lost,
+    or wiped, every quote can be reconstructed from these JSON files.
+    Snapshots live on the SAME persistent disk as the DB, plus they're
+    downloadable individually or as a bundle from the Settings page."""
+    try:
+        from tools.storage.paths import data_dir as _ddir
+        backup_dir = _ddir() / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        path = backup_dir / f"{q.quote_id}.json"
+        path.write_text(q.model_dump_json(indent=2))
+    except Exception:
+        # Snapshots are insurance — never let a snapshot failure break a save.
+        pass
+
+
 def save_quote(q: Quote) -> str:
-    """Insert or update a quote. Returns the quote_id (assigns one if missing)."""
+    """Insert or update a quote. Returns the quote_id (assigns one if missing).
+    Also writes a JSON snapshot to <data_dir>/backups/ as redundant insurance."""
     if q.quote_id == "DRAFT" or not q.quote_id:
         q.quote_id = next_quote_id()
     customer_id = upsert_customer_from_quote(q)
@@ -264,9 +282,13 @@ def save_quote(q: Quote) -> str:
                 (*payload[:5], _now(), *payload[5:], customer_id),
             )
         conn.commit()
-        return q.quote_id
     finally:
         conn.close()
+
+    # Always-on JSON sidecar — runs OUTSIDE the DB transaction so a snapshot
+    # failure never breaks the save.
+    _snapshot_quote(q)
+    return q.quote_id
 
 
 def log_event(quote_id: str, event_type: str, payload: Optional[dict] = None) -> None:
@@ -394,6 +416,70 @@ def load_events(quote_id: str) -> List[dict]:
         return [dict(r) for r in rows]
     finally:
         conn.close()
+
+
+def restore_from_snapshots() -> dict:
+    """Walk <data_dir>/backups/*.json and re-save any quotes not currently in
+    the DB. Idempotent — re-running with everything intact does nothing.
+    Returns a status dict with counts."""
+    from tools.storage.paths import data_dir as _ddir
+    backup_dir = _ddir() / "backups"
+    if not backup_dir.exists():
+        return {"ok": True, "found": 0, "restored": 0, "already_present": 0,
+                "failed": 0, "reason": "No backups directory yet."}
+
+    found = 0
+    restored = 0
+    already = 0
+    failed = 0
+    failures = []
+
+    conn = _connect()
+    try:
+        existing_ids = {r["quote_id"] for r in conn.execute("SELECT quote_id FROM quotes").fetchall()}
+    finally:
+        conn.close()
+
+    for path in sorted(backup_dir.glob("*.json")):
+        found += 1
+        try:
+            blob = json.loads(path.read_text())
+            qid = blob.get("quote_id")
+            if not qid:
+                failed += 1
+                failures.append(f"{path.name}: missing quote_id")
+                continue
+            if qid in existing_ids:
+                already += 1
+                continue
+            q = Quote.model_validate(blob)
+            save_quote(q)  # writes both DB + snapshot (idempotent for snapshot)
+            restored += 1
+        except Exception as exc:
+            failed += 1
+            failures.append(f"{path.name}: {exc}")
+
+    return {"ok": True, "found": found, "restored": restored,
+            "already_present": already, "failed": failed,
+            "failures": failures[:20]}
+
+
+def list_snapshot_files() -> list:
+    """Return list of {filename, size, modified} for snapshot inventory display."""
+    from tools.storage.paths import data_dir as _ddir
+    backup_dir = _ddir() / "backups"
+    if not backup_dir.exists():
+        return []
+    out = []
+    for path in sorted(backup_dir.glob("*.json")):
+        s = path.stat()
+        out.append({
+            "filename": path.name,
+            "size": s.st_size,
+            "modified": datetime.fromtimestamp(s.st_mtime).isoformat(timespec="seconds"),
+            "path": str(path),
+        })
+    return out
 
 
 def dashboard_metrics() -> dict:

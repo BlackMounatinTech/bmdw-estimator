@@ -46,18 +46,23 @@ def is_configured() -> bool:
 # ---- Shared header block ------------------------------------------------
 
 def _logo_block(company: dict) -> str:
-    """If the configured logo file exists, embed it. Otherwise empty string
-    (header falls back to the legal-name text). Path is relative to project root."""
+    """Embed the logo if findable. Look in priority order:
+    1. <persistent data dir>/branding/logo.png (uploaded via the app, survives deploys)
+    2. <project root>/<company.logo_path> (committed to git)
+    """
+    candidates = []
+    # 1. Persistent disk upload location
+    candidates.append(data_dir() / "branding" / "logo.png")
+    # 2. Git-committed path from company.json
     logo_rel = company.get("logo_path", "config/branding/logo.png")
     project_root = Path(__file__).resolve().parents[2]
-    logo_path = (project_root / logo_rel).resolve()
-    if not logo_path.exists():
-        return ""
-    # WeasyPrint accepts file:// URIs for local images.
-    return (
-        f'<img class="brand-logo" src="file://{logo_path}" '
-        f'alt="BMDW logo" />'
-    )
+    candidates.append((project_root / logo_rel).resolve())
+
+    for logo_path in candidates:
+        if logo_path.exists():
+            # WeasyPrint accepts file:// URIs for local images.
+            return f'<img class="brand-logo" src="file://{logo_path}" alt="BMDW logo" />'
+    return ""
 
 
 def _header_html(company: dict, doc_label: str, q: Quote, today: date,
