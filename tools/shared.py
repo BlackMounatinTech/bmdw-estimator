@@ -274,14 +274,21 @@ def apply_theme() -> None:
         [data-baseweb="select"] [class*="ValueContainer"],
         [data-baseweb="select"] [class*="SingleValue"],
         [data-baseweb="select"] input,
-        [data-baseweb="popover"],
-        [data-baseweb="popover"] *,
         [data-baseweb="popover"] [role="option"],
         [data-baseweb="popover"] [role="listbox"],
         [data-baseweb="popover"] li {
             color: #f1f5f9 !important;
             opacity: 1 !important;
             -webkit-text-fill-color: #f1f5f9 !important;
+        }
+        /* Dark background for the dropdown popover panel itself
+           (otherwise it's white → white text invisible). */
+        [data-baseweb="popover"],
+        [data-baseweb="popover"] [data-baseweb="menu"],
+        [data-baseweb="popover"] ul,
+        [data-baseweb="popover"] [role="listbox"] {
+            background: #111827 !important;
+            border: 1px solid #1e293b !important;
         }
         [data-testid="stSelectbox"] label {
             /* Field label above the box ("Urgency", "Job type") — slightly dimmer

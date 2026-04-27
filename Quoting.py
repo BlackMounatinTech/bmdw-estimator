@@ -547,7 +547,8 @@ if not is_editing:
                               {"line_items": len(q.line_items),
                                "had_clarifying_questions": len(st.session_state.clarifying_questions)})
                     _reset_draft_state(reset_id=True)
-                    st.query_params.clear()
+                    # NOTE: do NOT call st.query_params.clear() — it triggers a
+                    # rerun that interrupts the click handler. Just set + switch.
                     st.query_params["quote_id"] = saved_id
                     st.switch_page("pages/4_Job_Hub.py")
 
@@ -717,6 +718,6 @@ with a2:
         saved_id = save_quote(q)
         log_event(saved_id, "quote_drafted", {"line_items": len(q.line_items)})
         _reset_draft_state(reset_id=True)
-        st.query_params.clear()
+        # See Phase 3 lock-in note — clear() causes a rerun that drops the click.
         st.query_params["quote_id"] = saved_id
         st.switch_page("pages/4_Job_Hub.py")
