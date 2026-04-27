@@ -717,27 +717,91 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     unsafe_allow_html=True,
                 )
 
-            for project in parsed.projects:
-                with st.expander(
-                    f"◆ {project.label}  ·  {project.job_type.replace('_', ' ').title()}",
-                    expanded=True,
-                ):
-                    for bucket in CostBucket:
-                        entries = [e for e in project.line_entries if e.bucket == bucket]
-                        if not entries:
+            # Hydrate the parsed preview into JobLineItems with real prices,
+            # then render as a sortable spreadsheet (same look as Quote Detail).
+            import pandas as _pd
+            hydrated_preview = hydrate_to_line_items(parsed)
+
+            BUCKET_ORDER_PHASE3 = [
+                CostBucket.EQUIPMENT,
+                CostBucket.MATERIALS,
+                CostBucket.LABOUR,
+                CostBucket.TRUCKING,
+                CostBucket.SPOIL,
+            ]
+            bucket_label_phase3 = {
+                CostBucket.EQUIPMENT: "Equipment",
+                CostBucket.MATERIALS: "Materials",
+                CostBucket.LABOUR: "Labour",
+                CostBucket.TRUCKING: "Trucking",
+                CostBucket.SPOIL: "Spoil",
+            }
+
+            # One project = one labelled section + one spreadsheet
+            grand_total_internal = 0.0
+            for li in hydrated_preview:
+                section_header(f"◆ {li.label}")
+                rows = []
+                for bucket in BUCKET_ORDER_PHASE3:
+                    for e in li.entries:
+                        if e.bucket != bucket:
                             continue
-                        st.markdown(
-                            f'<div style="color:{bucket_color[bucket]};font-size:11px;'
-                            f'font-weight:700;text-transform:uppercase;'
-                            f'letter-spacing:0.06em;margin:8px 0 4px;">{bucket.value}</div>',
-                            unsafe_allow_html=True,
-                        )
-                        for e in entries:
-                            flag = " ⚠ catalogue" if e.needs_catalogue_add else ""
-                            cat_ref = f' · `{e.catalogue_key}`' if e.catalogue_key else ""
-                            st.markdown(
-                                f"- {e.description} — **{e.quantity:g} {e.unit}**{cat_ref}{flag}"
-                            )
+                        rows.append({
+                            "Bucket": bucket_label_phase3[bucket],
+                            "Description": e.description,
+                            "Qty": e.quantity,
+                            "Unit": e.unit,
+                            "Unit Cost": e.unit_cost,
+                            "Line Total": e.total_cost,
+                        })
+                if not rows:
+                    st.caption("(no line items in this project)")
+                    continue
+
+                df = _pd.DataFrame(rows)
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Qty": st.column_config.NumberColumn(format="%.2f"),
+                        "Unit Cost": st.column_config.NumberColumn(format="$%.2f"),
+                        "Line Total": st.column_config.NumberColumn(format="$%.2f"),
+                    },
+                )
+
+                # Per-bucket subtotals strip below the spreadsheet
+                sub_cols = st.columns(5)
+                for col, bucket in zip(sub_cols, BUCKET_ORDER_PHASE3):
+                    col.metric(bucket_label_phase3[bucket], fmt_money(li.bucket_total(bucket)))
+
+                proj_internal = li.internal_cost
+                grand_total_internal += proj_internal
+                st.markdown(
+                    f'<div style="color:#94a3b8;font-size:12px;margin-top:6px;'
+                    f'margin-bottom:16px;text-align:right;">'
+                    f"Project internal cost (pre-markup, pre-tax): "
+                    f'<strong style="color:#f1f5f9;">{fmt_money(proj_internal)}</strong></div>',
+                    unsafe_allow_html=True,
+                )
+
+            # Quote-wide totals using the actual Quote pricing chain
+            from server.schemas import Quote as _Q, Markup as _M
+            tmp_q = _Q(
+                quote_id="PREVIEW",
+                customer=st.session_state.draft_customer,
+                line_items=hydrated_preview,
+                markup=_M(overall_pct=st.session_state.draft_markup_pct),
+                discount_pct=st.session_state.draft_discount_pct,
+                tax_pct=st.session_state.draft_tax_pct,
+                rental_insurance_pct=st.session_state.draft_insurance_pct,
+            )
+            st.markdown("&nbsp;", unsafe_allow_html=True)
+            section_header("Quote totals (preview)")
+            t1, t2, t3 = st.columns(3)
+            t1.metric("Internal cost", fmt_money(tmp_q.internal_cost))
+            t2.metric("Customer total", fmt_money(tmp_q.customer_total))
+            t3.metric("Margin", f"{tmp_q.margin_pct}%")
 
             # Optional reference checklist (collapsible) — secondary to the AI's
             # targeted questions in Phase 2, but still useful as a final scan.
