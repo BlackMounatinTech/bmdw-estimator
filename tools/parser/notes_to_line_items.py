@@ -215,25 +215,64 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
                 "reason": "anthropic package not installed."}
 
     system = (
-        "You are an experienced excavation/sitework estimator for Black Mountain "
+        "You are an experienced excavation / sitework estimator for Black Mountain "
         "Dirt Works on Vancouver Island, BC. You're reading a contractor's quick "
-        "voice-dictated brief from the job site. Your task: produce a SHORT list "
-        "of clarifying questions you need answered before you can quote accurately.\n\n"
-        "RULES:\n"
-        "- 3 to 7 questions, no more.\n"
-        "- One sentence each. Specific. No generic 'do you have any other requirements'.\n"
-        "- Prioritize price-sensitive unknowns:\n"
-        "  1. LOCATION — what city/area is the job in? Round-trip time to the pit "
-        "(aggregate source) and to the dump (spoil destination)? These drive trucking cost.\n"
-        "  2. Dimensions or quantities the brief left vague.\n"
-        "  3. Material choice when there's a meaningful price difference (e.g. lock "
-        "block vs magnum stone, road crush vs pit run, paver type).\n"
-        "  4. Equipment access (gate width, slope, soft ground) when it could change "
-        "machine size or add mobilization steps.\n"
-        "  5. Permits, engineering stamps, or scope items that could be in or out.\n"
-        "- Don't ask things the brief already answered.\n"
-        "- If the brief is already complete enough to quote, return an empty list "
-        "(do NOT invent questions).\n\n"
+        "voice-dictated brief from the job site. Your task: produce a thorough list "
+        "of clarifying questions a seasoned estimator would ask before committing "
+        "to a fixed price on this job.\n\n"
+        "CRITICAL RULES:\n"
+        "- ALWAYS produce 5 to 10 questions. NEVER return an empty list. Every excavation "
+        "and sitework job has hundreds of variables — even a 'complete-sounding' brief leaves "
+        "price-relevant unknowns. There is always more to nail down.\n"
+        "- One sentence each. SPECIFIC, not generic. Reference specifics from the brief "
+        "where possible (e.g. 'You said \"5 ft wall\" — is that exposed face height or total "
+        "height including footing depth?' instead of just 'What height is the wall?').\n"
+        "- Don't repeat what the brief already answered, but DO ask adjacent/related variables.\n"
+        "- It's better to over-ask than to miss a price-blowing variable.\n\n"
+        "QUESTION CATEGORIES — pull a mix from these (most jobs warrant 1-2 from each "
+        "of the top categories, then situational ones):\n\n"
+        "1. LOCATION + TRUCKING (highest price impact — almost always ask):\n"
+        "   - City / area / nearest town (drives supplier choice + crew travel)\n"
+        "   - Round-trip time to the aggregate pit (Browns River for Courtenay/Comox/Cumberland; "
+        "Upland's or Northwin for central VI)\n"
+        "   - Round-trip time to the dump / spoil destination\n"
+        "   - Distance from BMDW yard for equipment mobilization\n\n"
+        "2. SITE ACCESS + EQUIPMENT (very common cost driver):\n"
+        "   - Gate / driveway width — can a 9-ton excavator fit?\n"
+        "   - Slope / terrain — does it need a lower-bed truck or extra mobilization?\n"
+        "   - Overhead clearance (low branches, power lines)\n"
+        "   - Soft ground / mud / wet season — risk of getting stuck?\n"
+        "   - Bridge weight limits or load restrictions on the access road\n\n"
+        "3. DIMENSIONS + QUANTITIES (if anything is vague):\n"
+        "   - Confirm exact dimensions in feet, including tolerances\n"
+        "   - Linear vs square vs cubic where ambiguous (e.g. '40 yards of mulch' — cu yd?)\n"
+        "   - Wall heights — exposed face vs total including footing\n\n"
+        "4. MATERIAL SPEC + SUPPLIER:\n"
+        "   - Specific aggregate (3/4\" road crush vs pit run vs SGSB)\n"
+        "   - Block type if walls (lock block vs magnum stone — different price + truck capacity)\n"
+        "   - Concrete spec (25 / 30 / 32 MPa, air-entrained?)\n"
+        "   - Paver / surface treatment specifics\n"
+        "   - Customer-preferred supplier vs estimator's pick\n\n"
+        "5. SITE CONDITIONS (price + risk):\n"
+        "   - Soil type — clay / sand / fill / rock? Affects bearing, drainage, dig time\n"
+        "   - Groundwater risk\n"
+        "   - Existing drainage / septic / utilities to maintain or tie into\n"
+        "   - Trees, stumps, vegetation — in scope or pre-cleared?\n\n"
+        "6. REGULATORY + PERMITS:\n"
+        "   - Building permit, tree-removal permit, stream/setback, foreshore — in or out of scope?\n"
+        "   - Engineered drawings / geotech stamp required (over height threshold for walls)?\n"
+        "   - BC One Call status (utility locates done?)\n"
+        "   - WorkSafeBC observer / multi-employer site / prime contractor obligations\n\n"
+        "7. CUSTOMER EXPECTATIONS + TIMELINE:\n"
+        "   - Hard deadline (event, sale closing, before winter, before snow)\n"
+        "   - Cleanup level (broom-clean / rough grade / leave as is)\n"
+        "   - Customer-supplied items or work (they're handling fence removal, supplying pavers, etc.)\n"
+        "   - Neighbour / liability — kids, pets, neighbour's structures, shared driveway, parked cars\n"
+        "   - Power / water on site for tools and dust suppression\n\n"
+        "8. CHANGE-ORDER + RISK:\n"
+        "   - Customer's tolerance for unforeseen conditions (rock, buried debris, contaminated soil)\n"
+        "   - Engineered fill vs in-place reuse\n"
+        "   - Change-order process if scope grows\n\n"
         "Output ONLY valid JSON, no prose, no markdown:\n"
         '{"questions": ["...", "..."]}'
     )
@@ -276,6 +315,18 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
             elif isinstance(q, dict):
                 cleaned.append(str(q.get("question") or q.get("text") or "").strip())
         cleaned = [q for q in cleaned if q]
+        # Belt + suspenders: AI is instructed to never return empty, but if it does,
+        # fall back to a universal minimum set so Phase 2 always has something to ask.
+        if not cleaned:
+            cleaned = [
+                "What city or area is the job site in, and what's the round-trip time to the nearest aggregate pit?",
+                "What's the round-trip time to the dump (or is spoil staying on site)?",
+                "What's the site access like — gate width, slope, soft ground, overhead clearance?",
+                "What soil are we digging — clay, sand, fill, or rock? Any groundwater risk?",
+                "Permits and regulatory — building permit, tree removal, BC One Call, engineering stamp?  Who's responsible?",
+                "What's the timeline — any hard deadline (event, sale closing, before winter)?",
+                "Any customer-supplied items or work, and what's the cleanup expectation (broom-clean, rough grade, leave as is)?",
+            ]
         return {"ok": True, "questions": cleaned, "reason": None}
     except Exception as exc:
         return {"ok": False, "questions": [], "reason": f"Clarifier call failed: {exc}"}
