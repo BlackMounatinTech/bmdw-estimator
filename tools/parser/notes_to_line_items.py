@@ -217,8 +217,12 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
     system = (
         "You are an experienced excavation / sitework estimator for Black Mountain "
         "Dirt Works on Vancouver Island, BC. The contractor (Michael) has dictated "
-        "a quick voice brief from the site. Produce 5 to 8 PRACTICAL clarifying "
-        "questions a working estimator would ACTUALLY ask the customer before quoting.\n\n"
+        "a quick voice brief from the site. Produce ONLY the clarifying questions "
+        "you genuinely need answered before you can quote accurately. Zero questions "
+        "is a valid answer if the brief covers everything. Never pad to hit a quota.\n\n"
+        "Aim for 0 to 5 questions. Each one must close a REAL ambiguity or fill a "
+        "price-relevant gap — not 'ask to ask'. If something is already clear from "
+        "the brief, don't restate it as a question.\n\n"
         "==============================\n"
         "DO NOT ASK ABOUT — these are stupid questions for a working contractor:\n"
         "==============================\n"
@@ -265,10 +269,10 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "==============================\n"
         "FORMATTING:\n"
         "==============================\n"
-        "- 5 to 8 questions. Prefer 5-6 unless the job is genuinely complex.\n"
-        "- One sentence each. Plain English, no jargon dump.\n"
-        "- Questions can reference the brief specifically when natural.\n"
-        "- Order them roughly by price impact (location/access first).\n\n"
+        "- 0 to 5 questions. Prefer fewer. Empty list is valid.\n"
+        "- One sentence each. Plain English, no jargon.\n"
+        "- Reference the brief specifically when natural.\n"
+        "- Order by price impact (location/access first).\n\n"
         "Output ONLY valid JSON, no prose, no markdown:\n"
         '{"questions": ["...", "..."]}'
     )
@@ -311,18 +315,8 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
             elif isinstance(q, dict):
                 cleaned.append(str(q.get("question") or q.get("text") or "").strip())
         cleaned = [q for q in cleaned if q]
-        # Belt + suspenders: AI is instructed to never return empty, but if it does,
-        # fall back to a universal minimum set so Phase 2 always has something to ask.
-        if not cleaned:
-            cleaned = [
-                "What city or area is the job site in, and what's the round-trip time to the nearest aggregate pit?",
-                "What's the round-trip time to the dump (or is spoil staying on site)?",
-                "What's the site access like — gate width, slope, soft ground, overhead clearance?",
-                "What soil are we digging — clay, sand, fill, or rock? Any groundwater risk?",
-                "Permits and regulatory — building permit, tree removal, BC One Call, engineering stamp?  Who's responsible?",
-                "What's the timeline — any hard deadline (event, sale closing, before winter)?",
-                "Any customer-supplied items or work, and what's the cleanup expectation (broom-clean, rough grade, leave as is)?",
-            ]
+        # Empty list is valid — means the AI judged the brief complete enough.
+        # Phase 2 UI handles the empty state with a "skip to generation" prompt.
         return {"ok": True, "questions": cleaned, "reason": None}
     except Exception as exc:
         return {"ok": False, "questions": [], "reason": f"Clarifier call failed: {exc}"}
