@@ -73,30 +73,38 @@ Aim for 8 to 30 steps per project, scaled to complexity:
   clearing): 20-30+ steps. Multi-phase jobs can group steps under named phases.
 
 Each step must be a CONCRETE action a customer can visualize during a site
-walk-through. Include material movement, machinery operations, layer-by-layer
-build-up, compaction passes, drainage installation, intermediate inspections,
-formwork, etc. — the more granular, the more confidence the customer has that
-you know what you're doing.
+walk-through. The plan ends up in the customer's contract — keep it GENERIC:
 
-Examples for a retaining wall:
+STRICT customer-facing language rules:
+- DO NOT name specific equipment models. "9-ton excavator" → "machine" or "excavator".
+  "Tandem dump truck" → "truck". "Skid steer" → "machine" or "skid steer" (acceptable).
+- DO NOT name specific suppliers (Browns River, Upland's, Northwin, etc.)
+- DO NOT name specific material grades/SKUs ("3/4 road crush" → "base material" or
+  "compacted base"; "drain rock" → "drain rock" is acceptable as a category).
+- DO NOT call out depths, cubic-yard volumes, or technical specs in the description.
+  "Place + compact 6 inches of base" → "Place + compact base course".
+- Plain everyday verbs and nouns. Customer should picture the action, not
+  understand BMDW's internal cost structure.
+
+Examples for a retaining wall (CUSTOMER-FACING tone):
   Day 1 — Strip topsoil along the wall footprint, stockpile for reuse
-  Day 1 — Excavate footing trench to required depth, full wall length
-  Day 2 — Place + compact 6" base course of 3/4" road crush, level to grade
-  Day 2 — Set first course of lock blocks; level and shim each block
-  Day 3 — Set second course; install 4" perforated drain pipe + filter fabric
+  Day 1 — Excavate footing trench, full wall length
+  Day 2 — Place + compact base course, level to grade
+  Day 2 — Set first course of blocks; level and shim each block
+  Day 3 — Set remaining courses; install drain pipe + filter fabric behind wall
   Day 3 — Backfill behind wall with drain rock, compact in lifts
   Day 4 — Final grading and surface finish behind wall
   ...
 
 Examples for a gravel driveway with imported aggregate:
-  Day 1 — Strip existing surface; stockpile or haul off
-  Day 1 — Excavate to subgrade depth; check for soft spots
+  Day 1 — Strip existing surface; remove or stockpile
+  Day 1 — Excavate to subgrade; check for soft spots
   Day 2 — Place geofabric over subgrade where required
-  Day 2 — Truck in first load of 3/4" road crush
-  Day 2 — Spread + compact base layer, 4" lifts
-  Day 3 — Truck in remaining material; spread + compact in lifts
+  Day 2 — Truck in base material
+  Day 2 — Spread + compact base in lifts
+  Day 3 — Truck in remaining material; spread + compact
   Day 3 — Final grading and crowning for drainage
-  Day 4 — Surface finish layer; final compaction passes
+  Day 4 — Surface finish; final compaction
   ...
 
 Format as {{ "day": <int>, "description": "..." }} objects in the project_plan

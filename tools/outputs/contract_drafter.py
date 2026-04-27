@@ -1,18 +1,13 @@
 """Contract drafter.
 
-Per Michael's decision (2026-04-24): no lawyer template required. The contract
-states what's happening, the price, and the payment terms — customer
-acceptance is binding.
-
-Two render paths:
-- `draft_contract_text(q, company)` — deterministic templated version. Always
-  works, no API call.
-- `draft_contract_text_ai(q, company)` — uses Anthropic to write a 2-3 paragraph
-  plain-language narration of the SCOPE OF WORK, then drops it into the same
-  fixed template. All binding terms (price, payment, parties) stay deterministic.
-
-The Quote Detail uses the deterministic version when populating the Contract tab.
-Michael can swap to the AI narration via the "Regenerate with AI" button (TODO).
+Customer-facing principles (per Michael, 2026-04-27):
+- NO supplier names (Browns River / Upland's / Northwin)
+- NO specific equipment models (no "9-ton excavator" — just "machine" / "equipment")
+- NO depths or volumes in scope (10×15 area is fine; "3 inches" or "13 cu yd" is not)
+- NO "Fuel — estimated" or other internal cost-tracking line items
+- NO WCB number, NO insurance/WorkSafeBC mentions
+- NO "reasonable care" — we take 100% care
+- Project Plan = ONE flat numbered list (1, 2, 3, …), no PRE-WORK / WORK / WRAP-UP headings
 """
 
 import json
@@ -20,7 +15,7 @@ import os
 from datetime import date
 from typing import Optional
 
-from server.schemas import CostBucket, Quote
+from server.schemas import Quote
 
 
 def is_ai_configured() -> bool:
@@ -28,15 +23,11 @@ def is_ai_configured() -> bool:
 
 
 def _scope_block_deterministic(q: Quote) -> str:
-    """Materials list per project — deterministic fallback."""
-    scope_lines = []
-    for li in q.line_items:
-        materials = [
-            f"  - {e.description}: {e.quantity:g} {e.unit}"
-            for e in li.entries if e.bucket == CostBucket.MATERIALS
-        ]
-        scope_lines.append(f"\n{li.label}\n" + "\n".join(materials))
-    return "\n".join(scope_lines)
+    """Customer-facing scope: project labels only, no materials list, no
+    equipment specifics, no volumes/depths. The label IS the scope."""
+    if not q.line_items:
+        return "  - (No projects specified)"
+    return "\n".join(f"  - {li.label}" for li in q.line_items)
 
 
 def _scope_block_ai(q: Quote) -> Optional[str]:
@@ -48,33 +39,21 @@ def _scope_block_ai(q: Quote) -> Optional[str]:
     except ImportError:
         return None
 
-    # Build a compact summary the model can narrate from.
-    project_summaries = []
-    for li in q.line_items:
-        materials = [
-            f"{e.description} ({e.quantity:g} {e.unit})"
-            for e in li.entries if e.bucket == CostBucket.MATERIALS
-        ]
-        equipment = [
-            e.description for e in li.entries
-            if e.bucket == CostBucket.EQUIPMENT
-        ]
-        project_summaries.append({
-            "label": li.label,
-            "job_type": li.job_type,
-            "materials": materials,
-            "equipment": equipment,
-        })
+    project_summaries = [{"label": li.label, "job_type": li.job_type} for li in q.line_items]
 
     prompt = (
         "You are writing the SCOPE OF WORK section of a residential excavation "
         "contract for Black Mountain Dirt Works on Vancouver Island, BC.\n\n"
-        "Write 2-3 short paragraphs in plain customer-friendly English describing "
-        "the work being done. Mention each project (one paragraph each if multiple). "
-        "Reference the key materials and equipment naturally — not as a bulleted "
-        "list. Do NOT mention dollar amounts, hours, or labour rates. Do NOT add "
-        "warranties, disclaimers, or boilerplate — that's handled elsewhere in the "
-        "contract. Just describe what we'll do.\n\n"
+        "Write 1-2 short paragraphs in plain customer-friendly English describing "
+        "the work being done. Mention each project (one paragraph each if multiple).\n\n"
+        "STRICT RULES:\n"
+        "- DO NOT mention specific suppliers (Browns River, Upland's, Northwin, etc.)\n"
+        "- DO NOT mention specific equipment models (no '9-ton excavator', no "
+        "'tandem dump truck' — use generic 'machine' or 'truck' or 'equipment')\n"
+        "- DO NOT mention depths, cubic yards, or technical volume specs\n"
+        "- DO NOT mention dollar amounts, hours, labour rates\n"
+        "- Area dimensions like '10×15 ft pad' are OK; depths and volumes are NOT\n"
+        "- Plain everyday English. Customer should be able to picture the job.\n\n"
         f"Customer: {q.customer.name}\n"
         f"Site: {q.effective_site_address}\n\n"
         f"Projects:\n{json.dumps(project_summaries, indent=2)}\n\n"
@@ -84,7 +63,7 @@ def _scope_block_ai(q: Quote) -> Optional[str]:
         client = Anthropic()
         resp = client.messages.create(
             model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-            max_tokens=600,
+            max_tokens=400,
             messages=[{"role": "user", "content": prompt}],
         )
         text = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
@@ -94,10 +73,9 @@ def _scope_block_ai(q: Quote) -> Optional[str]:
 
 
 def _project_plan_block(q: Quote) -> str:
-    """Comprehensive project plan. Universal pre-work + wrap-up bookends, with
-    AI-generated work-phase steps in the middle (per project, scaled to job
-    complexity — could be 8 steps or 30+).
-    """
+    """Single flat numbered list — no PRE-WORK/WORK/WRAP-UP headings, no Day labels.
+    Customer-facing, generic language. Pre-work + AI work-phase + wrap-up all
+    flow into one continuous 1-N list."""
     deposit = q.customer_total * (company_deposit_pct(None) / 100)
 
     pre_work = [
@@ -105,51 +83,38 @@ def _project_plan_block(q: Quote) -> str:
         "Owner reviews and signs this contract",
         "BC One Call utility locates booked and completed for any underground services",
         f"Receive 50% deposit (${deposit:,.2f} CAD) before equipment is mobilized",
-        "Mobilize equipment and stage materials with suppliers",
+        "Mobilize equipment and stage materials",
     ]
 
     wrap_up = [
-        "Internal QA of completed work — grades, compaction, drainage, surface finish",
+        "Internal QA of completed work — grades, drainage, surface finish",
         "Demobilize equipment, tools, and waste from the site",
         "Final walkthrough with the Owner — confirm completion against the scope",
         "Address any punch-list items identified during walk",
         "Receive remaining balance",
-        "Issue receipt for final payment; project archived in BMDW records",
+        "Issue receipt for final payment; project complete",
     ]
 
-    sections = []
-
-    # PRE-WORK
-    pw_lines = "\n".join(f"   {i}. {step}" for i, step in enumerate(pre_work, start=1))
-    sections.append(f"PRE-WORK\n{pw_lines}")
-
-    # WORK PHASES — per project, AI-generated when available
-    any_work_plan = False
+    # Collect AI-generated work-phase steps from each project (without Day labels)
+    work_steps = []
     for li in q.line_items:
         plan = []
         if isinstance(li.inputs, dict):
             plan = li.inputs.get("project_plan") or []
-        if not plan:
-            continue
-        any_work_plan = True
-        steps_text = "\n".join(
-            f"   Day {step.get('day', '?')} — {step.get('description', '')}"
-            for step in plan
-        )
-        sections.append(f"WORK PHASE — {li.label}\n{steps_text}")
+        for step in plan:
+            desc = step.get("description", "").strip()
+            if desc:
+                work_steps.append(desc)
 
-    if not any_work_plan:
-        sections.append(
-            "WORK PHASE\n"
-            "   Per the SCOPE OF WORK above. Detailed day-by-day plan provided "
-            "during the site walk-through."
-        )
+    if not work_steps:
+        # Fallback when AI didn't produce a plan
+        work_steps = [
+            f"Carry out the work described in the SCOPE OF WORK above ({li.label})"
+            for li in q.line_items
+        ]
 
-    # WRAP-UP
-    wu_lines = "\n".join(f"   {i}. {step}" for i, step in enumerate(wrap_up, start=1))
-    sections.append(f"WRAP-UP\n{wu_lines}")
-
-    return "\n\n".join(sections)
+    all_steps = pre_work + work_steps + wrap_up
+    return "\n".join(f"   {i}. {step}" for i, step in enumerate(all_steps, start=1))
 
 
 def company_deposit_pct(_) -> float:
@@ -175,10 +140,9 @@ parties before the affected work proceeds:
   light gravel). No solid bedrock, no buried debris, no contaminated soil, no
   unmarked structures or buried tanks.
 - GROUNDWATER — Trench / excavation can be kept dry by normal site drainage
-  during work. No active dewatering, well-pointing, or pumping required.
-- ACCESS — Site access is suitable for the equipment quoted (gate width,
-  slope, bridge weights, overhead clearance). No additional matting / lower-bed
-  trucking / hand-bombing required beyond what is listed.
+  during work. No active dewatering or pumping required.
+- ACCESS — Site access is suitable for the equipment used. No additional
+  matting / specialized trucking / hand-bombing required beyond what is listed.
 - UTILITIES — All underground utilities (gas, water, sewer, hydro, septic,
   irrigation) have been located by BC One Call (and customer-supplied locates
   for private services) and are at expected depths. Damage to undisclosed or
@@ -210,18 +174,8 @@ def _clauses_block() -> str:
 
 - WEATHER AND ACTS OF GOD. Schedule and cost may shift due to weather events
   (heavy rain, snow, frost, fire, flooding) or other acts of God beyond either
-  party's control. Standby time at ${LEAD_HAND_RATE}/hr lead hand + equipment
-  daily rate may apply for crew already mobilized.
-
-- DAMAGE TO PROPERTY. BMDW takes reasonable care to protect the Owner's lawn,
-  landscaping, hardscape, and structures. Where heavy equipment must cross
-  these features, the Owner accepts that some surface damage (lawn ruts, sod
-  disturbance, minor cosmetic) is expected and is not BMDW's responsibility
-  unless caused by negligence. Plywood mats / ground protection available at
-  additional cost if requested.
-
-- WORKSAFEBC AND INSURANCE. BMDW maintains current WorkSafeBC clearance and
-  $5M general liability insurance. Certificates available on request.
+  party's control. Standby charges may apply for crew and equipment already
+  mobilized; communicated to the Owner in advance.
 
 - DISPUTE RESOLUTION. Any dispute will first be addressed through good-faith
   discussion between the parties. If unresolved within 30 days, the matter
@@ -236,11 +190,8 @@ def _render(q: Quote, company: dict, scope_block: str, today: date) -> str:
     phone = company.get("phone", "")
     email = company.get("email", "")
     addr = company.get("address", "")
-    wcb = company.get("wcb_number", "TBD")
     deposit = q.customer_total * (company.get("deposit_pct", 50.0) / 100)
     remaining = q.customer_total - deposit
-
-    clauses = _clauses_block().replace("{LEAD_HAND_RATE}", "90")
 
     return f"""\
 {legal}
@@ -257,7 +208,6 @@ Date issued: {today.isoformat()}
 
 BETWEEN:
   {legal} ("Contractor")
-  WCB # {wcb}
 
 AND:
   {q.customer.name} ("Owner")
@@ -305,7 +255,7 @@ KEY ASSUMPTIONS
 CLAUSES
 ----------------------------------------------------------------
 
-{clauses}
+{_clauses_block()}
 
 ----------------------------------------------------------------
 ACCEPTANCE
