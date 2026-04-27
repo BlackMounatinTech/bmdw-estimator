@@ -117,9 +117,14 @@ BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 AGGREGATE TRUCKING (hourly tandem dump — Equipment bucket, since billed by truck time):
 - Capacity: 10 cu yd per load.
 - Round trip: 2 hours default (60 min each way + load/dump). Bump up if site is far.
-- Rate depends on supplier:
-  - Default tandem: $170/hr (catalogue_key = tandem_dump). Use for Upland's, Northwin, or unspecified.
-  - Browns River tandem: $160/hr (catalogue_key = tandem_dump_brownsriver). Use when materials are sourced from Browns River Pit.
+- Rate depends on who's doing the trucking:
+  - **BMDW in-house tandem: $100/hr** (catalogue_key = tandem_dump_bmdw). Use when
+    Michael says "I'll handle the trucking" / "we're doing trucking" / "in-house" /
+    or names BMDW's truck. This is cheapest — no contractor markup.
+  - Default contracted tandem: $170/hr (catalogue_key = tandem_dump). Use for hired
+    Upland's, Northwin, or unspecified contractor truck.
+  - Browns River tandem: $160/hr (catalogue_key = tandem_dump_brownsriver). Use when
+    materials are sourced from Browns River Pit AND Michael isn't using his own truck.
 - Compute: num_loads = ceil(total_aggregate_cu_yd / 10); truck_hours = num_loads × round_trip_hours.
   Emit a single Equipment line with the matching tandem catalogue_key, quantity = truck_hours, unit = hour.
 
@@ -345,6 +350,91 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         return {"ok": True, "questions": cleaned, "reason": None}
     except Exception as exc:
         return {"ok": False, "questions": [], "reason": f"Clarifier call failed: {exc}"}
+
+
+def generate_review_questions(brief: str, answers: str, generated_quote_summary: str) -> dict:
+    """Phase 3 second-round clarifier. After the AI generated a quote, look at the
+    OUTPUT and ask any final questions Michael should confirm before locking in.
+
+    Different from Phase 2 (which asks about the input). This one looks at what
+    was assumed/produced and flags anything worth a final confirmation.
+
+    Returns: {"ok": bool, "questions": [str, ...], "reason": Optional[str]}
+    """
+    if not is_configured():
+        return {"ok": False, "questions": [],
+                "reason": "ANTHROPIC_API_KEY is not set."}
+    if not generated_quote_summary.strip():
+        return {"ok": True, "questions": [], "reason": None}
+
+    try:
+        from anthropic import Anthropic
+    except ImportError:
+        return {"ok": False, "questions": [],
+                "reason": "anthropic package not installed."}
+
+    system = (
+        "You're an excavation estimator at BMDW reviewing a quote you just generated, "
+        "looking for things to confirm with the contractor before locking it in. "
+        "Produce 0 to 4 SHORT review questions about ASSUMPTIONS or DERIVED VALUES "
+        "in the generated quote that would change the price if wrong.\n\n"
+        "Focus on:\n"
+        "- Assumptions you had to make because the brief was silent on something "
+        "(e.g. you assumed 1-hr round trip, you picked Upland's as supplier, you "
+        "assumed standard duration days).\n"
+        "- Quantities or units that look unusual / could be a typo.\n"
+        "- Catalogue key choices when there were multiple plausible options.\n"
+        "- Anything where a small change would meaningfully shift the customer total.\n\n"
+        "DO NOT ask about:\n"
+        "- Things already covered in Phase 2 answers.\n"
+        "- Spec details for standard trade terms (blue chip, road crush, lock block, etc).\n"
+        "- Equipment ownership.\n"
+        "- Compaction depth (always assumed compacted).\n"
+        "- Restating what's in the quote.\n"
+        "- Generic catch-alls.\n\n"
+        "Empty list is fine if the quote is solid. Prefer 0-2 questions over padding.\n\n"
+        "Output ONLY valid JSON, no prose, no markdown:\n"
+        '{"questions": ["...", "..."]}'
+    )
+
+    user_msg = (
+        f"ORIGINAL BRIEF:\n{brief.strip() or '(empty)'}\n\n"
+        f"PHASE 2 ANSWERS:\n{answers.strip() or '(none)'}\n\n"
+        f"GENERATED QUOTE (line items, summary, warnings):\n{generated_quote_summary}\n\n"
+        "What would you confirm with the contractor before locking in?"
+    )
+
+    try:
+        client = Anthropic()
+        resp = client.messages.create(
+            model=os.environ.get("ANTHROPIC_MODEL", ANTHROPIC_MODEL),
+            max_tokens=600,
+            system=system,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        text = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+        if text.startswith("```"):
+            text = text.lstrip("`")
+            text = text.split("\n", 1)[1] if "\n" in text else text
+            if text.endswith("```"):
+                text = text.rsplit("```", 1)[0]
+        start, end = text.find("{"), text.rfind("}")
+        if start != -1 and end > start:
+            text = text[start:end + 1]
+        data = json.loads(text)
+        questions = data.get("questions", [])
+        if not isinstance(questions, list):
+            return {"ok": True, "questions": [], "reason": None}
+        cleaned = []
+        for q in questions:
+            if isinstance(q, str):
+                cleaned.append(q.strip())
+            elif isinstance(q, dict):
+                cleaned.append(str(q.get("question") or q.get("text") or "").strip())
+        cleaned = [q for q in cleaned if q]
+        return {"ok": True, "questions": cleaned, "reason": None}
+    except Exception as exc:
+        return {"ok": False, "questions": [], "reason": f"Review call failed: {exc}"}
 
 
 def parse_notes_to_structure(quick_notes: str) -> ParsedNotesOutput:

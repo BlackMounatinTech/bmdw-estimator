@@ -68,6 +68,13 @@
     "rental_insurance_eligible": false,
     "notes": "10 yd^3 per load. $160/hr — cheaper than the default tandem. Use this when sourcing aggregate from Browns River Pit (Courtenay / Comox / Cumberland)."
   },
+  "tandem_dump_bmdw": {
+    "sku": "TRK-TANDEM-BMDW",
+    "name": "Tandem dump truck (BMDW in-house)",
+    "hourly_rate": 100.0,
+    "rental_insurance_eligible": false,
+    "notes": "BMDW's own truck — $100/hr (cheapest option, no contractor markup). 10 yd^3 per load. Use when Michael is doing the trucking himself OR when explicitly preferred over hiring a contract tandem."
+  },
   "truck_and_pup": {
     "sku": "TRK-PUP",
     "name": "Truck and pup",

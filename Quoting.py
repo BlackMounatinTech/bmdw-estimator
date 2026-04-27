@@ -18,6 +18,7 @@ from tools.calculator import JOB_TYPES, create_empty_project, get_job_type
 from tools.parser.checklist import JOB_TYPE_QUESTIONS, UNIVERSAL_QUESTIONS
 from tools.parser.notes_to_line_items import (
     generate_clarifying_questions,
+    generate_review_questions,
     hydrate_to_line_items,
     is_configured as parser_configured,
     parse_notes_to_structure,
@@ -68,9 +69,11 @@ defaults = {
     "delete_confirm_id": None,
     # Phased capture flow
     "quote_phase": 1,                 # 1 = input, 2 = clarify, 3 = quote
-    "clarifying_questions": [],       # list[str] from AI
-    "clarifying_answers": "",         # voice answers from Michael
+    "clarifying_questions": [],       # Phase 2 list[str] from AI
+    "clarifying_answers": "",         # Phase 2 voice answers from Michael
     "clarifier_error": None,          # last clarifier failure reason
+    "review_questions": [],           # Phase 3 follow-up list[str] from AI (reviewing the generated quote)
+    "review_answers": "",             # Phase 3 follow-up answers for regenerate
     "voice_edit_mode": False,         # True when editing an existing quote via voice
 }
 for k, v in defaults.items():
@@ -94,6 +97,8 @@ def _reset_draft_state(reset_id: bool = True) -> None:
     st.session_state.clarifying_questions = []
     st.session_state.clarifying_answers = ""
     st.session_state.clarifier_error = None
+    st.session_state.review_questions = []
+    st.session_state.review_answers = ""
     st.session_state.voice_edit_mode = False
     if reset_id:
         st.session_state.current_editing_id = None
@@ -144,18 +149,41 @@ def _combined_notes_for_parser() -> str:
 
     base = st.session_state.draft_quick_notes.strip()
     questions = st.session_state.clarifying_questions
-    if not answers:
-        return base
-    qa_block = ""
-    if questions:
-        qa_block = "QUESTIONS THE ESTIMATOR ASKED:\n" + "\n".join(
-            f"  {i + 1}. {q}" for i, q in enumerate(questions)
-        ) + "\n\n"
-    return (
-        f"INITIAL BRIEF:\n{base}\n\n"
-        f"{qa_block}"
-        f"CONTRACTOR'S ANSWERS:\n{answers}"
-    )
+    review_qs = st.session_state.review_questions
+    review_ans = st.session_state.review_answers.strip()
+
+    parts = [f"INITIAL BRIEF:\n{base}"]
+    if questions and answers:
+        qblock = "\n".join(f"  {i + 1}. {q}" for i, q in enumerate(questions))
+        parts.append(f"PHASE 2 QUESTIONS:\n{qblock}\n\nPHASE 2 ANSWERS:\n{answers}")
+    elif answers:
+        parts.append(f"CONTRACTOR'S ANSWERS:\n{answers}")
+    if review_qs and review_ans:
+        rqblock = "\n".join(f"  {i + 1}. {q}" for i, q in enumerate(review_qs))
+        parts.append(f"PHASE 3 REVIEW QUESTIONS:\n{rqblock}\n\nPHASE 3 REVIEW ANSWERS:\n{review_ans}")
+    return "\n\n".join(parts)
+
+
+def _parsed_quote_summary_for_review(parsed) -> str:
+    """Compact text summary of a ParsedNotesOutput, for the Phase 3 review clarifier."""
+    if parsed is None or not parsed.projects:
+        return ""
+    lines = []
+    if parsed.summary:
+        lines.append(f"Summary: {parsed.summary}")
+    if parsed.warnings:
+        lines.append("Warnings:")
+        for w in parsed.warnings:
+            lines.append(f"  - {w}")
+    for p in parsed.projects:
+        lines.append(f"\nProject: {p.label}  ({p.job_type})")
+        for e in p.line_entries:
+            cat_ref = f" [{e.catalogue_type}/{e.catalogue_key}]" if e.catalogue_key else ""
+            lines.append(
+                f"  - {e.bucket.value.upper()}: {e.description} — "
+                f"{e.quantity:g} {e.unit}{cat_ref}"
+            )
+    return "\n".join(lines)
 
 
 def _load_draft_into_session(quote_id: str) -> bool:
@@ -581,15 +609,32 @@ if (not is_editing) or st.session_state.voice_edit_mode:
             with b2:
                 if st.button("Generate Quote  →", use_container_width=True, type="primary",
                              disabled=not parser_configured(),
-                             help="AI uses your brief + answers to produce the line items."):
+                             help="AI uses your brief + answers to produce the line items, "
+                                  "then asks any final review questions."):
                     try:
                         with st.spinner("Generating quote (this can take 10-15s for big jobs)..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
                         st.session_state.parsed_preview = result
+                        # Reset Phase 3 review state for the new generation
+                        st.session_state.review_questions = []
+                        st.session_state.review_answers = ""
+                        # Kick off Phase 3 second-round clarifier in the background
+                        if result and result.projects:
+                            try:
+                                with st.spinner("Reviewing the generated quote for follow-up questions..."):
+                                    review = generate_review_questions(
+                                        st.session_state.draft_quick_notes,
+                                        st.session_state.clarifying_answers,
+                                        _parsed_quote_summary_for_review(result),
+                                    )
+                                if review.get("ok"):
+                                    st.session_state.review_questions = review["questions"]
+                            except Exception:
+                                # Non-fatal — Phase 3 still loads, just without review questions.
+                                pass
                         st.session_state.quote_phase = 3
                         st.rerun()
                     except Exception as exc:
-                        # Don't bounce back silently — show what broke and stay on Phase 2.
                         st.error(
                             f"Quote generation failed: {exc}\n\n"
                             "Your inputs are still here — try Generate again, or hit "
@@ -681,20 +726,74 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                             unsafe_allow_html=True,
                         )
 
+            # ---- Phase 3 second-round review questions (redundancy pass) ----
+            review_qs = st.session_state.review_questions
+            if review_qs:
+                st.markdown("&nbsp;", unsafe_allow_html=True)
+                section_header("Final review — anything to refine?")
+                st.markdown(
+                    '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
+                    "AI looked at the generated quote and flagged these final confirmations. "
+                    "Answer any that need correcting, then hit Regenerate. Or skip and Lock in."
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                for i, rq in enumerate(review_qs, start=1):
+                    st.markdown(
+                        f'<div style="background:#111827;border:1px solid #1e293b;'
+                        f'border-left:4px solid #f59e0b;border-radius:8px;'
+                        f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
+                        f'<strong style="color:#f1f5f9;">R{i}.</strong> {rq}</div>',
+                        unsafe_allow_html=True,
+                    )
+                review_answers = st.text_area(
+                    "Review answers (voice or type)",
+                    value=st.session_state.review_answers,
+                    height=140,
+                    placeholder="e.g. R1: pit round trip is actually 2 hours, not 1. R2: yes use Browns River.",
+                    label_visibility="collapsed",
+                    key="phase3_review_answers",
+                )
+                st.session_state.review_answers = review_answers
+
             st.markdown("&nbsp;", unsafe_allow_html=True)
-            b1, b2 = st.columns(2)
+            b1, b2, b3 = st.columns(3)
             with b1:
-                if st.button("← Revise answers", use_container_width=True,
+                if st.button("← Revise (Phase 2)", use_container_width=True,
                              help="Go back to Phase 2 to update your answers, then regenerate."):
                     st.session_state.quote_phase = 2
                     st.rerun()
             with b2:
+                regen_disabled = not (parser_configured() and st.session_state.review_answers.strip())
+                if st.button("🔄 Regenerate with review", use_container_width=True,
+                             disabled=regen_disabled,
+                             help="Re-run the parser with your review answers added to the input."):
+                    try:
+                        with st.spinner("Re-generating with review answers..."):
+                            result = parse_notes_to_structure(_combined_notes_for_parser())
+                        st.session_state.parsed_preview = result
+                        # Generate fresh review questions for this new pass
+                        st.session_state.review_questions = []
+                        st.session_state.review_answers = ""
+                        if result and result.projects:
+                            try:
+                                review = generate_review_questions(
+                                    st.session_state.draft_quick_notes,
+                                    st.session_state.clarifying_answers,
+                                    _parsed_quote_summary_for_review(result),
+                                )
+                                if review.get("ok"):
+                                    st.session_state.review_questions = review["questions"]
+                            except Exception:
+                                pass
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Regenerate failed: {exc}")
+            with b3:
                 if st.button("✓ Lock in & open Quote Detail", use_container_width=True,
                              type="primary",
-                             help="Replace the draft's line items with this generation, save, "
-                                  "and open the Quote Detail for review."):
+                             help="Save this quote and open the Quote Detail for review."):
                     new_items = hydrate_to_line_items(parsed)
-                    # Fresh quote — REPLACE, don't extend.
                     st.session_state.draft_line_items = new_items
                     q = _draft_quote()
                     saved_id = save_quote(q)
@@ -702,8 +801,10 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                               "quote_voice_edited" if st.session_state.voice_edit_mode else "quote_locked_in",
                               {"line_items": len(q.line_items),
                                "had_clarifying_questions": len(st.session_state.clarifying_questions),
+                               "had_review_questions": len(st.session_state.review_questions),
                                "voice_edit": st.session_state.voice_edit_mode})
-                    _reset_draft_state(reset_id=True)
+                    # Don't reset draft state — preserve in case lock-in fails or
+                    # user navigates back. Explicit "Start fresh" still resets.
                     # st.query_params writes don't always flush before
                     # st.switch_page navigates. Stash in session_state too;
                     # Quote Detail picks up whichever is set.
