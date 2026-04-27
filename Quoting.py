@@ -253,6 +253,36 @@ st.markdown(
 )
 
 
+# ---- Persistence indicator (top of capture screen) ----------------------
+# Compact one-line status — green = safe to save, red = data won't survive deploy.
+from tools.storage.paths import db_path as _dbpath, is_persistent as _is_pers
+
+_p_persistent = _is_pers()
+_p_db = _dbpath()
+_p_db_size = _p_db.stat().st_size if _p_db.exists() else 0
+
+if _p_persistent:
+    _p_color = "#22c55e"
+    _p_icon = "✓"
+    _p_label = "Persistent — safe to save"
+else:
+    _p_color = "#ef4444"
+    _p_icon = "🔴"
+    _p_label = "EPHEMERAL — saves WILL be wiped on next deploy"
+
+st.markdown(
+    f'<div style="background:#0d1321;border:1px solid #1e293b;'
+    f'border-left:4px solid {_p_color};border-radius:6px;'
+    f'padding:6px 10px;margin-bottom:10px;color:#cbd5e1;font-size:11px;'
+    f'display:flex;justify-content:space-between;align-items:center;">'
+    f'<span><strong style="color:{_p_color};">{_p_icon} {_p_label}</strong></span>'
+    f'<span style="color:#64748b;">DB {_p_db_size / 1024:,.1f} KB · '
+    f'<a href="/Settings" target="_self" style="color:#3b82f6;text-decoration:none;">Backup →</a></span>'
+    "</div>",
+    unsafe_allow_html=True,
+)
+
+
 # ---- Editing-mode banner + drafts in progress ---------------------------
 
 if st.session_state.current_editing_id:
