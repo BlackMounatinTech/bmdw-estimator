@@ -37,6 +37,7 @@ from tools.storage import (
     mark_status,
     save_quote,
 )
+from tools.storage.paths import attachments_dir, data_dir
 
 st.set_page_config(page_title="BMDW · Job Hub", page_icon="◆", layout="wide")
 apply_theme()
@@ -486,9 +487,8 @@ with tab_takeoff:
                 edited = True
 
             # File upload — accepts photos, PDFs, anything. Saves under
-            # data/attachments/<quote_id>/<project_idx>/.
-            attach_dir = (Path(__file__).resolve().parents[1]
-                          / "data" / "attachments" / q.quote_id / str(li_idx))
+            # <data_dir>/attachments/<quote_id>/<project_idx>/ (persistent on Render).
+            attach_dir = attachments_dir() / q.quote_id / str(li_idx)
 
             uploaded = st.file_uploader(
                 "Upload photos / plans / permits / BC One Call docs",
@@ -502,7 +502,8 @@ with tab_takeoff:
                 for f in uploaded:
                     target = attach_dir / f.name
                     target.write_bytes(f.read())
-                    rel = str(target.relative_to(Path(__file__).resolve().parents[1]))
+                    # Store relative to the persistent data dir (works locally + on Render disk).
+                    rel = str(target.relative_to(data_dir()))
                     if rel not in li.attachments:
                         li.attachments.append(rel)
                         added += 1
@@ -520,7 +521,7 @@ with tab_takeoff:
                     f"📎 {len(li.attachments)} file(s) on this project</div>",
                     unsafe_allow_html=True,
                 )
-                root = Path(__file__).resolve().parents[1]
+                root = data_dir()
                 for a_idx, rel_path in list(enumerate(li.attachments)):
                     full = root / rel_path
                     fname = Path(rel_path).name

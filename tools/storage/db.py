@@ -12,15 +12,14 @@ everywhere else in the app.
 import json
 import sqlite3
 from datetime import datetime
-from pathlib import Path
 from typing import List, Optional
 
 from server.schemas import Quote, QuoteStatus
-
-DB_PATH = Path(__file__).resolve().parents[2] / "data" / "bmdw.db"
+from tools.storage.paths import db_path
 
 
 def _connect() -> sqlite3.Connection:
+    DB_PATH = db_path()
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row

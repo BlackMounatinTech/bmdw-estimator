@@ -7,7 +7,7 @@ services:
     name: bmdw-estimator
     runtime: python
     region: oregon
-    plan: starter
+    plan: starter             # disks require Starter ($7/mo) or higher; not on free
     branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run Quoting.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
@@ -18,4 +18,14 @@ services:
         sync: false
       - key: BMDW_APP_PASSWORD
         sync: false
+      # Point the app at the persistent disk so SQLite + uploads survive deploys.
+      - key: BMDW_DATA_DIR
+        value: /var/data
+    # Persistent disk — survives every deploy. Holds the SQLite DB and all
+    # uploaded files (photos, plans, BC One Call docs). 1 GB is plenty for
+    # a single-operator contractor for years.
+    disk:
+      name: bmdw-data
+      mountPath: /var/data
+      sizeGB: 1
     autoDeploy: true
