@@ -306,15 +306,72 @@ def log_event(quote_id: str, event_type: str, payload: Optional[dict] = None) ->
 
 
 def delete_quote(quote_id: str) -> bool:
-    """Permanently delete a quote and its event log. Returns True if a row was removed."""
+    """Permanently delete a quote, its event log, and its JSON snapshot file.
+    Returns True if a row was removed."""
     conn = _connect()
     try:
         conn.execute("DELETE FROM job_events WHERE quote_id = ?", (quote_id,))
         cur = conn.execute("DELETE FROM quotes WHERE quote_id = ?", (quote_id,))
         conn.commit()
-        return cur.rowcount > 0
+        removed = cur.rowcount > 0
     finally:
         conn.close()
+
+    # Also remove the JSON snapshot so it doesn't get restored later
+    try:
+        from tools.storage.paths import data_dir as _ddir
+        snap = _ddir() / "backups" / f"{quote_id}.json"
+        if snap.exists():
+            snap.unlink()
+    except Exception:
+        pass
+
+    return removed
+
+
+def delete_customer(customer_id: str) -> dict:
+    """Permanently delete a customer and (cascade) all of their quotes,
+    job events, and snapshot files. Returns a status dict.
+
+    This is destructive — caller must confirm with the user first.
+    """
+    conn = _connect()
+    try:
+        # Find all quote_ids first so we can clean up snapshots
+        rows = conn.execute(
+            "SELECT quote_id FROM quotes WHERE customer_id = ?", (customer_id,)
+        ).fetchall()
+        quote_ids = [r["quote_id"] for r in rows]
+
+        # Cascade: events → quotes → customer
+        for qid in quote_ids:
+            conn.execute("DELETE FROM job_events WHERE quote_id = ?", (qid,))
+        conn.execute("DELETE FROM quotes WHERE customer_id = ?", (customer_id,))
+        cur = conn.execute("DELETE FROM customers WHERE customer_id = ?", (customer_id,))
+        conn.commit()
+        customer_removed = cur.rowcount > 0
+    finally:
+        conn.close()
+
+    # Snapshot cleanup (outside DB transaction)
+    snaps_removed = 0
+    try:
+        from tools.storage.paths import data_dir as _ddir
+        backup_dir = _ddir() / "backups"
+        for qid in quote_ids:
+            snap = backup_dir / f"{qid}.json"
+            if snap.exists():
+                snap.unlink()
+                snaps_removed += 1
+    except Exception:
+        pass
+
+    return {
+        "ok": customer_removed,
+        "customer_removed": customer_removed,
+        "quotes_removed": len(quote_ids),
+        "snapshots_removed": snaps_removed,
+    }
 
 
 def mark_status(quote_id: str, status: QuoteStatus, final_invoiced: Optional[float] = None) -> None:

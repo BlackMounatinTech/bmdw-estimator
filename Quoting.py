@@ -22,6 +22,7 @@ from tools.parser.notes_to_line_items import (
     hydrate_to_line_items,
     is_configured as parser_configured,
     parse_notes_to_structure,
+    synthesize_brief,
 )
 from tools.shared import (
     apply_theme,
@@ -54,6 +55,7 @@ init_db()
 
 defaults = {
     "draft_quick_notes": "",
+    "draft_project_name": "",
     "draft_line_items": [],
     "draft_customer": Customer(name="", address=""),
     "draft_phone": "",
@@ -83,6 +85,7 @@ for k, v in defaults.items():
 
 def _reset_draft_state(reset_id: bool = True) -> None:
     st.session_state.draft_quick_notes = ""
+    st.session_state.draft_project_name = ""
     st.session_state.draft_line_items = []
     st.session_state.draft_customer = Customer(name="", address="")
     st.session_state.draft_phone = ""
@@ -192,6 +195,7 @@ def _load_draft_into_session(quote_id: str) -> bool:
     if q is None:
         return False
     st.session_state.draft_quick_notes = q.quick_notes or ""
+    st.session_state.draft_project_name = q.name or ""
     st.session_state.draft_line_items = list(q.line_items)
     st.session_state.draft_customer = q.customer
     st.session_state.draft_phone = q.customer.phone or ""
@@ -228,6 +232,7 @@ def _draft_quote() -> Quote:
     qid = st.session_state.current_editing_id or "DRAFT"
     return Quote(
         quote_id=qid,
+        name=st.session_state.draft_project_name or None,
         customer=st.session_state.draft_customer,
         site_address=st.session_state.draft_site_address or None,
         urgency=Urgency(st.session_state.draft_urgency),
@@ -348,6 +353,21 @@ else:
 
 
 # ---- Customer ------------------------------------------------------------
+
+section_header("Project name")
+st.caption(
+    "Short label for this quote — what you want to see in the Customers / Jobs lists "
+    "and on the Quote Detail header. Optional but useful (e.g. 'Smith — wall + driveway')."
+)
+project_name_input = st.text_input(
+    "Project name",
+    value=st.session_state.draft_project_name,
+    placeholder="e.g. Paxton residence — back yard retaining wall",
+    label_visibility="collapsed",
+    key="project_name_input",
+)
+st.session_state.draft_project_name = project_name_input
+
 
 section_header("Customer")
 
@@ -825,6 +845,21 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                              help="Save this quote and open the Quote Detail for review."):
                     new_items = hydrate_to_line_items(parsed)
                     st.session_state.draft_line_items = new_items
+                    # Polish the raw voice notes into a clean 1-2 sentence brief
+                    # so Description / Customers / Quote Detail show something
+                    # readable instead of the raw dictation.
+                    if parser_configured():
+                        try:
+                            polished = synthesize_brief(
+                                st.session_state.draft_quick_notes,
+                                st.session_state.clarifying_answers,
+                                st.session_state.review_answers,
+                                _parsed_quote_summary_for_review(parsed),
+                            )
+                            if polished:
+                                st.session_state.draft_quick_notes = polished
+                        except Exception:
+                            pass  # keep raw notes on failure
                     q = _draft_quote()
                     saved_id = save_quote(q)
                     log_event(saved_id,

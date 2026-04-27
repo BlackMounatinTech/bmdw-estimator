@@ -148,6 +148,7 @@ class Urgency(str, Enum):
 
 class Quote(BaseModel):
     quote_id: str
+    name: Optional[str] = None  # short project name (e.g. "Smith — wall + driveway")
     customer: Customer
     site_address: Optional[str] = None  # Defaults to customer.address if None
     urgency: Urgency = Urgency.MODERATE

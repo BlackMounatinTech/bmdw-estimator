@@ -19,7 +19,9 @@ from tools.outputs.email_sender import send_email
 from tools.outputs.pdf_generator import is_configured as pdf_configured
 from tools.outputs.pdf_generator import (
     render_contract_pdf,
+    render_equipment_list_pdf,
     render_invoice_pdf,
+    render_material_takeoff_pdf,
     render_quote_pdf,
     render_receipt_pdf,
 )
@@ -150,7 +152,15 @@ with hb2:
         st.query_params["quote_id"] = q.quote_id
         st.switch_page("Quoting.py")
 
-st.markdown(f"## {q.customer.name} — {q.quote_id}")
+if q.name:
+    st.markdown(f"## {q.name}")
+    st.markdown(
+        f'<div style="color:#64748b;font-size:13px;margin-top:-12px;margin-bottom:6px;">'
+        f"{q.customer.name} · Quote #{q.quote_id}</div>",
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(f"## {q.customer.name} — #{q.quote_id}")
 
 contact_bits = []
 if q.customer.phone:
@@ -959,6 +969,26 @@ with tab_attach:
         )
 
 
+# ---- Save (explicit, for the cautious) ----------------------------------
+# Most edits auto-save inline (Edit Quote tab, contract editor, pricing form,
+# etc.) but having a big visible Save button gives peace of mind and acts as
+# a belt-and-suspenders backstop.
+st.markdown("---")
+sv1, sv2 = st.columns([1, 4])
+with sv1:
+    if st.button("💾 Save changes", use_container_width=True, type="primary",
+                 help="Force-save the current quote state to the database. "
+                      "Most edits already auto-save — this is for peace of mind."):
+        save_quote(q)
+        log_event(q.quote_id, "manual_save", {"customer_total": q.customer_total})
+        st.success("Saved.")
+with sv2:
+    st.caption(
+        "Quote Detail edits auto-save as you make them. This button force-saves "
+        "the current state — useful after a batch of changes or if you're not sure."
+    )
+
+
 # ---- Action bar ---------------------------------------------------------
 
 st.markdown("---")
@@ -1144,6 +1174,42 @@ with p5:
             with open(path, "rb") as f:
                 st.download_button("⬇ Download final-receipt.pdf", data=f.read(),
                                    file_name=f"{q.quote_id}-final-receipt.pdf",
+                                   mime="application/pdf", use_container_width=True)
+
+
+# ---- Internal-only PDFs (NOT customer-facing) ---------------------------
+st.markdown(
+    '<div style="color:#94a3b8;font-size:11px;font-weight:700;'
+    'text-transform:uppercase;letter-spacing:0.06em;margin-top:14px;margin-bottom:6px;">'
+    "🔒 Internal-only — for your phone, not the customer</div>",
+    unsafe_allow_html=True,
+)
+i1, i2, _ = st.columns(3)
+with i1:
+    if st.button("📋 Material Takeoff PDF", use_container_width=True, disabled=not pdf_configured(),
+                 help="Sourcing list — every material on this quote with SKUs and totals."):
+        path, err = render_material_takeoff_pdf(q, COMPANY)
+        if err:
+            st.warning(err)
+        else:
+            log_event(q.quote_id, "material_takeoff_pdf_rendered", {"path": str(path)})
+            st.success(f"Material takeoff saved → {path}")
+            with open(path, "rb") as f:
+                st.download_button("⬇ Download material-takeoff.pdf", data=f.read(),
+                                   file_name=f"{q.quote_id}-material-takeoff.pdf",
+                                   mime="application/pdf", use_container_width=True)
+with i2:
+    if st.button("🛠 Equipment List PDF", use_container_width=True, disabled=not pdf_configured(),
+                 help="Mobilization checklist — every piece of equipment on this quote."):
+        path, err = render_equipment_list_pdf(q, COMPANY)
+        if err:
+            st.warning(err)
+        else:
+            log_event(q.quote_id, "equipment_list_pdf_rendered", {"path": str(path)})
+            st.success(f"Equipment list saved → {path}")
+            with open(path, "rb") as f:
+                st.download_button("⬇ Download equipment-list.pdf", data=f.read(),
+                                   file_name=f"{q.quote_id}-equipment-list.pdf",
                                    mime="application/pdf", use_container_width=True)
 
 

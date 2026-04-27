@@ -12,6 +12,7 @@ from tools.shared import (
     section_header,
 )
 from tools.storage import (
+    delete_customer,
     init_db,
     list_customers,
     list_quotes_for_customer,
@@ -232,3 +233,44 @@ else:
             f"</div></div></div></a>",
             unsafe_allow_html=True,
         )
+
+
+# ---- Danger zone — delete customer (cascades to all their quotes) ------
+st.markdown("---")
+st.markdown(
+    '<div style="color:#ef4444;font-size:11px;font-weight:700;'
+    'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
+    "Danger zone</div>",
+    unsafe_allow_html=True,
+)
+st.caption(
+    f"Permanently deletes {cust['name']} and ALL of their quotes "
+    f"({cust['job_count']} on file), including PDFs, snapshots, and event log. "
+    "This is irreversible."
+)
+
+_confirm_key = f"_del_cust_confirm_{cust['customer_id']}"
+if st.session_state.get(_confirm_key):
+    dc1, dc2, _ = st.columns([1, 1, 3])
+    with dc1:
+        if st.button(f"⚠ Confirm — DELETE {cust['name']}",
+                     type="primary", use_container_width=True,
+                     key=f"_del_cust_yes_{cust['customer_id']}"):
+            result = delete_customer(cust["customer_id"])
+            st.session_state[_confirm_key] = False
+            st.success(
+                f"Deleted {cust['name']} — {result['quotes_removed']} quote(s) "
+                f"and {result['snapshots_removed']} snapshot file(s) also removed."
+            )
+            st.query_params.clear()
+            st.rerun()
+    with dc2:
+        if st.button("Cancel", use_container_width=True,
+                     key=f"_del_cust_cancel_{cust['customer_id']}"):
+            st.session_state[_confirm_key] = False
+            st.rerun()
+else:
+    if st.button("🗑 Delete customer", key=f"_del_cust_btn_{cust['customer_id']}",
+                 help="Two-step. Click here, then click Confirm."):
+        st.session_state[_confirm_key] = True
+        st.rerun()

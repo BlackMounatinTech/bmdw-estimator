@@ -480,6 +480,63 @@ def generate_review_questions(brief: str, answers: str, generated_quote_summary:
         return {"ok": False, "questions": [], "reason": f"Review call failed: {exc}"}
 
 
+def synthesize_brief(raw_notes: str, answers: str, review_answers: str,
+                     parsed_quote_summary: str) -> str:
+    """Phase 3 finishing touch: take the raw voice dictation + clarifying
+    answers + review answers + the generated quote, and produce a CLEAN
+    1-2 sentence project brief suitable for Description tab + customer
+    record. Returns the polished string, or the raw notes verbatim on failure.
+    """
+    if not is_configured():
+        return raw_notes
+    if not raw_notes.strip():
+        return ""
+
+    try:
+        from anthropic import Anthropic
+    except ImportError:
+        return raw_notes
+
+    system = (
+        "You are an estimator's assistant for Black Mountain Dirt Works. The "
+        "contractor dictated rough notes from a job site. Your task is to write "
+        "a CLEAN, PROFESSIONAL 1-2 sentence summary of what this quote covers — "
+        "the kind of summary a customer or accountant would understand at a glance.\n\n"
+        "Rules:\n"
+        "- 1 to 2 sentences. Plain English. No bullet points.\n"
+        "- Mention: scope (what's being built/done), location (city if known), "
+        "key materials/dimensions if they meaningfully define the job.\n"
+        "- DO NOT mention dollar amounts, hours, or internal pricing.\n"
+        "- DO NOT just rewrite the brief verbatim — distill it.\n"
+        "- DO NOT add disclaimers or contractor jargon.\n\n"
+        "Output ONLY the summary text. No quotes, no preamble, no markdown."
+    )
+
+    user_msg = (
+        f"RAW VOICE BRIEF:\n{raw_notes.strip()}\n\n"
+        f"PHASE 2 CLARIFYING ANSWERS:\n{answers.strip() or '(none)'}\n\n"
+        f"PHASE 3 REVIEW ANSWERS:\n{review_answers.strip() or '(none)'}\n\n"
+        f"GENERATED QUOTE STRUCTURE:\n{parsed_quote_summary or '(empty)'}\n\n"
+        "Write the 1-2 sentence summary."
+    )
+
+    try:
+        client = Anthropic()
+        resp = client.messages.create(
+            model=os.environ.get("ANTHROPIC_MODEL", ANTHROPIC_MODEL),
+            max_tokens=200,
+            system=system,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        text = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+        # Strip wrapping quotes if model added them
+        if text.startswith('"') and text.endswith('"'):
+            text = text[1:-1]
+        return text or raw_notes
+    except Exception:
+        return raw_notes
+
+
 def parse_notes_to_structure(quick_notes: str) -> ParsedNotesOutput:
     if not is_configured():
         return _empty_response(

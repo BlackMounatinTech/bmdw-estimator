@@ -1,5 +1,6 @@
 from .db import (
     dashboard_metrics,
+    delete_customer,
     delete_quote,
     init_db,
     list_customers,
@@ -19,6 +20,7 @@ from .db import (
 
 __all__ = [
     "dashboard_metrics",
+    "delete_customer",
     "delete_quote",
     "init_db",
     "list_customers",
