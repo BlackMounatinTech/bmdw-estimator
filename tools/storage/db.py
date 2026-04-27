@@ -201,16 +201,29 @@ def update_customer_meta(customer_id: str, lead_status: str = None, notes: str =
 
 
 def next_quote_id() -> str:
-    """Sequential per-year invoice number, e.g. 2026-041."""
+    """Sequential quote/invoice number starting from `quote_number_offset` in
+    config/company.json (default 1768). Returns the next integer as a string,
+    e.g. '1768', '1769'. We never reuse numbers — the next ID is always
+    max(existing_numeric_ids, offset_minus_one) + 1.
+    """
+    from pathlib import Path
+    cfg_path = Path(__file__).resolve().parents[2] / "config" / "company.json"
+    try:
+        offset = int(json.loads(cfg_path.read_text()).get("quote_number_offset", 1768))
+    except Exception:
+        offset = 1768
+
     conn = _connect()
     try:
-        year = datetime.utcnow().year
-        prefix = f"{year}-"
-        row = conn.execute(
-            "SELECT COUNT(*) AS n FROM quotes WHERE quote_id LIKE ?",
-            (f"{prefix}%",),
-        ).fetchone()
-        return f"{prefix}{row['n'] + 1:03d}"
+        rows = conn.execute("SELECT quote_id FROM quotes").fetchall()
+        max_existing = offset - 1
+        for r in rows:
+            qid = r["quote_id"]
+            if qid and qid.isdigit():
+                n = int(qid)
+                if n > max_existing:
+                    max_existing = n
+        return str(max_existing + 1)
     finally:
         conn.close()
 

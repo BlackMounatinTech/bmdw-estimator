@@ -114,19 +114,21 @@ BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 - Magnum stones: 26 per load at $850/load. Same catalogue_key = block_delivery.
   Compute loads = ceil(block_count / 26); cost = loads × $850.
 
-AGGREGATE TRUCKING (hourly tandem dump — Equipment bucket, since billed by truck time):
+AGGREGATE TRUCKING (hourly tandem dump — TRUCKING bucket, all hourly tandems live in trucking.json):
 - Capacity: 10 cu yd per load.
 - Round trip: 2 hours default (60 min each way + load/dump). Bump up if site is far.
-- Rate depends on who's doing the trucking:
-  - **BMDW in-house tandem: $100/hr** (catalogue_key = tandem_dump_bmdw). Use when
-    Michael says "I'll handle the trucking" / "we're doing trucking" / "in-house" /
-    or names BMDW's truck. This is cheapest — no contractor markup.
-  - Default contracted tandem: $170/hr (catalogue_key = tandem_dump). Use for hired
-    Upland's, Northwin, or unspecified contractor truck.
-  - Browns River tandem: $160/hr (catalogue_key = tandem_dump_brownsriver). Use when
-    materials are sourced from Browns River Pit AND Michael isn't using his own truck.
+- DEFAULT: BMDW does the trucking with the in-house truck. Use catalogue_key = tandem_dump_bmdw
+  ($100/hr) UNLESS Michael explicitly names a contractor truck in his brief. This is the
+  default assumption; do not switch off it without explicit cause.
+- Other options ONLY if explicitly named:
+  - tandem_dump ($170/hr) — generic contractor tandem
+  - tandem_dump_brownsriver ($160/hr) — Browns River subcontracted tandem
+  - truck_and_pup ($205/hr) — bigger 16 cu yd truck if Michael asks for it
 - Compute: num_loads = ceil(total_aggregate_cu_yd / 10); truck_hours = num_loads × round_trip_hours.
-  Emit a single Equipment line with the matching tandem catalogue_key, quantity = truck_hours, unit = hour.
+- Emit ONE TRUCKING-bucket line: bucket = trucking, catalogue_type = trucking,
+  catalogue_key = tandem_dump_bmdw (or other if explicit), quantity = truck_hours, unit = hour.
+- Multiple tandems in the same quote ONLY if Michael explicitly says so (e.g. "BMDW + Browns River
+  tandems for the volume"). Default = single BMDW truck for the whole job.
 
 SUPPLIER → REGION MAPPING (pick the supplier closest to the job site):
 - Browns River Pit (suffix `_brownsriver`) — serves Courtenay, Comox, Cumberland.
@@ -135,10 +137,13 @@ SUPPLIER → REGION MAPPING (pick the supplier closest to the job site):
 If Michael names a supplier explicitly, use it. Otherwise pick by location.
 
 SPOIL DUMP DESTINATIONS:
-- Default: weight-based, $10/ton (use cu_yd × 1.25 = tons). Emit a freeform Spoil line.
-- Browns River Pit (Courtenay / Comox / Cumberland jobs): $90 per tandem load (10 cu_yd capacity).
-  Compute: loads = ceil(spoil_cu_yd / 10); dump_cost = loads × 90.
-  Emit a freeform Spoil line: description "Browns River dump fee — N tandems × $90", quantity = loads, unit = "load", unit_cost = 90.
+- Upland's / Northwin / unspecified default: weight-based, $10/ton.
+  Convert: tons = spoil_cu_yd × 1.25. Cost = tons × $10.
+  Emit a freeform Spoil line: description "Dump fee — N tons × $10", quantity = tons, unit = "ton", unit_cost = 10.
+- Browns River Pit (Courtenay / Comox / Cumberland jobs): $90 MINIMUM per dump trip.
+  Same $90 whether it's a small load or a full 10 cu_yd tandem. Compute trips = ceil(spoil_cu_yd / 10).
+  Emit a freeform Spoil line: description "Browns River dump fee — N trips × $90 minimum",
+  quantity = trips, unit = "trip", unit_cost = 90.
 
 CUSTOM-WALL ESCALATION: If Michael's notes say "significantly bigger" or "unusual"
 or anything that doesn't fit standard scope, draft best-effort quantities AND add a
@@ -272,6 +277,11 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "- NEIGHBOUR / LIABILITY where the site is tight — shared driveway, parked cars, kids/pets.\n"
         "- SOIL TYPE only for big excavations where bearing/drainage matters.\n"
         "- BC ONE CALL status if there's any digging.\n"
+        "- TRUCKING SOURCE — DEFAULT is BMDW in-house truck ($100/hr). If trucking is "
+        "involved but the brief doesn't say who's doing it, ASK to confirm: "
+        "'You're handling trucking with the BMDW truck ($100/hr), or is this being "
+        "subbed out to a contractor (Browns River $160/hr, generic $170/hr)?'. "
+        "Skip if Michael explicitly named the trucker or said he'll handle it.\n"
         "- ELEVATIONS + WATER POOLING — does the site slope toward or away from the "
         "structure? Any low spots where water collects after rain? Where does runoff go? "
         "Affects drainage spec, sub-base prep, and whether extra grading is in scope.\n"

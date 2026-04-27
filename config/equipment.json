@@ -54,34 +54,6 @@
     "daily_rate": 95.0,
     "rental_insurance_eligible": true
   },
-  "tandem_dump": {
-    "sku": "TRK-TANDEM",
-    "name": "Tandem dump truck",
-    "hourly_rate": 170.0,
-    "rental_insurance_eligible": false,
-    "notes": "9-10 yd^3 per load. Travel time per-bid (Campbell River ~1 hr each way as baseline). Trucks have commercial insurance, not rental insurance."
-  },
-  "tandem_dump_brownsriver": {
-    "sku": "TRK-TANDEM-BR",
-    "name": "Tandem dump truck (Browns River)",
-    "hourly_rate": 160.0,
-    "rental_insurance_eligible": false,
-    "notes": "10 yd^3 per load. $160/hr — cheaper than the default tandem. Use this when sourcing aggregate from Browns River Pit (Courtenay / Comox / Cumberland)."
-  },
-  "tandem_dump_bmdw": {
-    "sku": "TRK-TANDEM-BMDW",
-    "name": "Tandem dump truck (BMDW in-house)",
-    "hourly_rate": 100.0,
-    "rental_insurance_eligible": false,
-    "notes": "BMDW's own truck — $100/hr (cheapest option, no contractor markup). 10 yd^3 per load. Use when Michael is doing the trucking himself OR when explicitly preferred over hiring a contract tandem."
-  },
-  "truck_and_pup": {
-    "sku": "TRK-PUP",
-    "name": "Truck and pup",
-    "hourly_rate": 205.0,
-    "rental_insurance_eligible": false,
-    "notes": "~16 yd^3 per load (tandem + pup trailer). Travel time per-bid. Trucks have commercial insurance, not rental insurance."
-  },
   "dump_trailer_10_12ft": {
     "sku": "TRL-DUMP-10-12",
     "name": "10-12 ft dump trailer",

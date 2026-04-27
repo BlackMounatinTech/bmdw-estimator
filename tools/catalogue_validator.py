@@ -22,7 +22,7 @@ PARSER_PATH = Path(__file__).resolve().parent / "parser" / "notes_to_line_items.
 REQUIRED_RATE_FIELDS = {
     "materials": ["cost_per_unit"],
     "labour": ["hourly_rate"],
-    "trucking": ["per_load_rate"],
+    "trucking": ["per_load_rate", "hourly_rate"],   # both valid for trucking
     "equipment": ["hourly_rate", "daily_rate", "weekly_rate", "monthly_rate"],
 }
 

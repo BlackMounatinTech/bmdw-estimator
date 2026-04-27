@@ -455,7 +455,12 @@ def entry_from_catalogue(bucket, cat_key: str, qty: float):
         else:
             unit, cost = "each", 0.0
     elif cat_name == "trucking":
-        unit, cost = "load", float(item.get("per_load_rate", 0))
+        # Trucking supports both hourly (BMDW + contracted tandems) and per-load
+        # (block delivery, mobilization). Pick whichever rate the catalogue defines.
+        if item.get("hourly_rate"):
+            unit, cost = "hour", float(item["hourly_rate"])
+        else:
+            unit, cost = "load", float(item.get("per_load_rate", 0))
     elif cat_name == "labour":
         unit, cost = "hour", float(item["hourly_rate"])
     else:

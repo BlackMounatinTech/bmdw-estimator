@@ -17,7 +17,12 @@ from tools.outputs.contract_drafter import is_ai_configured as contract_ai_confi
 from tools.outputs.email_sender import is_configured as email_configured
 from tools.outputs.email_sender import send_email
 from tools.outputs.pdf_generator import is_configured as pdf_configured
-from tools.outputs.pdf_generator import render_contract_pdf, render_quote_pdf
+from tools.outputs.pdf_generator import (
+    render_contract_pdf,
+    render_invoice_pdf,
+    render_quote_pdf,
+    render_receipt_pdf,
+)
 from tools.outputs.sheets_sync import is_configured as sheets_configured
 from tools.outputs.sheets_sync import push_full_sync
 from tools.shared import (
@@ -86,7 +91,10 @@ def _entry_from_catalogue(bucket: CostBucket, cat_key: str, qty: float) -> LineI
         else:
             unit, cost = "each", 0.0
     elif cat_name == "trucking":
-        unit, cost = "load", float(item.get("per_load_rate", 0))
+        if item.get("hourly_rate"):
+            unit, cost = "hour", float(item["hourly_rate"])
+        else:
+            unit, cost = "load", float(item.get("per_load_rate", 0))
     elif cat_name == "labour":
         unit, cost = "hour", float(item["hourly_rate"])
     else:
@@ -641,22 +649,26 @@ with tab_sheet:
             CostBucket.SPOIL: "Spoil",
         }
 
+        # Multi-project quotes get a project header row before each project's
+        # entries; single-project quotes skip the project label entirely.
+        is_multi_project = len(q.line_items) > 1
         rows = []
         for li in q.line_items:
             for bucket in BUCKET_ORDER:
                 for e in li.entries:
                     if e.bucket != bucket:
                         continue
-                    rows.append({
+                    row = {
                         "Bucket": bucket_label[bucket],
-                        "Project": li.label,
-                        "Description": e.description,
+                        "Description": e.description if not is_multi_project
+                                       else f"[{li.label}] {e.description}",
                         "Qty": e.quantity,
                         "Unit": e.unit,
                         "Unit Cost": e.unit_cost,
                         "Line Total": e.total_cost,
                         "Insurance": "✓" if (e.bucket == CostBucket.EQUIPMENT and e.rental_insurance_eligible) else "",
-                    })
+                    }
+                    rows.append(row)
 
         if not rows:
             st.info("No line items yet. Use the ✏ Edit Quote tab to add them.")
@@ -1029,10 +1041,35 @@ with a3:
         else:
             st.warning(result["reason"])
 
+# Payment-info inputs for Invoice + Receipt generation. Stored ad-hoc per
+# session — Michael enters when generating each document. (Schema-level
+# tracking can come later if needed.)
+import datetime as _dt
+with st.expander("💵 Payment info (for Invoice + Receipt PDFs)", expanded=False):
+    pi1, pi2, pi3 = st.columns(3)
+    with pi1:
+        deposit_amt = st.number_input(
+            "Deposit received ($)", min_value=0.0, step=100.0,
+            value=float(st.session_state.get(f"_dep_{q.quote_id}", q.customer_total * 0.5)),
+            key=f"_dep_{q.quote_id}",
+        )
+    with pi2:
+        deposit_dt = st.date_input(
+            "Deposit received date",
+            value=st.session_state.get(f"_dep_dt_{q.quote_id}", _dt.date.today()),
+            key=f"_dep_dt_{q.quote_id}",
+        )
+    with pi3:
+        final_amt = st.number_input(
+            "Final payment received ($)", min_value=0.0, step=100.0,
+            value=float(st.session_state.get(f"_fin_{q.quote_id}", q.customer_total - q.customer_total * 0.5)),
+            key=f"_fin_{q.quote_id}",
+        )
+
 p1, p2 = st.columns(2)
 with p1:
-    if st.button("Generate Quote PDF", use_container_width=True, disabled=not pdf_configured(),
-                 help="Render the customer-facing quote as a PDF in data/pdfs/."):
+    if st.button("📄 Generate Quote PDF", use_container_width=True, disabled=not pdf_configured(),
+                 help="Render the customer-facing quote as a PDF."):
         path, err = render_quote_pdf(q, COMPANY)
         if err:
             st.warning(err)
@@ -1044,7 +1081,7 @@ with p1:
                                    file_name=f"{q.quote_id}-quote.pdf",
                                    mime="application/pdf", use_container_width=True)
 with p2:
-    if st.button("Generate Contract PDF", use_container_width=True, disabled=not pdf_configured(),
+    if st.button("📑 Generate Contract PDF", use_container_width=True, disabled=not pdf_configured(),
                  help="Render the (saved or auto-drafted) contract as a PDF."):
         path, err = render_contract_pdf(q, COMPANY)
         if err:
@@ -1055,6 +1092,58 @@ with p2:
             with open(path, "rb") as f:
                 st.download_button("⬇ Download contract.pdf", data=f.read(),
                                    file_name=f"{q.quote_id}-contract.pdf",
+                                   mime="application/pdf", use_container_width=True)
+
+p3, p4, p5 = st.columns(3)
+with p3:
+    if st.button("🧾 Generate Invoice PDF", use_container_width=True, disabled=not pdf_configured(),
+                 help="Final invoice showing total, deposit received, and outstanding balance."):
+        path, err = render_invoice_pdf(q, COMPANY,
+                                       deposit_received=float(deposit_amt),
+                                       deposit_received_date=deposit_dt)
+        if err:
+            st.warning(err)
+        else:
+            log_event(q.quote_id, "invoice_pdf_rendered",
+                      {"path": str(path), "deposit_received": deposit_amt})
+            st.success(f"Invoice PDF saved → {path}")
+            with open(path, "rb") as f:
+                st.download_button("⬇ Download invoice.pdf", data=f.read(),
+                                   file_name=f"{q.quote_id}-invoice.pdf",
+                                   mime="application/pdf", use_container_width=True)
+with p4:
+    if st.button("✅ Generate Deposit Receipt", use_container_width=True, disabled=not pdf_configured(),
+                 help="Receipt for the 50% deposit you just received."):
+        path, err = render_receipt_pdf(q, COMPANY,
+                                       amount_received=float(deposit_amt),
+                                       receipt_kind="deposit",
+                                       received_date=deposit_dt)
+        if err:
+            st.warning(err)
+        else:
+            log_event(q.quote_id, "receipt_deposit_rendered",
+                      {"path": str(path), "amount": deposit_amt})
+            st.success(f"Deposit receipt saved → {path}")
+            with open(path, "rb") as f:
+                st.download_button("⬇ Download deposit-receipt.pdf", data=f.read(),
+                                   file_name=f"{q.quote_id}-deposit-receipt.pdf",
+                                   mime="application/pdf", use_container_width=True)
+with p5:
+    if st.button("✅ Generate Final Receipt", use_container_width=True, disabled=not pdf_configured(),
+                 help="Receipt for the final payment + project complete."):
+        path, err = render_receipt_pdf(q, COMPANY,
+                                       amount_received=float(final_amt),
+                                       receipt_kind="final",
+                                       received_date=_dt.date.today())
+        if err:
+            st.warning(err)
+        else:
+            log_event(q.quote_id, "receipt_final_rendered",
+                      {"path": str(path), "amount": final_amt})
+            st.success(f"Final receipt saved → {path}")
+            with open(path, "rb") as f:
+                st.download_button("⬇ Download final-receipt.pdf", data=f.read(),
+                                   file_name=f"{q.quote_id}-final-receipt.pdf",
                                    mime="application/pdf", use_container_width=True)
 
 

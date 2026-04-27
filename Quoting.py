@@ -983,3 +983,37 @@ with a2:
         st.session_state["_pending_quote_id"] = saved_id
         st.query_params["quote_id"] = saved_id
         st.switch_page("pages/4_Quote_Detail.py")
+
+
+# ---- Clear page (always available, bottom of page) ---------------------
+st.markdown("---")
+st.markdown(
+    '<div style="color:#64748b;font-size:11px;font-weight:700;'
+    'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
+    "Reset</div>",
+    unsafe_allow_html=True,
+)
+st.caption(
+    "Wipes the customer info, quick notes, clarifying answers, and any in-progress projects "
+    "from this page. Saved quotes in the database are NOT touched — they're still visible "
+    "from Customers / Jobs / Quote Detail."
+)
+cp1, cp2, cp3 = st.columns([1, 2, 2])
+with cp1:
+    if st.session_state.get("_clear_confirm"):
+        if st.button("Confirm clear", type="primary", use_container_width=True):
+            _reset_draft_state(reset_id=True)
+            st.session_state["_clear_confirm"] = False
+            st.query_params.clear()
+            st.success("Page cleared.")
+            st.rerun()
+    else:
+        if st.button("🗑 Clear page", use_container_width=True,
+                     help="Reset all in-progress data on this page (saved quotes are kept)."):
+            st.session_state["_clear_confirm"] = True
+            st.rerun()
+with cp2:
+    if st.session_state.get("_clear_confirm"):
+        if st.button("Cancel", use_container_width=True):
+            st.session_state["_clear_confirm"] = False
+            st.rerun()

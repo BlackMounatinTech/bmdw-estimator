@@ -1,14 +1,35 @@
 {
-  "_README": "Global trucking catalogue. Vehicles billed per load for hauling material in to or out from a job site. PLACEHOLDERS — replace with Michael's real per-load rates and capacities.",
+  "_README": "Global trucking catalogue. All trucks live HERE (not in equipment.json) regardless of billing model. Hourly trucks have `hourly_rate`; per-load trucks have `per_load_rate`. Trucks have commercial insurance, so the 16% rental insurance surcharge never applies. DEFAULT: BMDW does the trucking with our in-house tandem ($100/hr) unless Michael explicitly names a contractor truck (Browns River, Upland's, Northwin).",
 
+  "tandem_dump_bmdw": {
+    "sku": "TRK-TANDEM-BMDW",
+    "name": "Tandem dump truck (BMDW in-house)",
+    "hourly_rate": 100.0,
+    "capacity_cu_yd": 10.0,
+    "notes": "BMDW's own truck. $100/hr. DEFAULT trucking option — use this unless Michael explicitly names a contractor (Browns River / Upland's / Northwin)."
+  },
   "tandem_dump": {
     "sku": "TRK-TANDEM",
-    "name": "Tandem dump truck (per load)",
-    "per_load_rate": 220.0,
+    "name": "Tandem dump truck (contractor)",
+    "hourly_rate": 170.0,
     "capacity_cu_yd": 10.0,
-    "capacity_blocks": 6,
-    "notes": "9-10 yd^3 per load. Travel time per-bid (varies by site). Tandem billed hourly is in equipment at $170/hr."
+    "notes": "Generic contractor tandem. $170/hr. Use only when Michael says it's being subbed out and the supplier isn't Browns River."
   },
+  "tandem_dump_brownsriver": {
+    "sku": "TRK-TANDEM-BR",
+    "name": "Tandem dump truck (Browns River)",
+    "hourly_rate": 160.0,
+    "capacity_cu_yd": 10.0,
+    "notes": "$160/hr. Use when Michael says trucking is subbed to Browns River (Courtenay/Comox/Cumberland area)."
+  },
+  "truck_and_pup": {
+    "sku": "TRK-PUP",
+    "name": "Truck and pup",
+    "hourly_rate": 205.0,
+    "capacity_cu_yd": 16.0,
+    "notes": "~16 yd^3 (tandem + pup trailer). $205/hr. Used for big aggregate hauls when Michael explicitly requests it."
+  },
+
   "mobilization": {
     "sku": "TRK-MOB",
     "name": "Equipment mobilization (one way)",
