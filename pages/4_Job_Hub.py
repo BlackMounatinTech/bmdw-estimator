@@ -288,8 +288,8 @@ b5.metric("Spoil", fmt_money(q.bucket_total(CostBucket.SPOIL)))
 
 section_header("Job Details")
 
-tab_desc, tab_takeoff, tab_takeoff_table, tab_math, tab_contract, tab_plan, tab_events, tab_attach = st.tabs(
-    ["Description", "✏ Edit Quote", "Material Takeoff", "Math Breakdown", "Contract", "Plan", "Events", "Attachments"]
+tab_desc, tab_takeoff, tab_sheet, tab_math, tab_contract, tab_plan, tab_events, tab_attach = st.tabs(
+    ["Description", "✏ Edit Quote", "📊 Spreadsheet", "Math Breakdown", "Contract", "Plan", "Events", "Attachments"]
 )
 
 with tab_desc:
@@ -598,17 +598,125 @@ def _render_entry_rows(entries):
     sf[2].markdown(f'<div style="color:#f1f5f9;font-size:14px;font-weight:700;padding:4px 0;text-align:right;">{fmt_money(subtotal)}</div>', unsafe_allow_html=True)
 
 
-with tab_takeoff_table:
-    st.markdown("### Material Takeoff")
-    st.caption("Clean read-only material list, project by project. For internal review.")
+with tab_sheet:
+    import pandas as pd
+
+    st.markdown("### 📊 Spreadsheet — every line item, all 5 buckets")
+    st.caption(
+        "Sortable, searchable, exportable. Click any column header to sort. "
+        "Click the ⬇ icon (top-right of the table) to download as CSV. "
+        "Order: Equipment → Materials → Labour → Trucking → Spoil."
+    )
 
     if not q.line_items:
         st.info("No projects yet.")
-    for li in q.line_items:
-        st.markdown(f"#### ◆ {li.label}")
-        material_entries = [e for e in li.entries if e.bucket == CostBucket.MATERIALS]
-        _render_entry_rows(material_entries)
+    else:
+        # Bucket display order per Michael's preference (Equipment first).
+        BUCKET_ORDER = [
+            CostBucket.EQUIPMENT,
+            CostBucket.MATERIALS,
+            CostBucket.LABOUR,
+            CostBucket.TRUCKING,
+            CostBucket.SPOIL,
+        ]
+        bucket_label = {
+            CostBucket.EQUIPMENT: "Equipment",
+            CostBucket.MATERIALS: "Materials",
+            CostBucket.LABOUR: "Labour",
+            CostBucket.TRUCKING: "Trucking",
+            CostBucket.SPOIL: "Spoil",
+        }
+
+        rows = []
+        for li in q.line_items:
+            for bucket in BUCKET_ORDER:
+                for e in li.entries:
+                    if e.bucket != bucket:
+                        continue
+                    rows.append({
+                        "Bucket": bucket_label[bucket],
+                        "Project": li.label,
+                        "Description": e.description,
+                        "Qty": e.quantity,
+                        "Unit": e.unit,
+                        "Unit Cost": e.unit_cost,
+                        "Line Total": e.total_cost,
+                        "Insurance": "✓" if (e.bucket == CostBucket.EQUIPMENT and e.rental_insurance_eligible) else "",
+                    })
+
+        if not rows:
+            st.info("No line items yet. Use the ✏ Edit Quote tab to add them.")
+        else:
+            df = pd.DataFrame(rows)
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Qty": st.column_config.NumberColumn(format="%.2f"),
+                    "Unit Cost": st.column_config.NumberColumn(format="$%.2f"),
+                    "Line Total": st.column_config.NumberColumn(format="$%.2f"),
+                    "Insurance": st.column_config.TextColumn(
+                        help="Equipment line is eligible for the rental-insurance surcharge",
+                        width="small",
+                    ),
+                },
+            )
+
+            # Per-bucket subtotals strip
+            st.markdown("&nbsp;", unsafe_allow_html=True)
+            st.markdown(
+                '<div style="color:#64748b;font-size:11px;font-weight:700;'
+                'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Bucket subtotals</div>',
+                unsafe_allow_html=True,
+            )
+            sub_cols = st.columns(5)
+            for col, bucket in zip(sub_cols, BUCKET_ORDER):
+                col.metric(bucket_label[bucket], fmt_money(q.bucket_total(bucket)))
+
+        # ---- Pricing chain (the "Total" Michael wants at the end) ----
         st.markdown("&nbsp;", unsafe_allow_html=True)
+        st.markdown(
+            '<div style="color:#64748b;font-size:11px;font-weight:700;'
+            'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
+            "Quote total (full pricing chain)</div>",
+            unsafe_allow_html=True,
+        )
+        chain_rows = [
+            ("Raw entries (sum of all line totals)", q.raw_entries_total),
+            (f"+ Rental insurance ({q.rental_insurance_pct:g}% on eligible equipment)",
+             q.rental_insurance_amount),
+            ("= Internal cost (BMDW total)", q.internal_cost),
+            (f"+ Markup ({q.markup.overall_pct:g}%)", q.markup_amount),
+            ("= Subtotal pre-discount", q.subtotal_pre_discount),
+        ]
+        if q.discount_amount > 0:
+            chain_rows.append((f"− Discount ({q.discount_pct:g}%"
+                               + (f" + ${q.discount_flat:g} flat" if q.discount_flat else "")
+                               + ")", -q.discount_amount))
+        chain_rows.append(("= Subtotal", q.subtotal))
+        chain_rows.append((f"+ GST + PST ({q.tax_pct:g}%)", q.tax_amount))
+        chain_rows.append(("= CUSTOMER TOTAL", q.customer_total))
+
+        for label, amount in chain_rows:
+            is_total = label.startswith("= CUSTOMER TOTAL")
+            is_subtotal = label.startswith("=") and not is_total
+            color = "#f1f5f9" if (is_total or is_subtotal) else "#cbd5e1"
+            weight = "700" if is_total else ("600" if is_subtotal else "400")
+            size = "16px" if is_total else "13px"
+            border = ("border-top:1px solid #1e293b;margin-top:6px;padding-top:8px;"
+                      if is_subtotal or is_total else "")
+            row = st.columns([6, 2])
+            row[0].markdown(
+                f'<div style="color:{color};font-size:{size};font-weight:{weight};'
+                f'padding:4px 0;{border}">{label}</div>',
+                unsafe_allow_html=True,
+            )
+            row[1].markdown(
+                f'<div style="color:{color};font-size:{size};font-weight:{weight};'
+                f'padding:4px 0;text-align:right;{border}">{fmt_money(amount)}</div>',
+                unsafe_allow_html=True,
+            )
 
 
 with tab_math:
