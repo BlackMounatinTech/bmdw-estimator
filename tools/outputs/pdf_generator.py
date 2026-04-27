@@ -45,9 +45,24 @@ def is_configured() -> bool:
 
 # ---- Shared header block ------------------------------------------------
 
+def _logo_block(company: dict) -> str:
+    """If the configured logo file exists, embed it. Otherwise empty string
+    (header falls back to the legal-name text). Path is relative to project root."""
+    logo_rel = company.get("logo_path", "config/branding/logo.png")
+    project_root = Path(__file__).resolve().parents[2]
+    logo_path = (project_root / logo_rel).resolve()
+    if not logo_path.exists():
+        return ""
+    # WeasyPrint accepts file:// URIs for local images.
+    return (
+        f'<img class="brand-logo" src="file://{logo_path}" '
+        f'alt="BMDW logo" />'
+    )
+
+
 def _header_html(company: dict, doc_label: str, q: Quote, today: date,
                  invoice_number: Optional[str] = None) -> str:
-    """Standard header used on every document type."""
+    """Standard header used on every document type. Logo embeds if present."""
     legal = company.get("legal_name", "BLACK MOUNTAIN DIRT WORKS")
     owner = company.get("owner_name", "Michael MacKrell")
     title = company.get("owner_title", "Owner Operator")
@@ -55,10 +70,12 @@ def _header_html(company: dict, doc_label: str, q: Quote, today: date,
     email = company.get("email", "")
     addr = company.get("address", "")
     inv_num = invoice_number or q.quote_id
+    logo_html = _logo_block(company)
 
     return f"""
 <div class="header">
   <div class="brand">
+    {logo_html}
     <div class="brand-name">{legal}</div>
     <div class="brand-owner">{owner}, {title}</div>
     <div class="brand-meta">{phone} &nbsp;·&nbsp; {email}</div>
@@ -128,6 +145,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 .header { display: flex; justify-content: space-between;
           border-bottom: 3px solid #0a0f1a; padding-bottom: 14px;
           margin-bottom: 18px; }
+.brand-logo { max-height: 70px; max-width: 220px; margin-bottom: 6px;
+              display: block; }
 .brand-name { font-size: 22pt; font-weight: 800; letter-spacing: 0.04em;
               color: #0a0f1a; line-height: 1; }
 .brand-owner { font-size: 11pt; color: #444; margin-top: 4px; }

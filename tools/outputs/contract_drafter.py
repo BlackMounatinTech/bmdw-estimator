@@ -94,46 +94,62 @@ def _scope_block_ai(q: Quote) -> Optional[str]:
 
 
 def _project_plan_block(q: Quote) -> str:
-    """Comprehensive standard project plan. Universal phases applied to every job."""
+    """Comprehensive project plan. Universal pre-work + wrap-up bookends, with
+    AI-generated work-phase steps in the middle (per project, scaled to job
+    complexity — could be 8 steps or 30+).
+    """
     deposit = q.customer_total * (company_deposit_pct(None) / 100)
-    return f"""\
-1. SITE REVIEW + PRE-WORK
-   - Site walk and review of access points, grades, working conditions.
-   - Coordinate utility locates (BC One Call) for any underground services.
-   - Confirm access route, lawn / landscape protection requirements, and
-     neighbour considerations.
-   - Receive customer-signed acceptance of this contract.
-   - Receive 50% deposit (${deposit:,.2f} CAD) before equipment is mobilized.
 
-2. MOBILIZATION
-   - Transport excavator, attachments, and any other required equipment to site.
-   - Stage materials and trucking schedule with suppliers.
+    pre_work = [
+        "Site review walk-through with the Owner — confirm access, grades, working conditions",
+        "Owner reviews and signs this contract",
+        "BC One Call utility locates booked and completed for any underground services",
+        f"Receive 50% deposit (${deposit:,.2f} CAD) before equipment is mobilized",
+        "Mobilize equipment and stage materials with suppliers",
+    ]
 
-3. EXECUTION OF WORK
-   - Perform the scope of work described above.
-   - Manage spoil, imported fill, drainage, and on-site staging per project plan.
-   - Daily site cleanup and securing of work area at end of each work day.
-   - Communicate progress and any unforeseen conditions to the Owner promptly.
+    wrap_up = [
+        "Internal QA of completed work — grades, compaction, drainage, surface finish",
+        "Demobilize equipment, tools, and waste from the site",
+        "Final walkthrough with the Owner — confirm completion against the scope",
+        "Address any punch-list items identified during walk",
+        "Receive remaining balance",
+        "Issue receipt for final payment; project archived in BMDW records",
+    ]
 
-4. INSPECTION + ADJUSTMENTS
-   - Internal QA of completed work — grades, compaction, drainage, surface finish.
-   - Address minor finishing items identified during walk.
+    sections = []
 
-5. DEMOBILIZATION
-   - Remove all equipment, tools, and waste from the site.
-   - Final cleanup of access route and work area.
+    # PRE-WORK
+    pw_lines = "\n".join(f"   {i}. {step}" for i, step in enumerate(pre_work, start=1))
+    sections.append(f"PRE-WORK\n{pw_lines}")
 
-6. FINAL WALKTHROUGH WITH CLIENT
-   - Joint walk with the Owner to confirm completion against the scope.
-   - Punch-list items (if any) addressed before sign-off.
+    # WORK PHASES — per project, AI-generated when available
+    any_work_plan = False
+    for li in q.line_items:
+        plan = []
+        if isinstance(li.inputs, dict):
+            plan = li.inputs.get("project_plan") or []
+        if not plan:
+            continue
+        any_work_plan = True
+        steps_text = "\n".join(
+            f"   Day {step.get('day', '?')} — {step.get('description', '')}"
+            for step in plan
+        )
+        sections.append(f"WORK PHASE — {li.label}\n{steps_text}")
 
-7. RECEIVE FINAL PAYMENT
-   - Owner remits remaining balance upon completion.
+    if not any_work_plan:
+        sections.append(
+            "WORK PHASE\n"
+            "   Per the SCOPE OF WORK above. Detailed day-by-day plan provided "
+            "during the site walk-through."
+        )
 
-8. RECEIPT ISSUED + PROJECT COMPLETE
-   - Receipt for final payment provided to the Owner.
-   - Project archived in BMDW records.
-"""
+    # WRAP-UP
+    wu_lines = "\n".join(f"   {i}. {step}" for i, step in enumerate(wrap_up, start=1))
+    sections.append(f"WRAP-UP\n{wu_lines}")
+
+    return "\n\n".join(sections)
 
 
 def company_deposit_pct(_) -> float:
@@ -182,10 +198,9 @@ parties before the affected work proceeds:
 
 def _clauses_block() -> str:
     return """\
-- CHANGES IN SCOPE. Any work outside the SCOPE OF WORK above will be billed on
-  a cost-plus basis (BMDW's actual cost of labour, materials, equipment, and
-  trucking + 40% markup) and communicated to the Owner BEFORE the work
-  proceeds. Both parties must sign off on the change order.
+- CHANGES IN SCOPE. Any work outside the SCOPE OF WORK above will be billed
+  on a cost-plus basis. The change order will be discussed with the Owner
+  and signed off by both parties BEFORE the affected work proceeds.
 
 - UNFORESEEN CONDITIONS. If site conditions discovered during the work
   materially differ from the key assumptions above (rock, contaminated soil,

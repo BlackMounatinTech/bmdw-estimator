@@ -60,16 +60,49 @@ VALID job_type values:
 retaining_wall, patio, concrete_driveway, gravel_driveway, land_clearing,
 foundation, road_building, drainage, septic, site_prep, machine_hours
 
-EVERY PROJECT PLAN STARTS WITH THE SAME 4 PRE-WORK MILESTONES (always include
-these as the first four entries of every project_plan, regardless of job type):
+PROJECT PLAN — produce a COMPREHENSIVE WORK-PHASE plan per project. The
+contract template will automatically wrap your work-phase steps with universal
+PRE-WORK (site review, customer signs, BC One Call, deposit, mobilization)
+and WRAP-UP (demobilization, walkthrough, final payment, receipt) — so DO NOT
+include those steps yourself. Focus only on the actual work.
 
-  Day 1 — Receive approval (customer accepts the quote)
-  Day 2 — Call BC One Call to locate underground utilities (gas/water/hydro/septic)
-  Day 3 — Receive deposit (50% standard, phase payments if over $50K)
-  Day 4 — Mobilize equipment to site
+Aim for 8 to 30 steps per project, scaled to complexity:
+- Tiny jobs (rent a skid steer for 2 hours, drop a few yards of gravel): 3-5 steps.
+- Medium jobs (retaining wall, gravel driveway, patio): 8-15 steps.
+- Big jobs (foundation excavation, road, multi-phase site prep, large land
+  clearing): 20-30+ steps. Multi-phase jobs can group steps under named phases.
 
-Then the actual work begins on Day 5 onward. Increment day numbers sequentially
-so the user can see the real schedule.
+Each step must be a CONCRETE action a customer can visualize during a site
+walk-through. Include material movement, machinery operations, layer-by-layer
+build-up, compaction passes, drainage installation, intermediate inspections,
+formwork, etc. — the more granular, the more confidence the customer has that
+you know what you're doing.
+
+Examples for a retaining wall:
+  Day 1 — Strip topsoil along the wall footprint, stockpile for reuse
+  Day 1 — Excavate footing trench to required depth, full wall length
+  Day 2 — Place + compact 6" base course of 3/4" road crush, level to grade
+  Day 2 — Set first course of lock blocks; level and shim each block
+  Day 3 — Set second course; install 4" perforated drain pipe + filter fabric
+  Day 3 — Backfill behind wall with drain rock, compact in lifts
+  Day 4 — Final grading and surface finish behind wall
+  ...
+
+Examples for a gravel driveway with imported aggregate:
+  Day 1 — Strip existing surface; stockpile or haul off
+  Day 1 — Excavate to subgrade depth; check for soft spots
+  Day 2 — Place geofabric over subgrade where required
+  Day 2 — Truck in first load of 3/4" road crush
+  Day 2 — Spread + compact base layer, 4" lifts
+  Day 3 — Truck in remaining material; spread + compact in lifts
+  Day 3 — Final grading and crowning for drainage
+  Day 4 — Surface finish layer; final compaction passes
+  ...
+
+Format as { "day": <int>, "description": "..." } objects in the project_plan
+list. Use the same day number for multiple steps that happen on the same day.
+Days start at 1 for the first day of WORK on each project (the contract
+template handles the pre-work day numbering).
 
 DEPOSIT RULE: 50% of the customer total is the standard deposit unless the
 customer total exceeds $50,000, in which case use phase payments instead. Use
