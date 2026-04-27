@@ -1,6 +1,6 @@
 # Setup — Gmail Send (OAuth)
 
-The Job Hub "Send Quote" and "Send Contract + Docs" buttons send email via the
+The Quote Detail "Send Quote" and "Send Contract + Docs" buttons send email via the
 Gmail API as the authenticated Google account. This is one-time setup.
 
 ## Prerequisites
@@ -49,7 +49,7 @@ After that, sends are silent. Token auto-refreshes.
 
 ## Verifying it works
 
-1. Open any quote in the Job Hub.
+1. Open any quote in the Quote Detail.
 2. Click **Send Quote**.
 3. Check the recipient's inbox — message should arrive within seconds, and the
    Event log should show `quote_sent` with `ok: true`.

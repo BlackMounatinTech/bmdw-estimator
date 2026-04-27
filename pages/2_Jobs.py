@@ -2,7 +2,7 @@
 
 Customers page groups by person; this page is the chronological queue —
 "what's open, what's sent, what's won, what needs follow-up." Click through
-to the Job Hub for any quote.
+to the Quote Detail for any quote.
 """
 
 import streamlit as st
@@ -234,4 +234,4 @@ for q in filtered:
     with row[6]:
         if st.button("Open", key=f"open_{q['quote_id']}", use_container_width=True):
             st.query_params["quote_id"] = q["quote_id"]
-            st.switch_page("pages/4_Job_Hub.py")
+            st.switch_page("pages/4_Quote_Detail.py")

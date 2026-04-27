@@ -71,6 +71,7 @@ defaults = {
     "clarifying_questions": [],       # list[str] from AI
     "clarifying_answers": "",         # voice answers from Michael
     "clarifier_error": None,          # last clarifier failure reason
+    "voice_edit_mode": False,         # True when editing an existing quote via voice
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -93,15 +94,55 @@ def _reset_draft_state(reset_id: bool = True) -> None:
     st.session_state.clarifying_questions = []
     st.session_state.clarifying_answers = ""
     st.session_state.clarifier_error = None
+    st.session_state.voice_edit_mode = False
     if reset_id:
         st.session_state.current_editing_id = None
         st.session_state.loaded_quote_id = None
 
 
+def _format_existing_quote_as_context() -> str:
+    """Compact text rendering of the current draft's line items, for AI context
+    in voice-edit mode."""
+    lines = []
+    for li in st.session_state.draft_line_items:
+        lines.append(f"\nProject: {li.label}  ({li.job_type})")
+        for bucket in CostBucket:
+            entries = [e for e in li.entries if e.bucket == bucket]
+            if not entries:
+                continue
+            lines.append(f"  {bucket.value.upper()}:")
+            for e in entries:
+                cat_ref = f" [{e.catalogue_sku}]" if e.catalogue_sku else ""
+                lines.append(
+                    f"    - {e.description}: {e.quantity:g} {e.unit} × ${e.unit_cost:.2f} = ${e.total_cost:.2f}{cat_ref}"
+                )
+    return "\n".join(lines) if lines else "(no line items yet)"
+
+
 def _combined_notes_for_parser() -> str:
-    """Combine the Phase 1 brief + Phase 2 answers into a single input for the parser."""
-    base = st.session_state.draft_quick_notes.strip()
+    """Combine inputs into a single string for the parser.
+
+    Two modes:
+    - Normal (Phase 1 brief + Phase 2 answers)
+    - Voice-edit (existing quote as context + change instructions)
+    """
     answers = st.session_state.clarifying_answers.strip()
+
+    if st.session_state.voice_edit_mode:
+        existing = _format_existing_quote_as_context()
+        return (
+            "EXISTING QUOTE — current state of the line items:\n"
+            f"{existing}\n\n"
+            "CHANGES THE CONTRACTOR WANTS APPLIED (dictated):\n"
+            f"{answers if answers else '(no changes dictated yet)'}\n\n"
+            "Return the FULL UPDATED quote with the requested changes applied. "
+            "Keep every existing line that the contractor didn't ask to change. "
+            "Modify lines as instructed. Add new lines if requested. Remove lines "
+            "if the contractor explicitly asks. Re-emit the entire quote so we can "
+            "replace it cleanly."
+        )
+
+    base = st.session_state.draft_quick_notes.strip()
     questions = st.session_state.clarifying_questions
     if not answers:
         return base
@@ -142,6 +183,15 @@ incoming_quote_id = st.query_params.get("quote_id")
 if incoming_quote_id and incoming_quote_id != st.session_state.loaded_quote_id:
     if _load_draft_into_session(incoming_quote_id):
         st.session_state.loaded_quote_id = incoming_quote_id
+
+# Voice-edit handoff from Quote Detail page — jump straight to Phase 2 with
+# this quote loaded as context, ready for the contractor to dictate changes.
+if st.session_state.pop("_voice_edit_mode", False):
+    st.session_state.voice_edit_mode = True
+    st.session_state.quote_phase = 2
+    st.session_state.clarifying_answers = ""
+    st.session_state.clarifying_questions = []
+    st.session_state.parsed_preview = None
 
 
 def _draft_quote() -> Quote:
@@ -324,7 +374,18 @@ bucket_color = {
 quick_notes = st.session_state.draft_quick_notes
 
 
-if not is_editing:
+# Phases run for new quotes (not editing) OR when editing via voice (regenerate flow).
+if (not is_editing) or st.session_state.voice_edit_mode:
+    if st.session_state.voice_edit_mode:
+        st.markdown(
+            f'<div style="background:#111827;border:1px solid #1e293b;'
+            f'border-left:4px solid #f59e0b;border-radius:8px;'
+            f'padding:10px 14px;color:#cbd5e1;font-size:13px;margin-bottom:8px;">'
+            f"🎤 <strong>Voice-editing {st.session_state.current_editing_id}</strong> — "
+            f"dictate what to change in Phase 2 below. Lock-in will overwrite this quote."
+            f"</div>",
+            unsafe_allow_html=True,
+        )
     _phase_pill(phase)
 
     # ===== PHASE 1 — INPUT DETAILS =====
@@ -375,71 +436,152 @@ if not is_editing:
                 st.session_state.clarifier_error = result.get("reason") or "Unknown failure."
                 st.error(st.session_state.clarifier_error)
 
-    # ===== PHASE 2 — CLARIFYING QUESTIONS =====
+    # ===== PHASE 2 — CLARIFYING QUESTIONS (or VOICE-EDIT) =====
     elif phase == 2:
-        section_header("Phase 2 — Clarifying Questions")
-        questions = st.session_state.clarifying_questions
-
-        if not questions:
-            st.markdown(
-                '<div style="background:#111827;border:1px solid #1e293b;'
-                'border-left:4px solid #22c55e;border-radius:8px;'
-                'padding:12px 16px;margin-bottom:12px;color:#cbd5e1;font-size:13px;">'
-                "✓ The AI didn't have any clarifying questions — your brief was complete enough. "
-                "You can still add anything you forgot below, or skip straight to generation."
-                "</div>",
-                unsafe_allow_html=True,
-            )
-        else:
+        if st.session_state.voice_edit_mode:
+            # ---- Voice-edit variant: show the current quote as reference,
+            # then a single textarea for change instructions. ----
+            section_header("Phase 2 — Edit existing quote")
             st.markdown(
                 '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
-                "Read the questions, then dictate your answers below — one big block is fine, "
-                "the AI parses what you say. Cover the questions in any order. "
-                "Reminder on round-trip times: close pit ≈ 1 hr · Campbell River ≈ 2 hr · Tofino ≈ 8 hr."
+                "Below is the current quote. Dictate the changes you want — add lines, "
+                "modify quantities or descriptions, change the location/supplier, swap a "
+                "material, remove something, etc. Then hit <strong>Generate Updated Quote</strong>."
                 "</div>",
                 unsafe_allow_html=True,
             )
-            for i, q in enumerate(questions, start=1):
+
+            # Current quote summary (compact)
+            with st.expander(f"📋 Current quote — {len(st.session_state.draft_line_items)} project(s)",
+                             expanded=True):
+                for li in st.session_state.draft_line_items:
+                    st.markdown(
+                        f'<div style="color:#f1f5f9;font-size:13px;font-weight:600;'
+                        f'margin-top:8px;margin-bottom:4px;">◆ {li.label}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    for bucket in CostBucket:
+                        entries = [e for e in li.entries if e.bucket == bucket]
+                        if not entries:
+                            continue
+                        st.markdown(
+                            f'<div style="color:{bucket_color[bucket]};font-size:10px;'
+                            f'font-weight:700;text-transform:uppercase;letter-spacing:0.06em;'
+                            f'margin-top:4px;">{bucket.value}</div>',
+                            unsafe_allow_html=True,
+                        )
+                        for e in entries:
+                            st.markdown(
+                                f'<div style="color:#cbd5e1;font-size:12px;padding:1px 0;">'
+                                f"• {e.description} — {e.quantity:g} {e.unit} × ${e.unit_cost:.2f} "
+                                f'<span style="color:#94a3b8;">= ${e.total_cost:.2f}</span></div>',
+                                unsafe_allow_html=True,
+                            )
+
+            st.markdown("&nbsp;", unsafe_allow_html=True)
+            section_header("What needs to change? (voice or type)")
+            clarifying_answers = st.text_area(
+                "Changes",
+                value=st.session_state.clarifying_answers,
+                height=180,
+                placeholder=(
+                    "Examples:\n"
+                    "• Change wall length from 30 ft to 35 ft.\n"
+                    "• Add a magnum stone option for the back section, 4 ft × 8 ft.\n"
+                    "• Job is actually in Cumberland — switch supplier to Browns River.\n"
+                    "• Remove the buggy dumper, customer doesn't need it.\n"
+                    "• Bump fuel estimate to $400."
+                ),
+                label_visibility="collapsed",
+                key="phase2_voice_edit",
+            )
+            st.session_state.clarifying_answers = clarifying_answers
+
+            b1, b2 = st.columns(2)
+            with b1:
+                if st.button("← Cancel (back to Quote Detail)", use_container_width=True):
+                    qid = st.session_state.current_editing_id
+                    _reset_draft_state(reset_id=True)
+                    st.session_state["_pending_quote_id"] = qid
+                    st.query_params["quote_id"] = qid
+                    st.switch_page("pages/4_Quote_Detail.py")
+            with b2:
+                if st.button("Generate Updated Quote  →", use_container_width=True,
+                             type="primary",
+                             disabled=not (parser_configured() and clarifying_answers.strip()),
+                             help="AI applies your changes to the existing quote and "
+                                  "produces a full updated version."):
+                    with st.spinner("Applying changes (10-15s)..."):
+                        st.session_state.parsed_preview = parse_notes_to_structure(
+                            _combined_notes_for_parser()
+                        )
+                    st.session_state.quote_phase = 3
+                    st.rerun()
+        else:
+            # ---- Standard new-quote Phase 2 (clarifying questions from AI) ----
+            section_header("Phase 2 — Clarifying Questions")
+            questions = st.session_state.clarifying_questions
+
+            if not questions:
                 st.markdown(
-                    f'<div style="background:#111827;border:1px solid #1e293b;'
-                    f'border-left:4px solid #3b82f6;border-radius:8px;'
-                    f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
-                    f'<strong style="color:#f1f5f9;">Q{i}.</strong> {q}</div>',
+                    '<div style="background:#111827;border:1px solid #1e293b;'
+                    'border-left:4px solid #22c55e;border-radius:8px;'
+                    'padding:12px 16px;margin-bottom:12px;color:#cbd5e1;font-size:13px;">'
+                    "✓ The AI didn't have any clarifying questions — your brief was complete enough. "
+                    "You can still add anything you forgot below, or skip straight to generation."
+                    "</div>",
                     unsafe_allow_html=True,
                 )
-
-        st.markdown("&nbsp;", unsafe_allow_html=True)
-        section_header("Your answers (voice or type)")
-        clarifying_answers = st.text_area(
-            "Answers",
-            value=st.session_state.clarifying_answers,
-            height=180,
-            placeholder=(
-                "Q1: Job is in Cobble Hill. Close pit, 1 hr round trip.\n"
-                "Q2: Spoil stays on site, no dump trip.\n"
-                "Q3: Wall is straight, no curves.\n"
-                "Q4: 4-day duration, fuel about $300."
-            ),
-            label_visibility="collapsed",
-            key="phase2_answers",
-        )
-        st.session_state.clarifying_answers = clarifying_answers
-
-        b1, b2 = st.columns(2)
-        with b1:
-            if st.button("← Back to input", use_container_width=True):
-                st.session_state.quote_phase = 1
-                st.rerun()
-        with b2:
-            if st.button("Generate Quote  →", use_container_width=True, type="primary",
-                         disabled=not parser_configured(),
-                         help="AI uses your brief + answers to produce the line items."):
-                with st.spinner("Generating quote (this can take 10-15s for big jobs)..."):
-                    st.session_state.parsed_preview = parse_notes_to_structure(
-                        _combined_notes_for_parser()
+            else:
+                st.markdown(
+                    '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
+                    "Read the questions, then dictate your answers below — one big block is fine, "
+                    "the AI parses what you say. Cover the questions in any order. "
+                    "Reminder on round-trip times: close pit ≈ 1 hr · Campbell River ≈ 2 hr · Tofino ≈ 8 hr."
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                for i, q in enumerate(questions, start=1):
+                    st.markdown(
+                        f'<div style="background:#111827;border:1px solid #1e293b;'
+                        f'border-left:4px solid #3b82f6;border-radius:8px;'
+                        f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
+                        f'<strong style="color:#f1f5f9;">Q{i}.</strong> {q}</div>',
+                        unsafe_allow_html=True,
                     )
-                st.session_state.quote_phase = 3
-                st.rerun()
+
+            st.markdown("&nbsp;", unsafe_allow_html=True)
+            section_header("Your answers (voice or type)")
+            clarifying_answers = st.text_area(
+                "Answers",
+                value=st.session_state.clarifying_answers,
+                height=180,
+                placeholder=(
+                    "Q1: Job is in Cobble Hill. Close pit, 1 hr round trip.\n"
+                    "Q2: Spoil stays on site, no dump trip.\n"
+                    "Q3: Wall is straight, no curves.\n"
+                    "Q4: 4-day duration, fuel about $300."
+                ),
+                label_visibility="collapsed",
+                key="phase2_answers",
+            )
+            st.session_state.clarifying_answers = clarifying_answers
+
+            b1, b2 = st.columns(2)
+            with b1:
+                if st.button("← Back to input", use_container_width=True):
+                    st.session_state.quote_phase = 1
+                    st.rerun()
+            with b2:
+                if st.button("Generate Quote  →", use_container_width=True, type="primary",
+                             disabled=not parser_configured(),
+                             help="AI uses your brief + answers to produce the line items."):
+                    with st.spinner("Generating quote (this can take 10-15s for big jobs)..."):
+                        st.session_state.parsed_preview = parse_notes_to_structure(
+                            _combined_notes_for_parser()
+                        )
+                    st.session_state.quote_phase = 3
+                    st.rerun()
 
     # ===== PHASE 3 — GENERATED QUOTE =====
     elif phase == 3:
@@ -534,25 +676,27 @@ if not is_editing:
                     st.session_state.quote_phase = 2
                     st.rerun()
             with b2:
-                if st.button("✓ Lock in & open Job Hub", use_container_width=True,
+                if st.button("✓ Lock in & open Quote Detail", use_container_width=True,
                              type="primary",
                              help="Replace the draft's line items with this generation, save, "
-                                  "and open the Job Hub for review."):
+                                  "and open the Quote Detail for review."):
                     new_items = hydrate_to_line_items(parsed)
                     # Fresh quote — REPLACE, don't extend.
                     st.session_state.draft_line_items = new_items
                     q = _draft_quote()
                     saved_id = save_quote(q)
-                    log_event(saved_id, "quote_locked_in",
+                    log_event(saved_id,
+                              "quote_voice_edited" if st.session_state.voice_edit_mode else "quote_locked_in",
                               {"line_items": len(q.line_items),
-                               "had_clarifying_questions": len(st.session_state.clarifying_questions)})
+                               "had_clarifying_questions": len(st.session_state.clarifying_questions),
+                               "voice_edit": st.session_state.voice_edit_mode})
                     _reset_draft_state(reset_id=True)
                     # st.query_params writes don't always flush before
                     # st.switch_page navigates. Stash in session_state too;
-                    # Job Hub picks up whichever is set.
+                    # Quote Detail picks up whichever is set.
                     st.session_state["_pending_quote_id"] = saved_id
                     st.query_params["quote_id"] = saved_id
-                    st.switch_page("pages/4_Job_Hub.py")
+                    st.switch_page("pages/4_Quote_Detail.py")
 
 
 # ---- Manual / fallback path: add an empty project -----------------------
@@ -715,7 +859,7 @@ with a1:
 with a2:
     if st.button("Review & Send  →", use_container_width=True, type="primary",
                  disabled=not ready_to_review,
-                 help="Persist the quote and open the Job Hub for contract + send."):
+                 help="Persist the quote and open the Quote Detail for contract + send."):
         q = _draft_quote()
         saved_id = save_quote(q)
         log_event(saved_id, "quote_drafted", {"line_items": len(q.line_items)})
@@ -724,4 +868,4 @@ with a2:
         # switch_page; use session_state as the reliable handoff.
         st.session_state["_pending_quote_id"] = saved_id
         st.query_params["quote_id"] = saved_id
-        st.switch_page("pages/4_Job_Hub.py")
+        st.switch_page("pages/4_Quote_Detail.py")

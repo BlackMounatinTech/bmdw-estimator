@@ -1,4 +1,4 @@
-"""Job Hub — everything about a single job in one place.
+"""Quote Detail — everything about a single job in one place.
 
 Per Michael's design: this is where the quote becomes a "job" with the
 contract drafter, send buttons, attachments, project plan, event log, and
@@ -39,7 +39,7 @@ from tools.storage import (
 )
 from tools.storage.paths import attachments_dir, data_dir
 
-st.set_page_config(page_title="BMDW · Job Hub", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BMDW · Quote Detail", page_icon="◆", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -125,9 +125,22 @@ if q is None:
 
 # ---- Header --------------------------------------------------------------
 
-if st.button("← Back to customer"):
-    st.query_params.clear()
-    st.switch_page("pages/3_Customers.py")
+hb1, hb2, _ = st.columns([1.2, 1.6, 3])
+with hb1:
+    if st.button("← Back to customer", use_container_width=True):
+        st.query_params.clear()
+        st.switch_page("pages/3_Customers.py")
+with hb2:
+    if st.button("🎤 Edit quote with voice", use_container_width=True,
+                 type="primary",
+                 help="Go back to Phase 2 (clarifying questions) with this quote loaded — "
+                      "dictate what to change and regenerate."):
+        # Hand off to Quoting.py: load this quote as a draft AND jump straight
+        # to Phase 2 in edit mode.
+        st.session_state["_pending_quote_id"] = q.quote_id
+        st.session_state["_voice_edit_mode"] = True
+        st.query_params["quote_id"] = q.quote_id
+        st.switch_page("Quoting.py")
 
 st.markdown(f"## {q.customer.name} — {q.quote_id}")
 

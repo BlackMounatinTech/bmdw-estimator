@@ -11,7 +11,7 @@ Two render paths:
   plain-language narration of the SCOPE OF WORK, then drops it into the same
   fixed template. All binding terms (price, payment, parties) stay deterministic.
 
-The Job Hub uses the deterministic version when populating the Contract tab.
+The Quote Detail uses the deterministic version when populating the Contract tab.
 Michael can swap to the AI narration via the "Regenerate with AI" button (TODO).
 """
 

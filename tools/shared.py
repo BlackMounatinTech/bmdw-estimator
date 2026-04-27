@@ -409,7 +409,7 @@ def fmt_money(value: float) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Catalogue + takeoff helpers — used by both the capture screen and Job Hub
+# Catalogue + takeoff helpers — used by both the capture screen and Quote Detail
 # ---------------------------------------------------------------------------
 
 import json as _json

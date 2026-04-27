@@ -53,7 +53,7 @@ That's it. Render will redeploy on push. First boot takes ~2 minutes.
 ## What works on Render
 
 - Quoting page (capture flow + AI parser + 5-bucket entries).
-- Job Hub (review, edit, math breakdown, contract editor).
+- Quote Detail (review, edit, math breakdown, contract editor).
 - Customers + Jobs pages.
 - PDF generation (WeasyPrint requires the build pack — Render's default Python
   image includes the cairo/pango libs needed).

@@ -6,7 +6,7 @@ container; entries are the truth. This module provides:
 - A single create_empty_project() helper to instantiate one.
 
 Entries get populated either by the AI parser (tools/parser/notes_to_line_items.py)
-from Michael's quick notes, or manually via the Job Hub Takeoff tab inline editor.
+from Michael's quick notes, or manually via the Quote Detail Takeoff tab inline editor.
 """
 
 from server.schemas import JobLineItem
