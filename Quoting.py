@@ -511,12 +511,18 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                              disabled=not (parser_configured() and clarifying_answers.strip()),
                              help="AI applies your changes to the existing quote and "
                                   "produces a full updated version."):
-                    with st.spinner("Applying changes (10-15s)..."):
-                        st.session_state.parsed_preview = parse_notes_to_structure(
-                            _combined_notes_for_parser()
+                    try:
+                        with st.spinner("Applying changes (10-15s)..."):
+                            result = parse_notes_to_structure(_combined_notes_for_parser())
+                        st.session_state.parsed_preview = result
+                        st.session_state.quote_phase = 3
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(
+                            f"Update failed: {exc}\n\n"
+                            "Your change instructions are still here — try Generate again, "
+                            "or hit Cancel to back out without changes."
                         )
-                    st.session_state.quote_phase = 3
-                    st.rerun()
         else:
             # ---- Standard new-quote Phase 2 (clarifying questions from AI) ----
             section_header("Phase 2 — Clarifying Questions")
@@ -576,12 +582,19 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                 if st.button("Generate Quote  →", use_container_width=True, type="primary",
                              disabled=not parser_configured(),
                              help="AI uses your brief + answers to produce the line items."):
-                    with st.spinner("Generating quote (this can take 10-15s for big jobs)..."):
-                        st.session_state.parsed_preview = parse_notes_to_structure(
-                            _combined_notes_for_parser()
+                    try:
+                        with st.spinner("Generating quote (this can take 10-15s for big jobs)..."):
+                            result = parse_notes_to_structure(_combined_notes_for_parser())
+                        st.session_state.parsed_preview = result
+                        st.session_state.quote_phase = 3
+                        st.rerun()
+                    except Exception as exc:
+                        # Don't bounce back silently — show what broke and stay on Phase 2.
+                        st.error(
+                            f"Quote generation failed: {exc}\n\n"
+                            "Your inputs are still here — try Generate again, or hit "
+                            "Back to revise the answers."
                         )
-                    st.session_state.quote_phase = 3
-                    st.rerun()
 
     # ===== PHASE 3 — GENERATED QUOTE =====
     elif phase == 3:
