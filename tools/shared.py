@@ -260,10 +260,27 @@ def apply_theme() -> None:
             border-bottom: 1px solid #1e293b;
         }
 
+        /* --- Selectbox / dropdown text contrast fix.
+           Streamlit's baseweb Select renders the displayed value washed-out
+           against the dark theme. Force readable color on all states. --- */
+        [data-baseweb="select"] > div,
+        [data-baseweb="select"] [class*="ValueContainer"],
+        [data-baseweb="select"] [class*="SingleValue"],
+        [data-baseweb="select"] input,
+        [data-baseweb="popover"] [role="option"],
+        [data-baseweb="popover"] li {
+            color: #f1f5f9 !important;
+            opacity: 1 !important;
+        }
+        [data-baseweb="popover"] [role="option"][aria-selected="true"] {
+            color: #f1f5f9 !important;
+            background: #1e293b !important;
+        }
+
         /* --- Mobile responsive overrides (Section 5 of design system) --- */
         @media (max-width: 768px) {
             /* Global zoom-out so the whole UI feels less crammed on iPhone. */
-            html { zoom: 0.9; -webkit-text-size-adjust: 90%; }
+            html { zoom: 0.85; -webkit-text-size-adjust: 85%; }
             /* Tighten Streamlit's default outer padding so content uses the
                full viewport. Default is ~1rem on each side; cut roughly in half. */
             .main .block-container,
