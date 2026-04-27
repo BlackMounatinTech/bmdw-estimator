@@ -17,7 +17,7 @@ from tools.storage import (
     init_db,
     list_recent_quotes,
 )
-from tools.storage.paths import data_dir, db_path
+from tools.storage.paths import data_dir, db_path, is_persistent
 import os as _os
 
 st.set_page_config(page_title="BMDW · Dashboard", page_icon="◆", layout="wide")
@@ -34,27 +34,25 @@ STATUS_COLORS = {
 
 st.markdown("# Dashboard")
 
-# ---- Persistence diagnostic (so we can see if disk is mounted) ----------
-_env_data_dir = _os.environ.get("BMDW_DATA_DIR", "").strip()
+# ---- Persistence diagnostic ---------------------------------------------
+# Auto-detect: app uses /var/data if it exists (Render disk), else env var,
+# else local ./data/. is_persistent() returns True only when we're NOT on
+# the local fallback path.
 _resolved_dir = data_dir()
 _db_file = db_path()
 _db_exists = _db_file.exists()
 _db_size = _db_file.stat().st_size if _db_exists else 0
-_using_disk = _env_data_dir == "/var/data"
+_persistent = is_persistent()
+_env_var = _os.environ.get("BMDW_DATA_DIR", "").strip() or "(not set — auto-detected)"
 
-if _using_disk and _db_exists:
+if _persistent:
     _status_color = "#22c55e"
-    _status_msg = "✓ Persistent disk active. Data survives deploys."
-elif _env_data_dir:
-    _status_color = "#f59e0b"
-    _status_msg = (f"⚠ BMDW_DATA_DIR is set to '{_env_data_dir}' but DB file isn't there yet. "
-                   "If you're on Render, verify the disk is mounted at this path.")
+    _status_msg = "✓ Persistent storage active. Data survives every deploy."
 else:
     _status_color = "#ef4444"
-    _status_msg = ("🔴 BMDW_DATA_DIR env var NOT set. Data is on the EPHEMERAL "
-                   "filesystem and WILL BE WIPED on every deploy. Set "
-                   "BMDW_DATA_DIR=/var/data in Render's Environment tab AND attach "
-                   "a Disk at /var/data.")
+    _status_msg = ("🔴 EPHEMERAL storage. Data WILL BE WIPED on every deploy. "
+                   "On Render: confirm a Disk is attached at /var/data (Settings → Disks). "
+                   "If your disk mounts elsewhere, set BMDW_DATA_DIR env var to that path.")
 
 st.markdown(
     f'<div style="background:#111827;border:1px solid #1e293b;'
@@ -63,7 +61,8 @@ st.markdown(
     f'<strong style="color:{_status_color};">{_status_msg}</strong><br>'
     f'<span style="color:#94a3b8;">Data dir: <code>{_resolved_dir}</code> · '
     f'DB: <code>{_db_file.name}</code> '
-    f'({_db_size:,} bytes, {"exists" if _db_exists else "MISSING"})</span>'
+    f'({_db_size:,} bytes, {"exists" if _db_exists else "MISSING"}) · '
+    f'BMDW_DATA_DIR env: <code>{_env_var}</code></span>'
     f"</div>",
     unsafe_allow_html=True,
 )
