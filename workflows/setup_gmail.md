@@ -1,71 +1,98 @@
-# Setup — Gmail Send (OAuth)
+# Setup — Gmail Send
 
-The Quote Detail "Send Quote" and "Send Contract + Docs" buttons send email via the
-Gmail API as the authenticated Google account. This is one-time setup.
+The Quote Detail "Send Quote" and "Send Contract + Docs" buttons send email
+through your `blackmountaindirtworks@gmail.com` account. **Two ways to set
+this up — pick ONE.**
 
-## Prerequisites
+---
 
-- A Google account that owns the BMDW domain mailbox you want to send from
-  (e.g. `michael@blackmountaindirtworks.ca`).
-- Project access to the same Google Cloud project used for Sheets sync (or
-  create a new one).
+## ✅ RECOMMENDED: SMTP via Gmail App Password (works on Render)
 
-## Steps
+This is the simpler path. ~5 minutes. Works locally AND on Render. No browser
+consent dance, no token files. Sends email via SMTP using an "App Password"
+that Google generates for this app specifically.
 
-### 1. Enable the Gmail API
+### Steps
 
-1. Go to https://console.cloud.google.com → select (or create) your BMDW project.
-2. **APIs & Services → Library** → search "Gmail API" → **Enable**.
+1. **Turn on 2-Step Verification** for `blackmountaindirtworks@gmail.com` if you
+   haven't already. Go to https://myaccount.google.com/security → "2-Step
+   Verification" → On.
 
-### 2. Configure the OAuth consent screen
+2. **Generate an App Password:**
+   - Go to https://myaccount.google.com/apppasswords
+   - "Select app" → **Mail**, "Select device" → **Other** → name it
+     `BMDW Estimator`
+   - Click **Generate**
+   - Google shows you a **16-character password** with spaces (e.g.
+     `abcd efgh ijkl mnop`). Copy it. **You won't see it again** — if you lose
+     it, just generate another.
 
-1. **APIs & Services → OAuth consent screen**.
-2. User type: **External** (you'll add yourself as a test user — that's fine).
-3. App name: `BMDW Estimator`. Support email + developer email = your address.
-4. **Scopes**: add `https://www.googleapis.com/auth/gmail.send`.
-5. **Test users**: add the BMDW Google account email you'll send from.
+3. **Add the env vars:**
 
-### 3. Create the OAuth client
-
-1. **APIs & Services → Credentials → + Create Credentials → OAuth client ID**.
-2. Application type: **Desktop app**. Name: `BMDW Estimator desktop`.
-3. **Download JSON**. Save it as:
+   **Locally** (in `.env`):
    ```
-   config/gmail_client_secret.json
+   SMTP_USER=blackmountaindirtworks@gmail.com
+   SMTP_PASSWORD=abcdefghijklmnop      # the 16-char app password (spaces optional)
    ```
-   (Already gitignored.)
 
-### 4. First-run consent
+   **On Render** (Dashboard → Environment tab):
+   - `SMTP_USER` = `blackmountaindirtworks@gmail.com`
+   - `SMTP_PASSWORD` = `abcdefghijklmnop`
 
-The first time the app calls `send_email()`, it will:
-1. Open a browser window automatically.
-2. Ask you to sign in with the BMDW Google account.
-3. Show "Google hasn't verified this app" — click **Advanced → Go to BMDW
-   Estimator (unsafe)**. (Safe — this is your own app.)
-4. Grant the **Send email on your behalf** scope.
-5. Save a token to `config/gmail_token.json` (also gitignored).
+4. **Restart / redeploy.** Open Quote Detail → footer should read:
+   *"Gmail send: ✓ ready (SMTP App Password — works on Render)"*.
 
-After that, sends are silent. Token auto-refreshes.
+5. **Test send.** Open any quote → Send Quote → check inbox. Done.
 
-## Verifying it works
+### Limits
 
-1. Open any quote in the Quote Detail.
-2. Click **Send Quote**.
-3. Check the recipient's inbox — message should arrive within seconds, and the
-   Event log should show `quote_sent` with `ok: true`.
+- ~500 emails per day from a regular Gmail account (way more than you need)
+- ~2,000 per day from Workspace
+- Attachments up to 25 MB total (your PDFs are well under)
 
-If you get `Gmail not configured`, the client_secret.json is missing or in the
-wrong place. If it fails after consent, check the Render env (Render does NOT
-support the browser consent flow — see Production note below).
+---
 
-## Production (Render) note
+## Alternative: OAuth (LOCAL MAC ONLY — won't work on Render)
 
-The browser-consent flow only works locally. For Render:
-1. Run `send_email()` once locally to generate `config/gmail_token.json`.
-2. Render's environment is read-only at runtime; commit a deploy hook that
-   stages `gmail_token.json` from a Render secret file at startup, OR keep
-   the send feature local-only and use Render strictly for the on-site
-   capture flow.
+Use this only if you specifically want OAuth scopes for some reason. Otherwise
+SMTP is simpler.
 
-A simpler option: don't auto-send from Render. Render is for capture + review
-on iPhone; sending happens at home from the laptop where the token lives.
+### Steps
+
+1. **Google Cloud Console** (https://console.cloud.google.com)
+   - Select / create your BMDW project → APIs & Services → Library →
+     enable **Gmail API**
+   - APIs & Services → OAuth consent screen → External → fill in BMDW info →
+     add scope `https://www.googleapis.com/auth/gmail.send` → add
+     `blackmountaindirtworks@gmail.com` as a test user
+
+2. **Create OAuth client:**
+   - APIs & Services → Credentials → Create Credentials → **OAuth client ID**
+   - Application type: **Desktop app**, name: `BMDW Estimator`
+   - **Download JSON** → save it as
+     `/Users/michaelmackrell/BMDW Ai Project quoting/config/gmail_client_secret.json`
+
+3. **First run on your Mac:**
+   - `python3 -m streamlit run Quoting.py`
+   - Open any quote → Send Quote
+   - Browser tab opens → sign in with `blackmountaindirtworks@gmail.com` →
+     "Google hasn't verified this app" → Advanced → Go to BMDW Estimator (unsafe)
+   - Approve the "Send email on your behalf" scope
+   - Token gets cached at `config/gmail_token.json` (gitignored)
+
+4. **Why local only.** OAuth's first-run consent needs a browser. Render is a
+   headless server — no browser available. Subsequent sends from the cached
+   token would work, but uploading the token securely to Render is a hassle
+   (Render Secret Files on paid plans). Stick with SMTP.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `Gmail send: ○ not configured` | Set the env vars and restart |
+| `SMTP auth failed` | You're using your regular Gmail password — needs to be the **16-char App Password** |
+| `Disabled — email isn't configured` button | Same as above — env vars not set |
+| Send works locally but not on Render | You're on the OAuth path. Switch to SMTP and add `SMTP_USER` + `SMTP_PASSWORD` to Render Environment |
+| Mail goes to recipient's spam | Send a couple of test emails to yourself first; reply to them. Gmail learns your sending pattern is legit. Or set up SPF/DKIM if you ever switch from `@gmail.com` to a custom BMDW domain. |

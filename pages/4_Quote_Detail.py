@@ -14,8 +14,10 @@ from server.schemas import CostBucket, LineItemEntry, QuoteStatus
 from tools.calculator import JOB_TYPES
 from tools.outputs.contract_drafter import draft_contract_text, draft_contract_text_ai
 from tools.outputs.contract_drafter import is_ai_configured as contract_ai_configured
-from tools.outputs.email_sender import is_configured as email_configured
-from tools.outputs.email_sender import send_email
+from tools.outputs.email_sender import (
+    configured_method as email_configured_method,
+    send_email,
+)
 from tools.outputs.pdf_generator import is_configured as pdf_configured
 from tools.outputs.pdf_generator import (
     render_contract_pdf,
@@ -1002,7 +1004,11 @@ def _collect_attachments(*candidate_paths) -> list:
 
 a1, a2, a3 = st.columns(3)
 with a1:
-    if st.button("Send Quote", use_container_width=True):
+    _email_ready = email_configured_method() != "none"
+    if st.button("Send Quote", use_container_width=True, disabled=not _email_ready,
+                 help=("Sends the quote PDF to the customer's email. "
+                       + ("" if _email_ready else
+                          "Disabled — email isn't configured. See Settings or workflows/setup_gmail.md."))):
         # Auto-render the PDF if WeasyPrint is available, then attach.
         quote_pdf_path = None
         if pdf_configured():
@@ -1032,7 +1038,10 @@ with a1:
             st.success(f"Quote sent to {q.customer.email}.")
         st.rerun()
 with a2:
-    if st.button("Send Contract + Docs", use_container_width=True):
+    if st.button("Send Contract + Docs", use_container_width=True, disabled=not _email_ready,
+                 help=("Sends the contract PDF (and insurance cert if present) to the customer. "
+                       + ("" if _email_ready else
+                          "Disabled — email isn't configured. See Settings or workflows/setup_gmail.md."))):
         contract_body = q.contract_text or draft_contract_text(q, COMPANY)
         contract_pdf_path = None
         if pdf_configured():
@@ -1238,8 +1247,13 @@ with sf1:
     state = "✓ ready" if sheets_configured() else "○ not configured"
     st.caption(f"Google Sheets sync: {state}")
 with sf2:
-    state = "✓ ready" if email_configured() else "○ not configured"
-    st.caption(f"Gmail send: {state}")
+    method = email_configured_method()
+    if method == "smtp":
+        st.caption("Gmail send: ✓ ready (SMTP App Password — works on Render)")
+    elif method == "oauth":
+        st.caption("Gmail send: ✓ ready (OAuth — local Mac only)")
+    else:
+        st.caption("Gmail send: ○ not configured (see workflows/setup_gmail.md)")
 with sf3:
     state = "✓ ready" if pdf_configured() else "○ WeasyPrint not installed"
     st.caption(f"PDF generator: {state}")
