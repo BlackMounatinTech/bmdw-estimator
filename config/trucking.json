@@ -1,12 +1,12 @@
 {
-  "_README": "Global trucking catalogue. All trucks live HERE (not in equipment.json) regardless of billing model. Hourly trucks have `hourly_rate`; per-load trucks have `per_load_rate`. Trucks have commercial insurance, so the 16% rental insurance surcharge never applies. DEFAULT: BMDW does the trucking with our in-house tandem ($100/hr) unless Michael explicitly names a contractor truck (Browns River, Upland's, Northwin).",
+  "_README": "Global trucking catalogue. All trucks live HERE (not in equipment.json) regardless of billing model. Hourly trucks have `hourly_rate`; per-load trucks have `per_load_rate`. Trucks have commercial insurance, so the 16% rental insurance surcharge never applies. DEFAULT: BMDW does the trucking in-house at $100/hr (catalogue key `in_house_trucking`) unless Michael explicitly names a contractor truck (Browns River, Upland's, Northwin).",
 
-  "tandem_dump_bmdw": {
-    "sku": "TRK-TANDEM-BMDW",
-    "name": "Tandem dump truck (BMDW in-house)",
+  "in_house_trucking": {
+    "sku": "TRK-INHOUSE",
+    "name": "In-house trucking ($100/hr)",
     "hourly_rate": 100.0,
     "capacity_cu_yd": 10.0,
-    "notes": "BMDW's own truck. $100/hr. DEFAULT trucking option — use this unless Michael explicitly names a contractor (Browns River / Upland's / Northwin)."
+    "notes": "BMDW's own truck. $100/hr — flat hourly rate. DEFAULT trucking option — use this unless Michael explicitly names a contractor (Browns River / Upland's / Northwin)."
   },
   "tandem_dump": {
     "sku": "TRK-TANDEM",

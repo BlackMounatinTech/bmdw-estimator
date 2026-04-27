@@ -150,7 +150,7 @@ BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 AGGREGATE TRUCKING (hourly tandem dump — TRUCKING bucket, all hourly tandems live in trucking.json):
 - Capacity: 10 cu yd per load.
 - Round trip: 2 hours default (60 min each way + load/dump). Bump up if site is far.
-- DEFAULT: BMDW does the trucking with the in-house truck. Use catalogue_key = tandem_dump_bmdw
+- DEFAULT: BMDW does the trucking with the in-house truck. Use catalogue_key = in_house_trucking
   ($100/hr) UNLESS Michael explicitly names a contractor truck in his brief. This is the
   default assumption; do not switch off it without explicit cause.
 - Other options ONLY if explicitly named:
@@ -159,7 +159,7 @@ AGGREGATE TRUCKING (hourly tandem dump — TRUCKING bucket, all hourly tandems l
   - truck_and_pup ($205/hr) — bigger 16 cu yd truck if Michael asks for it
 - Compute: num_loads = ceil(total_aggregate_cu_yd / 10); truck_hours = num_loads × round_trip_hours.
 - Emit ONE TRUCKING-bucket line: bucket = trucking, catalogue_type = trucking,
-  catalogue_key = tandem_dump_bmdw (or other if explicit), quantity = truck_hours, unit = hour.
+  catalogue_key = in_house_trucking (or other if explicit), quantity = truck_hours, unit = hour.
 - Multiple tandems in the same quote ONLY if Michael explicitly says so (e.g. "BMDW + Browns River
   tandems for the volume"). Default = single BMDW truck for the whole job.
 
