@@ -116,10 +116,24 @@ BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 
 AGGREGATE TRUCKING (hourly tandem dump — Equipment bucket, since billed by truck time):
 - Capacity: 10 cu yd per load.
-- Round trip: 2 hours (60 min each way + load/dump). Bump up if site is far.
-- Rate: $170/hr (catalogue_key = tandem_dump in equipment, unit = hour).
-- Compute: num_loads = ceil(total_aggregate_cu_yd / 10); truck_hours = num_loads × 2.
-  Emit a single Equipment line: catalogue_key = tandem_dump, quantity = truck_hours, unit = hour.
+- Round trip: 2 hours default (60 min each way + load/dump). Bump up if site is far.
+- Rate depends on supplier:
+  - Default tandem: $170/hr (catalogue_key = tandem_dump). Use for Upland's, Northwin, or unspecified.
+  - Browns River tandem: $160/hr (catalogue_key = tandem_dump_brownsriver). Use when materials are sourced from Browns River Pit.
+- Compute: num_loads = ceil(total_aggregate_cu_yd / 10); truck_hours = num_loads × round_trip_hours.
+  Emit a single Equipment line with the matching tandem catalogue_key, quantity = truck_hours, unit = hour.
+
+SUPPLIER → REGION MAPPING (pick the supplier closest to the job site):
+- Browns River Pit (suffix `_brownsriver`) — serves Courtenay, Comox, Cumberland.
+- Upland's Gravel (suffix `_uplands`) — central Vancouver Island default (Cobble Hill, Duncan, Mill Bay, etc.).
+- Northwin Gravel (suffix `_northwin`) — alternative central VI supplier.
+If Michael names a supplier explicitly, use it. Otherwise pick by location.
+
+SPOIL DUMP DESTINATIONS:
+- Default: weight-based, $10/ton (use cu_yd × 1.25 = tons). Emit a freeform Spoil line.
+- Browns River Pit (Courtenay / Comox / Cumberland jobs): $90 per tandem load (10 cu_yd capacity).
+  Compute: loads = ceil(spoil_cu_yd / 10); dump_cost = loads × 90.
+  Emit a freeform Spoil line: description "Browns River dump fee — N tandems × $90", quantity = loads, unit = "load", unit_cost = 90.
 
 CUSTOM-WALL ESCALATION: If Michael's notes say "significantly bigger" or "unusual"
 or anything that doesn't fit standard scope, draft best-effort quantities AND add a

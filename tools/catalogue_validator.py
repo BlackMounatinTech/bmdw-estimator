@@ -50,11 +50,11 @@ def validate_catalogues() -> Tuple[List[str], List[str]]:
         for key, item in cat.items():
             if not isinstance(item, dict):
                 continue  # nested settings blob, skip
-            if "name" not in item:
-                warnings.append(f"{name}/{key}: missing 'name'")
-            # Spoil is a settings file, not item rows — skip rate check.
+            # Spoil is a settings file, not item rows — skip name + rate checks.
             if name == "spoil":
                 continue
+            if "name" not in item:
+                warnings.append(f"{name}/{key}: missing 'name'")
             required = REQUIRED_RATE_FIELDS.get(name, [])
             if required and not any(item.get(f) for f in required):
                 errors.append(

@@ -1,5 +1,5 @@
 {
-  "_README": "Materials catalogue. Costs are delivered cost per unit unless noted. Aggregate prices are supplier-specific — `supplier` field tagged on each entry. Currently loaded: Upland's Gravel. Northwin Gravel prices to be added as parallel entries (key suffix `_northwin`).",
+  "_README": "Materials catalogue. Costs are delivered cost per unit unless noted. Aggregate prices are supplier-specific — `supplier` field tagged on each entry. Suppliers: Upland's Gravel (suffix `_uplands`, central Vancouver Island), Northwin Gravel (suffix `_northwin`), Browns River Pit (suffix `_brownsriver`, serves Courtenay / Comox / Cumberland). Pick the supplier closest to the job site.",
 
   "lock_block_no1": {
     "sku": "BLK-LOCK-N1",
@@ -113,6 +113,55 @@
     "unit": "cu_yd",
     "cost_per_unit": 65.0,
     "supplier": "Northwin Gravel"
+  },
+
+  "pit_run_brownsriver": {
+    "sku": "AGG-PITRUN-BR",
+    "name": "Pit run (Browns River)",
+    "unit": "cu_yd",
+    "cost_per_unit": 10.0,
+    "supplier": "Browns River Pit",
+    "notes": "Serves Courtenay / Comox / Cumberland."
+  },
+  "sand_brownsriver": {
+    "sku": "AGG-SAND-BR",
+    "name": "Sand (Browns River)",
+    "unit": "cu_yd",
+    "cost_per_unit": 10.0,
+    "supplier": "Browns River Pit",
+    "notes": "Serves Courtenay / Comox / Cumberland."
+  },
+  "road_crush_34_brownsriver": {
+    "sku": "AGG-RC-34-BR",
+    "name": "3/4\" road crush (Browns River)",
+    "unit": "cu_yd",
+    "cost_per_unit": 23.50,
+    "supplier": "Browns River Pit",
+    "notes": "Range $23-24/cu_yd; using $23.50 midpoint. Serves Courtenay / Comox / Cumberland."
+  },
+  "drain_rock_brownsriver": {
+    "sku": "AGG-DRAINROCK-BR",
+    "name": "Drain rock (Browns River)",
+    "unit": "cu_yd",
+    "cost_per_unit": 23.0,
+    "supplier": "Browns River Pit",
+    "notes": "Serves Courtenay / Comox / Cumberland."
+  },
+  "blue_chip_brownsriver": {
+    "sku": "AGG-BLUECHIP-BR",
+    "name": "Blue chip (Browns River)",
+    "unit": "cu_yd",
+    "cost_per_unit": 63.0,
+    "supplier": "Browns River Pit",
+    "notes": "Serves Courtenay / Comox / Cumberland."
+  },
+  "clear_blue_chip_brownsriver": {
+    "sku": "AGG-CBC-BR",
+    "name": "Clear blue chip (Browns River)",
+    "unit": "cu_yd",
+    "cost_per_unit": 63.0,
+    "supplier": "Browns River Pit",
+    "notes": "Same price as standard blue chip ($63/cu_yd). Serves Courtenay / Comox / Cumberland."
   },
 
   "drain_pipe": {

@@ -1,6 +1,17 @@
 {
-  "_README": "Global spoil/dump rates. Dump charges by weight; calculator/AI parser converts cu yd → tons via cu_yd_to_tons_conversion. Import (delivery of clean fill) is NOT a flat fee — it's material × truck hours, calculated per-quote in the Materials + Trucking buckets. Swell factor is NOT auto-applied — Michael accounts for swell in his notes when needed.",
+  "_README": "Global spoil/dump rates. Default model: weight-based ($/ton with cu_yd → ton conversion). Per-destination overrides live under `dump_destinations` for sites that bill per load instead. Import (delivery of clean fill) is NOT a flat fee — it's material × truck hours, calculated per-quote in the Materials + Trucking buckets. Swell factor is NOT auto-applied — Michael accounts for swell in his notes when needed.",
 
   "dump_fee_per_ton": 10.0,
-  "cu_yd_to_tons_conversion": 1.25
+  "cu_yd_to_tons_conversion": 1.25,
+
+  "dump_destinations": {
+    "browns_river": {
+      "name": "Browns River Pit",
+      "billing_model": "per_load",
+      "rate_per_load": 90.0,
+      "load_capacity_cu_yd": 10.0,
+      "serves_areas": ["Courtenay", "Comox", "Cumberland"],
+      "notes": "$90/tandem load (10 cu_yd) for spoil disposal. Cheaper than the default $10/ton when load is full. Compute loads = ceil(spoil_cu_yd / 10); dump_cost = loads × 90."
+    }
+  }
 }
