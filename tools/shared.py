@@ -298,17 +298,28 @@ def apply_theme() -> None:
         }
 
         /* --- Mobile responsive overrides (Section 5 of design system) --- */
+        /* --- Looser spacing across the whole app for breathing room --- */
+        .stButton > button { padding-top: 12px !important; padding-bottom: 12px !important; }
+        .section-header { margin-top: 28px !important; margin-bottom: 18px !important; }
+        h1, h2, h3 { margin-top: 18px !important; margin-bottom: 14px !important; }
+        [data-testid="stExpander"] { margin-bottom: 14px !important; }
+        [data-testid="stMetric"] { padding: 18px 14px !important; }
+        .stTextInput, .stTextArea, .stSelectbox, .stNumberInput { margin-bottom: 8px !important; }
+
         @media (max-width: 768px) {
             /* Global zoom-out so the whole UI feels less crammed on iPhone. */
-            html { zoom: 0.8; -webkit-text-size-adjust: 80%; }
-            /* Tighten Streamlit's default outer padding so content uses the
-               full viewport. Default is ~1rem on each side; cut roughly in half. */
+            html { zoom: 0.85; -webkit-text-size-adjust: 85%; }
+            /* Side gutters: a touch more padding so content isn't hugging the edges. */
             .main .block-container,
             [data-testid="stAppViewContainer"] .main .block-container {
-                padding-left: 0.6rem !important;
-                padding-right: 0.6rem !important;
-                padding-top: 1rem !important;
+                padding-left: 0.9rem !important;
+                padding-right: 0.9rem !important;
+                padding-top: 1.2rem !important;
                 max-width: 100% !important;
+            }
+            /* Vertical breathing room between Streamlit's auto-stacked elements */
+            [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+                gap: 0.4rem !important;
             }
             .stApp { padding: 0 !important; }
             [data-testid="stSidebar"] { min-width: 200px !important; }

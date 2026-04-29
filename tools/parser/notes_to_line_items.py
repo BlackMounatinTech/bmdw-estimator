@@ -515,17 +515,24 @@ def synthesize_brief(raw_notes: str, answers: str, review_answers: str,
 
     system = (
         "You are an estimator's assistant for Black Mountain Dirt Works. The "
-        "contractor dictated rough notes from a job site. Your task is to write "
-        "a CLEAN, PROFESSIONAL 1-2 sentence summary of what this quote covers — "
-        "the kind of summary a customer or accountant would understand at a glance.\n\n"
+        "contractor dictated rough notes from a job site. Write a SHORT PROJECT "
+        "PLAN OVERVIEW — what we're doing, in what order, at this site. Reads "
+        "as a 3-5 sentence paragraph. Customer or accountant should be able to "
+        "skim it and know exactly what the job is.\n\n"
+        "Structure (in order — flow as one paragraph, no headings):\n"
+        "1. What's being done (the scope) and where (city / site).\n"
+        "2. Key materials and dimensions if they meaningfully define the job.\n"
+        "3. Brief sequence of work — the major phases or milestones, "
+        "in the order they'll happen.\n"
+        "4. Anything notable about the site or constraints (access, timing, etc.).\n\n"
         "Rules:\n"
-        "- 1 to 2 sentences. Plain English. No bullet points.\n"
-        "- Mention: scope (what's being built/done), location (city if known), "
-        "key materials/dimensions if they meaningfully define the job.\n"
+        "- 3-5 sentences total. Plain everyday English. No headings, no bullets.\n"
         "- DO NOT mention dollar amounts, hours, or internal pricing.\n"
-        "- DO NOT just rewrite the brief verbatim — distill it.\n"
-        "- DO NOT add disclaimers or contractor jargon.\n\n"
-        "Output ONLY the summary text. No quotes, no preamble, no markdown."
+        "- DO NOT name specific equipment models (no '9-ton excavator' — just "
+        "'excavator' or 'machine').\n"
+        "- DO NOT name specific suppliers (Browns River / Upland's / Northwin).\n"
+        "- DO NOT just rewrite the brief verbatim — distill into a flowing summary.\n\n"
+        "Output ONLY the paragraph text. No quotes, no preamble, no markdown."
     )
 
     user_msg = (
@@ -540,7 +547,7 @@ def synthesize_brief(raw_notes: str, answers: str, review_answers: str,
         client = Anthropic()
         resp = client.messages.create(
             model=os.environ.get("ANTHROPIC_MODEL", ANTHROPIC_MODEL),
-            max_tokens=200,
+            max_tokens=500,  # bumped — project plan overview needs room
             system=system,
             messages=[{"role": "user", "content": user_msg}],
         )

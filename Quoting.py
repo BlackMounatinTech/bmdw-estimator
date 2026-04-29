@@ -149,11 +149,16 @@ def _combined_notes_for_parser() -> str:
             f"{existing}\n\n"
             "CHANGES THE CONTRACTOR WANTS APPLIED (dictated):\n"
             f"{answers if answers else '(no changes dictated yet)'}\n\n"
-            "Return the FULL UPDATED quote with the requested changes applied. "
-            "Keep every existing line that the contractor didn't ask to change. "
-            "Modify lines as instructed. Add new lines if requested. Remove lines "
-            "if the contractor explicitly asks. Re-emit the entire quote so we can "
-            "replace it cleanly."
+            "REGENERATION RULES — read carefully:\n"
+            "1. Apply EVERY change item from the contractor's dictation. Don't skip any.\n"
+            "2. The contractor often combines multiple changes in one block — parse them "
+            "out and apply each one. Look for verbs like add, remove, change, increase, "
+            "decrease, swap, replace, drop, bump.\n"
+            "3. KEEP every existing line the contractor didn't mention or ask to change.\n"
+            "4. When the contractor names a specific bucket (trucking, labour, materials, "
+            "spoil, equipment), put new lines in that bucket — don't reassign.\n"
+            "5. Re-emit the FULL updated quote (not a diff). The system replaces the old "
+            "quote wholesale with what you return."
         )
 
     base = st.session_state.draft_quick_notes.strip()
@@ -548,20 +553,33 @@ if (not is_editing) or st.session_state.voice_edit_mode:
         if st.button("Ask me clarifying questions  →", use_container_width=True,
                      type="primary", disabled=not quick_notes.strip(),
                      help=clarify_help):
-            with st.spinner("Reading the brief and figuring out what I need to know..."):
-                result = generate_clarifying_questions(quick_notes)
-            if result["ok"]:
-                st.session_state.clarifying_questions = result["questions"]
+            try:
+                with st.spinner("Reading the brief and figuring out what I need to know..."):
+                    result = generate_clarifying_questions(quick_notes)
+            except Exception as exc:
+                st.error(f"Clarifier crashed: {exc}\n\nYour notes are still here. Try again.")
+                st.stop()
+
+            if result.get("ok"):
+                # Empty questions list is valid — go to Phase 2 with the empty-state
+                # message; user can dictate any extras and hit Generate.
+                st.session_state.clarifying_questions = result.get("questions", []) or []
                 st.session_state.clarifier_error = None
                 st.session_state.quote_phase = 2
-                # AUTOSAVE before rerun — if the user closes the app now,
-                # they can come back to a draft showing exactly Phase 2 with
-                # these questions ready to answer.
-                _autosave_draft()
+                _autosave_draft()  # save before rerun so app-close survives
+                st.success("Phase 2 ready — scroll down to answer.")
                 st.rerun()
             else:
-                st.session_state.clarifier_error = result.get("reason") or "Unknown failure."
-                st.error(st.session_state.clarifier_error)
+                reason = result.get("reason") or "Unknown failure."
+                st.session_state.clarifier_error = reason
+                st.error(
+                    f"❌ AI clarifier failed: {reason}\n\n"
+                    "Your notes are still here. Common fixes:\n"
+                    "• If the ANTHROPIC_API_KEY is missing or wrong, set it in Render Environment.\n"
+                    "• If it's a network/timeout, wait 10 seconds and click again.\n"
+                    "• If it keeps failing, dictate everything into Quick Notes and skip Phase 2 — "
+                    "go straight to a manual project from the bottom."
+                )
 
     # ===== PHASE 2 — CLARIFYING QUESTIONS (or VOICE-EDIT) =====
     elif phase == 2:

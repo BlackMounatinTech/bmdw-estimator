@@ -322,8 +322,8 @@ b5.metric("Spoil", fmt_money(q.bucket_total(CostBucket.SPOIL)))
 
 section_header("Job Details")
 
-tab_desc, tab_takeoff, tab_sheet, tab_math, tab_contract, tab_plan, tab_events, tab_attach = st.tabs(
-    ["Description", "✏ Edit Quote", "📊 Spreadsheet", "Math Breakdown", "Contract", "Plan", "Events", "Attachments"]
+tab_desc, tab_sheet, tab_math, tab_contract, tab_plan = st.tabs(
+    ["Description", "📊 Spreadsheet (editable)", "Math Breakdown", "Contract", "Plan"]
 )
 
 with tab_desc:
@@ -333,278 +333,6 @@ with tab_desc:
     if q.notes:
         st.markdown(f"_Notes: {q.notes}_")
 
-
-with tab_takeoff:
-    st.markdown("### Edit quote — every line, every project")
-    st.markdown(
-        '<div style="background:#111827;border:1px solid #1e293b;'
-        'border-left:4px solid #3b82f6;border-radius:8px;'
-        'padding:12px 16px;margin-bottom:12px;color:#cbd5e1;font-size:13px;">'
-        "📝 <strong>This is where you fix anything in the quote after the AI generated it.</strong> "
-        "Tap a project to expand → tap a bucket tab (Labour / Materials / Equipment / Trucking / Spoil) "
-        "→ tap the ✏ button next to a line to edit, or use the forms at the bottom of each bucket "
-        "to add from the catalogue or as a freeform line. Changes save automatically."
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-    job_type_labels = {j["key"]: j["label"] for j in JOB_TYPES}
-    edited = False
-
-    if not q.line_items:
-        st.info("No projects on this quote yet. Add one from the capture screen.")
-
-    for li_idx, li in enumerate(q.line_items):
-        proj_total = li.internal_cost
-        proj_label = (
-            f"◆ {li.label}  ·  {job_type_labels.get(li.job_type, li.job_type)}  ·  "
-            f"{fmt_money(proj_total) if li.entries else '—'}"
-        )
-
-        with st.expander(proj_label, expanded=(li_idx == 0)):
-            # Per-project bucket totals strip
-            cols = st.columns(5)
-            for col, bucket in zip(cols, CostBucket):
-                col.metric(bucket.value.title(), fmt_money(li.bucket_total(bucket)))
-
-            st.markdown("&nbsp;", unsafe_allow_html=True)
-
-            # Bucket TABS — drilldown level 2
-            bucket_list = list(CostBucket)
-            bucket_tabs = st.tabs([
-                f"{bucket.value.title()} · {fmt_money(li.bucket_total(bucket))}"
-                for bucket in bucket_list
-            ])
-
-            for tab, bucket in zip(bucket_tabs, bucket_list):
-                with tab:
-                    entries = [(i, e) for i, e in enumerate(li.entries) if e.bucket == bucket]
-
-                    if not entries:
-                        st.caption(f"No {bucket.value} entries yet. Add one below.")
-                    else:
-                        for entry_idx, e in entries:
-                            row_key = f"row_{q.quote_id}_{li_idx}_{entry_idx}"
-                            edit_flag_key = f"editing_{row_key}"
-                            editing = st.session_state.get(edit_flag_key, False)
-
-                            if not editing:
-                                ec = st.columns([5, 2, 2, 1])
-                                ec[0].markdown(
-                                    f'<div style="color:#cbd5e1;font-size:13px;padding:4px 0;">'
-                                    f"{e.description}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                ec[1].markdown(
-                                    f'<div style="color:#94a3b8;font-size:12px;padding:4px 0;text-align:right;">'
-                                    f"{e.quantity:g} {e.unit} × {fmt_money(e.unit_cost)}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                ec[2].markdown(
-                                    f'<div style="color:#f1f5f9;font-size:13px;font-weight:700;padding:4px 0;text-align:right;">'
-                                    f"{fmt_money(e.total_cost)}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                with ec[3]:
-                                    if st.button("✏", key=f"edit_btn_{row_key}", help="Edit"):
-                                        st.session_state[edit_flag_key] = True
-                                        st.rerun()
-                            else:
-                                with st.form(key=f"form_{row_key}"):
-                                    fc = st.columns([3, 1, 1])
-                                    new_desc = fc[0].text_input("Description", value=e.description, key=f"desc_{row_key}")
-                                    new_qty = fc[1].number_input("Qty", min_value=0.0, value=float(e.quantity), step=0.5, key=f"qty_{row_key}")
-                                    new_cost = fc[2].number_input("Unit $", min_value=0.0, value=float(e.unit_cost), step=0.10, key=f"cost_{row_key}")
-                                    fr = st.columns([1, 1, 1, 1])
-                                    new_unit = fr[0].text_input("Unit", value=e.unit, key=f"unit_{row_key}")
-                                    new_eligible = fr[1].checkbox(
-                                        "Insurance eligible", value=bool(e.rental_insurance_eligible),
-                                        help="Only meaningful in Equipment bucket. Trucks should be unticked.",
-                                        key=f"eligible_{row_key}",
-                                    )
-                                    saved = fr[2].form_submit_button("Save", use_container_width=True, type="primary")
-                                    cancelled = fr[3].form_submit_button("Cancel", use_container_width=True)
-                                    deleted = st.form_submit_button("Delete row")
-
-                                    if saved:
-                                        e.description = new_desc
-                                        e.quantity = float(new_qty)
-                                        e.unit_cost = float(new_cost)
-                                        e.unit = new_unit
-                                        e.rental_insurance_eligible = bool(new_eligible)
-                                        edited = True
-                                        st.session_state[edit_flag_key] = False
-                                    elif cancelled:
-                                        st.session_state[edit_flag_key] = False
-                                        st.rerun()
-                                    elif deleted:
-                                        li.entries.pop(entry_idx)
-                                        edited = True
-                                        st.session_state[edit_flag_key] = False
-
-                    # ---- Add-entry section ----
-                    st.markdown("&nbsp;", unsafe_allow_html=True)
-                    cat_name = BUCKET_TO_CATALOGUE[bucket]
-                    add_key_base = f"add_{q.quote_id}_{li_idx}_{bucket.value}"
-
-                    if cat_name:
-                        cat = _load_cat(cat_name)
-                        # Catalogue add form
-                        with st.form(f"{add_key_base}_cat", clear_on_submit=True):
-                            st.caption(f"Add from {cat_name} catalogue")
-                            if not cat:
-                                st.caption(f"(empty — add items on the {cat_name.title()} page)")
-                                st.form_submit_button("(disabled)", disabled=True)
-                            else:
-                                ac1, ac2, ac3 = st.columns([3, 1, 1])
-                                pick = ac1.selectbox(
-                                    "Item", list(cat.keys()),
-                                    format_func=lambda k, c=cat: c[k]["name"],
-                                    label_visibility="collapsed",
-                                    key=f"pick_{add_key_base}",
-                                )
-                                qty = ac2.number_input("Qty", min_value=0.0, value=1.0, step=0.5,
-                                                      label_visibility="collapsed", key=f"qty_{add_key_base}")
-                                add_btn = ac3.form_submit_button("+ Add", use_container_width=True)
-                                if add_btn and qty > 0:
-                                    li.entries.append(_entry_from_catalogue(bucket, pick, qty))
-                                    edited = True
-
-                    # Freeform add form (every bucket)
-                    with st.form(f"{add_key_base}_free", clear_on_submit=True):
-                        st.caption("Or add a custom freeform line")
-                        fc1, fc2, fc3, fc4 = st.columns([2, 1, 1, 1])
-                        new_desc = fc1.text_input(
-                            "Description", placeholder="e.g. Fuel — estimated",
-                            label_visibility="collapsed", key=f"desc_{add_key_base}_free",
-                        )
-                        new_qty = fc2.number_input(
-                            "Qty", min_value=0.0, value=1.0, step=0.5,
-                            label_visibility="collapsed", key=f"qty_{add_key_base}_free",
-                        )
-                        new_cost = fc3.number_input(
-                            "Unit $", min_value=0.0, value=0.0, step=1.0,
-                            label_visibility="collapsed", key=f"cost_{add_key_base}_free",
-                        )
-                        free_add = fc4.form_submit_button("+ Add", use_container_width=True)
-                        if free_add and new_desc and new_qty > 0:
-                            li.entries.append(LineItemEntry(
-                                bucket=bucket,
-                                description=new_desc,
-                                quantity=float(new_qty),
-                                unit_cost=float(new_cost),
-                                unit="lump",
-                                rental_insurance_eligible=False,
-                            ))
-                            edited = True
-
-            # ---- Per-project NOTES + FILES (BC One Call, permits, plans, photos) ----
-            st.markdown("&nbsp;", unsafe_allow_html=True)
-            st.markdown(
-                '<div style="color:#64748b;font-size:11px;font-weight:700;'
-                'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
-                "Project notes + files</div>",
-                unsafe_allow_html=True,
-            )
-
-            note_val = st.text_area(
-                "Project notes",
-                value=li.project_notes or "",
-                key=f"pnotes_{li_idx}",
-                height=100,
-                placeholder="Site reminders, customer asks, deviations, anything specific to THIS project.",
-                label_visibility="collapsed",
-            )
-            if note_val != (li.project_notes or ""):
-                li.project_notes = note_val or None
-                edited = True
-
-            # File upload — accepts photos, PDFs, anything. Saves under
-            # <data_dir>/attachments/<quote_id>/<project_idx>/ (persistent on Render).
-            attach_dir = attachments_dir() / q.quote_id / str(li_idx)
-
-            uploaded = st.file_uploader(
-                "Upload photos / plans / permits / BC One Call docs",
-                accept_multiple_files=True,
-                key=f"upload_{q.quote_id}_{li_idx}",
-                type=None,  # any file type
-            )
-            if uploaded:
-                attach_dir.mkdir(parents=True, exist_ok=True)
-                added = 0
-                for f in uploaded:
-                    target = attach_dir / f.name
-                    target.write_bytes(f.read())
-                    # Store relative to the persistent data dir (works locally + on Render disk).
-                    rel = str(target.relative_to(data_dir()))
-                    if rel not in li.attachments:
-                        li.attachments.append(rel)
-                        added += 1
-                if added:
-                    log_event(q.quote_id, "project_files_added",
-                              {"project": li.label, "count": added})
-                    edited = True
-                    st.success(f"Added {added} file(s).")
-
-            # Existing attachments list
-            if li.attachments:
-                st.markdown(
-                    '<div style="color:#94a3b8;font-size:11px;'
-                    'margin-top:8px;margin-bottom:4px;">'
-                    f"📎 {len(li.attachments)} file(s) on this project</div>",
-                    unsafe_allow_html=True,
-                )
-                root = data_dir()
-                for a_idx, rel_path in list(enumerate(li.attachments)):
-                    full = root / rel_path
-                    fname = Path(rel_path).name
-                    fcols = st.columns([5, 1, 1])
-                    fcols[0].markdown(
-                        f'<div style="color:#cbd5e1;font-size:13px;padding:6px 0;">'
-                        f"📄 {fname}</div>",
-                        unsafe_allow_html=True,
-                    )
-                    if full.exists():
-                        with fcols[1]:
-                            st.download_button(
-                                "⬇", data=full.read_bytes(), file_name=fname,
-                                key=f"dl_{q.quote_id}_{li_idx}_{a_idx}",
-                                use_container_width=True,
-                            )
-                    with fcols[2]:
-                        if st.button("✕", key=f"rm_{q.quote_id}_{li_idx}_{a_idx}",
-                                     use_container_width=True, help="Remove from list"):
-                            li.attachments.pop(a_idx)
-                            try:
-                                if full.exists():
-                                    full.unlink()
-                            except Exception:
-                                pass
-                            edited = True
-                            st.rerun()
-
-            # Project actions at bottom
-            st.markdown("&nbsp;", unsafe_allow_html=True)
-            pa1, pa2 = st.columns([3, 1])
-            with pa1:
-                new_label = st.text_input(
-                    "Rename project", value=li.label, key=f"rename_{li_idx}",
-                    label_visibility="collapsed",
-                )
-                if new_label != li.label:
-                    li.label = new_label
-                    edited = True
-            with pa2:
-                if st.button("🗑 Delete project", key=f"del_proj_{li_idx}", use_container_width=True):
-                    q.line_items.pop(li_idx)
-                    save_quote(q)
-                    log_event(q.quote_id, "project_deleted", {"label": li.label})
-                    st.rerun()
-
-    if edited:
-        save_quote(q)
-        log_event(q.quote_id, "takeoff_edited")
-        st.rerun()
 
 
 # ---- Material Takeoff (read-only, table format) -----------------------
@@ -634,19 +362,18 @@ def _render_entry_rows(entries):
 
 with tab_sheet:
     import pandas as pd
+    from server.schemas import LineItemEntry as _LIE
 
-    st.markdown("### 📊 Spreadsheet — every line item, all 5 buckets")
+    st.markdown("### 📊 Spreadsheet — edit any cell, add/remove rows")
     st.caption(
-        "Sortable, searchable, exportable. Click any column header to sort. "
-        "Click the ⬇ icon (top-right of the table) to download as CSV. "
-        "Order: Equipment → Materials → Labour → Trucking → Spoil."
+        "Tap any cell to edit. Add a row by clicking the blank row at the bottom and "
+        "filling it in. Delete a row with its checkbox + the trash icon. "
+        "Saves automatically. Order: Equipment → Materials → Spoil → Trucking → Labour."
     )
 
     if not q.line_items:
         st.info("No projects yet.")
     else:
-        # Bucket display order per Michael's preference: Equipment, Materials,
-        # Spoil, Trucking, Labour (2026-04-27).
         BUCKET_ORDER = [
             CostBucket.EQUIPMENT,
             CostBucket.MATERIALS,
@@ -654,64 +381,111 @@ with tab_sheet:
             CostBucket.TRUCKING,
             CostBucket.LABOUR,
         ]
-        bucket_label = {
+        BUCKET_LABELS = {
             CostBucket.EQUIPMENT: "Equipment",
             CostBucket.MATERIALS: "Materials",
             CostBucket.LABOUR: "Labour",
             CostBucket.TRUCKING: "Trucking",
             CostBucket.SPOIL: "Spoil",
         }
+        BUCKET_BY_LABEL = {v: k for k, v in BUCKET_LABELS.items()}
 
-        # Multi-project quotes get a project header row before each project's
-        # entries; single-project quotes skip the project label entirely.
-        is_multi_project = len(q.line_items) > 1
-        rows = []
-        for li in q.line_items:
+        # Single-project quotes: one editor for the project's entries.
+        # Multi-project: render one editor per project so each section has
+        # context (project name + a clean spreadsheet for just that project).
+        for li_idx, li in enumerate(q.line_items):
+            if len(q.line_items) > 1:
+                st.markdown(
+                    f'<div style="color:#f1f5f9;font-size:14px;font-weight:600;'
+                    f'margin-top:14px;margin-bottom:6px;">◆ {li.label}</div>',
+                    unsafe_allow_html=True,
+                )
+
+            rows = []
             for bucket in BUCKET_ORDER:
                 for e in li.entries:
                     if e.bucket != bucket:
                         continue
-                    row = {
-                        "Bucket": bucket_label[bucket],
-                        "Description": e.description if not is_multi_project
-                                       else f"[{li.label}] {e.description}",
-                        "Qty": e.quantity,
+                    rows.append({
+                        "Bucket": BUCKET_LABELS[bucket],
+                        "Description": e.description,
+                        "Qty": float(e.quantity),
                         "Unit": e.unit,
-                        "Unit Cost": e.unit_cost,
-                        "Line Total": e.total_cost,
-                        "Insurance": "✓" if (e.bucket == CostBucket.EQUIPMENT and e.rental_insurance_eligible) else "",
-                    }
-                    rows.append(row)
+                        "Unit Cost": float(e.unit_cost),
+                        "Line Total": float(e.total_cost),
+                    })
 
-        if not rows:
-            st.info("No line items yet. Use the ✏ Edit Quote tab to add them.")
-        else:
-            df = pd.DataFrame(rows)
-            st.dataframe(
+            if not rows:
+                df = pd.DataFrame(columns=["Bucket", "Description", "Qty", "Unit", "Unit Cost", "Line Total"])
+            else:
+                df = pd.DataFrame(rows)
+
+            edited = st.data_editor(
                 df,
                 use_container_width=True,
                 hide_index=True,
+                num_rows="dynamic",
                 column_config={
-                    "Qty": st.column_config.NumberColumn(format="%.2f"),
-                    "Unit Cost": st.column_config.NumberColumn(format="$%.2f"),
-                    "Line Total": st.column_config.NumberColumn(format="$%.2f"),
-                    "Insurance": st.column_config.TextColumn(
-                        help="Equipment line is eligible for the rental-insurance surcharge",
-                        width="small",
+                    "Bucket": st.column_config.SelectboxColumn(
+                        options=list(BUCKET_LABELS.values()),
+                        required=True, width="small",
+                    ),
+                    "Description": st.column_config.TextColumn(width="medium"),
+                    "Qty": st.column_config.NumberColumn(format="%.2f", width="small"),
+                    "Unit": st.column_config.TextColumn(width="small"),
+                    "Unit Cost": st.column_config.NumberColumn(format="$%.2f", width="small"),
+                    "Line Total": st.column_config.NumberColumn(
+                        format="$%.2f", disabled=True, width="small",
+                        help="Auto: Qty × Unit Cost",
                     ),
                 },
+                key=f"qd_editor_{q.quote_id}_{li_idx}",
             )
 
-            # Per-bucket subtotals strip
-            st.markdown("&nbsp;", unsafe_allow_html=True)
-            st.markdown(
-                '<div style="color:#64748b;font-size:11px;font-weight:700;'
-                'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Bucket subtotals</div>',
-                unsafe_allow_html=True,
-            )
-            sub_cols = st.columns(5)
-            for col, bucket in zip(sub_cols, BUCKET_ORDER):
-                col.metric(bucket_label[bucket], fmt_money(q.bucket_total(bucket)))
+            # Sync edits back to li.entries — rebuild from the edited DataFrame
+            new_entries = []
+            changed = False
+            for _, row in edited.iterrows():
+                bucket_str = str(row.get("Bucket") or "Materials")
+                bucket = BUCKET_BY_LABEL.get(bucket_str, CostBucket.MATERIALS)
+                desc = str(row.get("Description") or "").strip()
+                if not desc:
+                    continue
+                try:
+                    qty = float(row.get("Qty") or 0)
+                except Exception:
+                    qty = 0.0
+                try:
+                    cost = float(row.get("Unit Cost") or 0)
+                except Exception:
+                    cost = 0.0
+                new_entries.append(_LIE(
+                    bucket=bucket, description=desc, quantity=qty,
+                    unit=str(row.get("Unit") or "each"), unit_cost=cost,
+                    rental_insurance_eligible=(bucket == CostBucket.EQUIPMENT),
+                ))
+
+            # Detect actual change vs current entries (by serialized comparison)
+            old_serial = [(e.bucket.value, e.description, e.quantity, e.unit, e.unit_cost) for e in li.entries]
+            new_serial = [(e.bucket.value, e.description, e.quantity, e.unit, e.unit_cost) for e in new_entries]
+            if old_serial != new_serial:
+                li.entries = new_entries
+                changed = True
+
+            if changed:
+                save_quote(q)
+                log_event(q.quote_id, "spreadsheet_edited", {"project": li.label})
+
+        # Per-bucket subtotals — across the whole quote
+        st.markdown("&nbsp;", unsafe_allow_html=True)
+        st.markdown(
+            '<div style="color:#64748b;font-size:11px;font-weight:700;'
+            'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Bucket subtotals</div>',
+            unsafe_allow_html=True,
+        )
+        sub_cols = st.columns(5)
+        for col, bucket in zip(sub_cols, BUCKET_ORDER):
+            col.metric(BUCKET_LABELS[bucket], fmt_money(q.bucket_total(bucket)))
 
         # ---- Pricing chain (the "Total" Michael wants at the end) ----
         st.markdown("&nbsp;", unsafe_allow_html=True)
@@ -941,36 +715,6 @@ with tab_plan:
         st.markdown(f"**Start date:** {q.start_date.isoformat()}")
 
 
-with tab_events:
-    st.markdown("### Event log (audit trail)")
-    events = load_events(quote_id)
-    if not events:
-        st.info("No events logged yet.")
-    else:
-        for ev in events:
-            st.markdown(
-                f'- `{ev["occurred_at"]}` — **{ev["event_type"]}**'
-                + (f" — {ev['payload_json']}" if ev["payload_json"] else "")
-            )
-
-
-with tab_attach:
-    st.markdown("### Attachments (sent with every contract)")
-    items = [
-        ("Insurance certificate", COMPANY.get("insurance_certificate_path", "TBD")),
-        ("WorkSafeBC clearance", "TBD"),
-        ("Business license", "TBD"),
-    ]
-    for label, path in items:
-        exists = Path(path).exists() if path != "TBD" else False
-        marker = "✓" if exists else "○"
-        color = RAG_GREEN if exists else "#64748b"
-        st.markdown(
-            f'<div style="color:{color};font-size:13px;margin-bottom:6px;">'
-            f"{marker} {label} — <code>{path}</code></div>",
-            unsafe_allow_html=True,
-        )
-
 
 # ---- Save (explicit, for the cautious) ----------------------------------
 # Most edits auto-save inline (Edit Quote tab, contract editor, pricing form,
@@ -1081,30 +825,14 @@ with a3:
         else:
             st.warning(result["reason"])
 
-# Payment-info inputs for Invoice + Receipt generation. Stored ad-hoc per
-# session — Michael enters when generating each document. (Schema-level
-# tracking can come later if needed.)
+# Payment-info defaults for Invoice + Receipt PDFs. Defaults to 50/50 split.
+# (Removed the explicit expander UI — was clutter. If a job ever needs
+# different amounts, edit the PDF after generation or wire a per-quote field
+# later.)
 import datetime as _dt
-with st.expander("💵 Payment info (for Invoice + Receipt PDFs)", expanded=False):
-    pi1, pi2, pi3 = st.columns(3)
-    with pi1:
-        deposit_amt = st.number_input(
-            "Deposit received ($)", min_value=0.0, step=100.0,
-            value=float(st.session_state.get(f"_dep_{q.quote_id}", q.customer_total * 0.5)),
-            key=f"_dep_{q.quote_id}",
-        )
-    with pi2:
-        deposit_dt = st.date_input(
-            "Deposit received date",
-            value=st.session_state.get(f"_dep_dt_{q.quote_id}", _dt.date.today()),
-            key=f"_dep_dt_{q.quote_id}",
-        )
-    with pi3:
-        final_amt = st.number_input(
-            "Final payment received ($)", min_value=0.0, step=100.0,
-            value=float(st.session_state.get(f"_fin_{q.quote_id}", q.customer_total - q.customer_total * 0.5)),
-            key=f"_fin_{q.quote_id}",
-        )
+deposit_amt = q.customer_total * 0.5
+deposit_dt = _dt.date.today()
+final_amt = q.customer_total - deposit_amt
 
 p1, p2 = st.columns(2)
 with p1:
