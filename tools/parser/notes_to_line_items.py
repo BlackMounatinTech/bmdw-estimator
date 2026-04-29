@@ -207,9 +207,24 @@ LABOUR roles:
 SPOIL config:
 {json.dumps(catalogues['spoil'], indent=2)}
 
+CUSTOMER INFO EXTRACTION — pull what the contractor mentioned in voice notes:
+- name: customer's full name (e.g. "John Smith", "the Paxtons"). Null if not mentioned.
+- phone: phone number in any spoken format. Null if not mentioned.
+- email: email address. Null if not mentioned.
+- address: job site address (street, city). Null if not mentioned.
+- urgency: "high" if rush / ASAP / hard deadline mentioned; "low" if flexible / no rush;
+  "moderate" otherwise (this is the default — use it when nothing was said about timing).
+
 Respond with valid JSON matching this schema:
 {{
   "summary": "one-sentence summary of the whole quote",
+  "parsed_customer": {{
+    "name": "John Smith" | null,
+    "phone": "(250) 555-1234" | null,
+    "email": "john@example.com" | null,
+    "address": "1234 Smith Rd, Duncan, BC" | null,
+    "urgency": "low" | "moderate" | "high"
+  }},
   "projects": [
     {{
       "job_type": "retaining_wall",

@@ -312,9 +312,19 @@ class ParsedProject(BaseModel):
     project_plan: List[ParsedProjectPlanDay] = Field(default_factory=list)
 
 
+class ParsedCustomer(BaseModel):
+    """Customer info extracted from the contractor's voice notes."""
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None  # job site address
+    urgency: Optional[str] = None  # "low" | "moderate" | "high"
+
+
 class ParsedNotesOutput(BaseModel):
     """Full structured response from the quick-notes LLM call."""
     summary: str  # one-sentence summary of the entire quote
     projects: List[ParsedProject] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     suggested_quote_label: Optional[str] = None
+    parsed_customer: Optional[ParsedCustomer] = None

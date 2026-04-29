@@ -178,6 +178,36 @@ def _combined_notes_for_parser() -> str:
     return "\n\n".join(parts)
 
 
+def _hydrate_customer_from_parsed(parsed) -> None:
+    """Pull customer info, project label, urgency, site address from the
+    parser's voice-note extraction into session_state. Voice-only flow:
+    nothing else writes these fields."""
+    if parsed is None:
+        return
+    if parsed.suggested_quote_label and not st.session_state.draft_project_name:
+        st.session_state.draft_project_name = parsed.suggested_quote_label
+    pc = getattr(parsed, "parsed_customer", None)
+    if pc is None:
+        return
+    cust = st.session_state.draft_customer
+    new_name = pc.name or cust.name or ""
+    new_addr = pc.address or cust.address or ""
+    new_phone = pc.phone or cust.phone
+    new_email = pc.email or cust.email
+    st.session_state.draft_customer = Customer(
+        name=new_name,
+        address=new_addr,
+        email=new_email or None,
+        phone=new_phone or None,
+    )
+    if pc.address:
+        st.session_state.draft_site_address = pc.address
+    if pc.phone:
+        st.session_state.draft_phone = pc.phone
+    if pc.urgency and pc.urgency in {u.value for u in Urgency}:
+        st.session_state.draft_urgency = pc.urgency
+
+
 def _parsed_quote_summary_for_review(parsed) -> str:
     """Compact text summary of a ParsedNotesOutput, for the Phase 3 review clarifier."""
     if parsed is None or not parsed.projects:
@@ -402,57 +432,8 @@ else:
                             st.rerun()
 
 
-# ---- Customer ------------------------------------------------------------
-
-section_header("Project name")
-project_name_input = st.text_input(
-    "Project name",
-    value=st.session_state.draft_project_name,
-    placeholder="e.g. Paxton residence — back yard retaining wall",
-    label_visibility="collapsed",
-    key="project_name_input",
-)
-st.session_state.draft_project_name = project_name_input
-
-
-section_header("Customer")
-
-c1, c2 = st.columns(2)
-with c1:
-    cust_name = st.text_input("Name", value=st.session_state.draft_customer.name, placeholder="John Smith")
-with c2:
-    cust_phone = st.text_input("Phone", value=st.session_state.draft_phone, placeholder="(250) 555-1234")
-
-c3, c4 = st.columns(2)
-with c3:
-    cust_email = st.text_input("Email", value=st.session_state.draft_customer.email or "", placeholder="john@example.com")
-with c4:
-    urgency_options = [u.value for u in Urgency]
-    urgency_idx = urgency_options.index(st.session_state.draft_urgency)
-    urgency = st.selectbox(
-        "Urgency", urgency_options, index=urgency_idx,
-        format_func=lambda x: {"low": "Low — flexible",
-                               "moderate": "Moderate — within a month",
-                               "high": "High — ASAP"}[x],
-    )
-
-site_address = st.text_input(
-    "Job site address",
-    value=st.session_state.draft_site_address,
-    placeholder="1234 Smith Rd, Duncan, BC",
-)
-
-st.session_state.draft_customer = Customer(
-    name=cust_name,
-    address=site_address,
-    email=cust_email or None,
-    phone=cust_phone or None,
-)
-st.session_state.draft_phone = cust_phone
-st.session_state.draft_site_address = site_address
-st.session_state.draft_urgency = urgency
-
-
+# Customer info, project name, urgency, site address are all extracted by AI from
+# voice notes (see ParsedCustomer in the parser response). Edit on Quote Detail.
 # ---- Phased capture flow (Phase 1 → 2 → 3) ------------------------------
 # Phase 1: input voice details
 # Phase 2: AI clarifying questions, you dictate answers
@@ -640,6 +621,7 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                         with st.spinner("Applying changes (10-15s)..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
                         st.session_state.parsed_preview = result
+                        _hydrate_customer_from_parsed(result)
                         st.session_state.phase3_line_items = None  # force re-hydrate
                         st.session_state.quote_phase = 3
                         _autosave_draft()
@@ -706,6 +688,7 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                         with st.spinner("Generating quote (this can take 10-15s for big jobs)..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
                         st.session_state.parsed_preview = result
+                        _hydrate_customer_from_parsed(result)
                         # Reset Phase 3 review state for the new generation
                         st.session_state.review_questions = []
                         st.session_state.review_answers = ""
@@ -751,6 +734,37 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
         else:
             if parsed.summary:
                 st.markdown(f"**Summary:** {parsed.summary}")
+
+            # Show customer info the AI pulled from the voice notes — so you
+            # can spot if a name/phone got missed and edit on Quote Detail.
+            cust = st.session_state.draft_customer
+            cust_bits = []
+            if cust.name: cust_bits.append(cust.name)
+            if cust.phone: cust_bits.append(cust.phone)
+            if cust.email: cust_bits.append(cust.email)
+            if st.session_state.draft_site_address:
+                cust_bits.append(st.session_state.draft_site_address)
+            if st.session_state.draft_project_name:
+                cust_bits.append(f"({st.session_state.draft_project_name})")
+            if cust_bits:
+                st.markdown(
+                    f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
+                    f'border-left:4px solid #2563eb;border-radius:8px;'
+                    f'padding:10px 14px;margin-bottom:10px;color:#334155;font-size:13px;">'
+                    f'<strong style="color:#0f172a;">Customer:</strong> '
+                    f'{" · ".join(cust_bits)}</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    '<div style="background:#ffffff;border:1px solid #e2e8f0;'
+                    'border-left:4px solid #d97706;border-radius:8px;'
+                    'padding:10px 14px;margin-bottom:10px;color:#334155;font-size:13px;">'
+                    "No customer info extracted from voice — fill it in on Quote Detail "
+                    "after lock-in."
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
 
             for w in parsed.warnings:
                 st.markdown(
@@ -986,6 +1000,7 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                         with st.spinner("Re-generating with review answers..."):
                             result = parse_notes_to_structure(_combined_notes_for_parser())
                         st.session_state.parsed_preview = result
+                        _hydrate_customer_from_parsed(result)
                         st.session_state.phase3_line_items = None  # force re-hydrate
                         # Generate fresh review questions for this new pass
                         st.session_state.review_questions = []
@@ -1146,47 +1161,6 @@ if st.session_state.draft_line_items:
         f"</div>",
         unsafe_allow_html=True,
     )
-
-
-# ---- Bottom action bar ---------------------------------------------------
-
-st.markdown("&nbsp;", unsafe_allow_html=True)
-
-ready_to_save = bool(cust_name and (st.session_state.draft_quick_notes.strip() or st.session_state.draft_line_items))
-ready_to_review = bool(st.session_state.draft_line_items and cust_name and site_address)
-
-is_editing = bool(st.session_state.current_editing_id)
-save_label = "Update Draft" if is_editing else "Save Draft"
-
-a1, a2 = st.columns(2)
-with a1:
-    if st.button(save_label, use_container_width=True, disabled=not ready_to_save,
-                 help="Save the draft so it's persisted. Stays on this page."):
-        draft = _draft_quote()
-        saved_id = save_quote(draft)
-        st.session_state.current_editing_id = saved_id
-        st.session_state.loaded_quote_id = saved_id
-        st.query_params["quote_id"] = saved_id
-        log_event(saved_id, "draft_updated" if is_editing else "draft_saved", {
-            "line_items": len(draft.line_items),
-            "urgency": urgency,
-            "has_notes": bool(draft.quick_notes),
-        })
-        st.success(f"{'Updated' if is_editing else 'Saved'} as {saved_id}.")
-
-with a2:
-    if st.button("Review & Send →", use_container_width=True, type="primary",
-                 disabled=not ready_to_review,
-                 help="Persist the quote and open the Quote Detail for contract + send."):
-        q = _draft_quote()
-        saved_id = save_quote(q)
-        log_event(saved_id, "quote_drafted", {"line_items": len(q.line_items)})
-        _reset_draft_state(reset_id=True)
-        # See Phase 3 lock-in note — query_params don't always flush before
-        # switch_page; use session_state as the reliable handoff.
-        st.session_state["_pending_quote_id"] = saved_id
-        st.query_params["quote_id"] = saved_id
-        st.switch_page("pages/4_Quote_Detail.py")
 
 
 # ---- Clear page (always available, bottom of page) ---------------------
