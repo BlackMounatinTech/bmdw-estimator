@@ -764,8 +764,21 @@ def hydrate_to_line_items(parsed: ParsedNotesOutput) -> List[JobLineItem]:
             elif lookup_failed:
                 description = f"⚠ {description} (catalogue key '{cat}/{key}' not found — fix in config or rename)"
 
+            # Deterministic mob/demob bucket override — these belong in TRUCKING
+            # (per Michael), no matter what bucket the AI assigned. Detect by
+            # unit "lump" + catalogue_type "equipment" + key prefix "excavator_",
+            # OR by description starting with "Mobilization" / "Demobilization".
+            from server.schemas import CostBucket as _CB
+            bucket = raw.bucket
+            is_mob_line = (
+                cat == "equipment" and raw.unit == "lump"
+                and (key or "").startswith("excavator_")
+            ) or description.lower().startswith(("mobilization", "demobilization"))
+            if is_mob_line:
+                bucket = _CB.TRUCKING
+
             entries.append(LineItemEntry(
-                bucket=raw.bucket,
+                bucket=bucket,
                 description=description,
                 quantity=raw.quantity,
                 unit=raw.unit,
