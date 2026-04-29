@@ -371,10 +371,13 @@ with tab_sheet:
         "second 9-ton excavator day', 'drop the buggy dumper'. The AI rewrites the "
         "line items below. Manual cell edits in the spreadsheet are also saved on Save changes."
     )
-    qd_voice_key = f"qd_voice_{q.quote_id}"
+    # Version counter so we can "clear" the textarea after Save by giving the
+    # widget a brand-new key — Streamlit forbids writing to a widget's key
+    # after it's instantiated, but a new key starts fresh and empty.
+    qd_voice_ver = st.session_state.get(f"qd_voice_ver_{q.quote_id}", 0)
+    qd_voice_key = f"qd_voice_{q.quote_id}_v{qd_voice_ver}"
     voice_text = st.text_area(
-        "Voice edit", value=st.session_state.get(qd_voice_key, ""),
-        height=110, label_visibility="collapsed", key=qd_voice_key,
+        "Voice edit", height=110, label_visibility="collapsed", key=qd_voice_key,
         placeholder="Tap the iPhone keyboard mic and dictate the change you want.",
     )
 
@@ -542,8 +545,10 @@ with tab_sheet:
                     "had_voice": bool(voice_block),
                     "line_items": sum(len(li2.entries) for li2 in q.line_items),
                 })
-                # Clear the voice box so it doesn't re-apply on next save
-                st.session_state[qd_voice_key] = ""
+                # Bump the voice-textarea version so it renders with a fresh
+                # (empty) key on the next run — Streamlit forbids writing to
+                # the existing widget key after instantiation.
+                st.session_state[f"qd_voice_ver_{q.quote_id}"] = qd_voice_ver + 1
                 st.success("Saved. Contract / PDF / project plan all reflect the new quote.")
                 st.rerun()
 
