@@ -20,7 +20,7 @@ from tools.storage import (
 from tools.storage.paths import data_dir, db_path, is_persistent
 import os as _os
 
-st.set_page_config(page_title="BMDW · Dashboard", page_icon="", layout="wide")
+st.set_page_config(page_title="Black Mountain Dirt Works · Dashboard", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()

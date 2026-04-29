@@ -20,7 +20,7 @@ from tools.storage import (
     update_customer_meta,
 )
 
-st.set_page_config(page_title="BMDW · Customers", page_icon="", layout="wide")
+st.set_page_config(page_title="Black Mountain Dirt Works · Customers", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()

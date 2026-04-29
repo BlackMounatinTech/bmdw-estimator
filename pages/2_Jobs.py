@@ -18,7 +18,7 @@ from tools.shared import (
 )
 from tools.storage import init_db, list_recent_quotes, load_quote
 
-st.set_page_config(page_title="BMDW · Jobs", page_icon="", layout="wide")
+st.set_page_config(page_title="Black Mountain Dirt Works · Jobs", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()

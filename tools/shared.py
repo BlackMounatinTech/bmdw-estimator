@@ -37,7 +37,7 @@ def require_auth() -> None:
     st.markdown(
         '<div style="max-width:360px;margin:80px auto 0;text-align:center;">'
         '<div style="font-size:14px;color:#94a3b8;letter-spacing:0.06em;'
-        'text-transform:uppercase;margin-bottom:8px;">BMDW Estimator</div>'
+        'text-transform:uppercase;margin-bottom:8px;">Black Mountain Dirt Works</div>'
         '<div style="color:#cbd5e1;font-size:13px;margin-bottom:20px;">'
         "Enter passcode to continue.</div>"
         "</div>",

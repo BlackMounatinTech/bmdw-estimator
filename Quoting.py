@@ -43,7 +43,7 @@ from tools.storage import (
 )
 
 st.set_page_config(
-    page_title="BMDW Estimator",
+    page_title="Black Mountain Dirt Works",
     page_icon="",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -331,7 +331,7 @@ st.markdown(
     '<div style="display:flex;align-items:center;justify-content:space-between;'
     'margin-bottom:8px">'
     '<div style="font-size:14px;color:#475569;letter-spacing:0.06em;'
-    'text-transform:uppercase;">BMDW Estimator</div>'
+    'text-transform:uppercase;">Black Mountain Dirt Works</div>'
     '<div style="font-size:11px;color:#64748b;">v0.5</div>'
     "</div>",
     unsafe_allow_html=True,

@@ -48,7 +48,7 @@ from tools.storage import (
 )
 from tools.storage.paths import attachments_dir, data_dir
 
-st.set_page_config(page_title="BMDW · Quote Detail", page_icon="", layout="wide")
+st.set_page_config(page_title="Black Mountain Dirt Works · Quote Detail", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -499,7 +499,7 @@ with tab_sheet:
             ("Raw entries (sum of all line totals)", q.raw_entries_total),
             (f"+ Rental insurance ({q.rental_insurance_pct:g}% on eligible equipment)",
              q.rental_insurance_amount),
-            ("= Internal cost (BMDW total)", q.internal_cost),
+            ("= Internal cost (Black Mountain Dirt Works total)", q.internal_cost),
             (f"+ Markup ({q.markup.overall_pct:g}%)", q.markup_amount),
             ("= Subtotal pre-discount", q.subtotal_pre_discount),
         ]
@@ -760,14 +760,14 @@ with a1:
         attachments = _collect_attachments(quote_pdf_path)
         result = send_email(
             to=q.customer.email or "",
-            subject=f"Quote {q.quote_id} — {COMPANY.get('legal_name', 'BMDW')}",
+            subject=f"Quote {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
             body_text=(
                 f"Hi {q.customer.name},\n\n"
                 f"Please find your quote ({q.quote_id}) attached. "
                 f"Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
                 f"Quote is valid for {COMPANY.get('quote_validity_days', 30)} days. "
                 f"Reply to confirm or with any questions.\n\n"
-                f"Thanks,\n{COMPANY.get('legal_name', 'BMDW')}"
+                f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
             ),
             attachments=attachments,
         )
@@ -798,13 +798,13 @@ with a2:
         )
         result = send_email(
             to=q.customer.email or "",
-            subject=f"Contract {q.quote_id} — {COMPANY.get('legal_name', 'BMDW')}",
+            subject=f"Contract {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
             body_text=(
                 f"Hi {q.customer.name},\n\n"
                 f"Please find the contract for {q.quote_id} attached, along with our "
                 f"insurance certificate. You can accept by reply email or by making the "
                 f"deposit payment.\n\n"
-                f"Thanks,\n{COMPANY.get('legal_name', 'BMDW')}"
+                f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
             ),
             attachments=attachments,
         )
