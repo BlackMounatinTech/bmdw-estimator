@@ -139,6 +139,17 @@ def apply_theme() -> None:
             border-radius: 12px;
         }
 
+        /* Shrink the editable spreadsheet (Phase 3 + Quote Detail) ~12%
+           per Michael's request — uses transform-scale so the glide-grid
+           canvas inside also shrinks (CSS font-size won't affect canvas-
+           rendered cells). Width compensation keeps it filling the row. */
+        [data-testid="stDataEditor"] {
+            transform: scale(0.88);
+            transform-origin: top left;
+            width: 113.64% !important;
+            margin-bottom: -42px;
+        }
+
         hr { border-color: #e2e8f0 !important; }
 
         .stTabs [data-baseweb="tab-list"] {
