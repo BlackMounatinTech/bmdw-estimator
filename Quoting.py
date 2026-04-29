@@ -179,9 +179,8 @@ def _combined_notes_for_parser() -> str:
 
 
 def _hydrate_customer_from_parsed(parsed) -> None:
-    """Pull customer info, project label, urgency, site address from the
-    parser's voice-note extraction into session_state. Voice-only flow:
-    nothing else writes these fields."""
+    """Fill empty customer fields from the parser's voice extraction.
+    User-typed values always win — AI only fills blanks."""
     if parsed is None:
         return
     if parsed.suggested_quote_label and not st.session_state.draft_project_name:
@@ -190,19 +189,20 @@ def _hydrate_customer_from_parsed(parsed) -> None:
     if pc is None:
         return
     cust = st.session_state.draft_customer
-    new_name = pc.name or cust.name or ""
-    new_addr = pc.address or cust.address or ""
-    new_phone = pc.phone or cust.phone
-    new_email = pc.email or cust.email
+    # User-typed values take precedence; AI only fills blanks
+    new_name = (cust.name or "").strip() or (pc.name or "")
+    new_addr = (cust.address or "").strip() or (pc.address or "")
+    new_phone = cust.phone or pc.phone
+    new_email = cust.email or pc.email
     st.session_state.draft_customer = Customer(
         name=new_name,
         address=new_addr,
         email=new_email or None,
         phone=new_phone or None,
     )
-    if pc.address:
+    if not (st.session_state.draft_site_address or "").strip() and pc.address:
         st.session_state.draft_site_address = pc.address
-    if pc.phone:
+    if not (st.session_state.draft_phone or "").strip() and pc.phone:
         st.session_state.draft_phone = pc.phone
     if pc.urgency and pc.urgency in {u.value for u in Urgency}:
         st.session_state.draft_urgency = pc.urgency
@@ -432,8 +432,32 @@ else:
                             st.rerun()
 
 
-# Customer info, project name, urgency, site address are all extracted by AI from
-# voice notes (see ParsedCustomer in the parser response). Edit on Quote Detail.
+section_header("Customer")
+c1, c2 = st.columns(2)
+with c1:
+    cust_name = st.text_input("Name", value=st.session_state.draft_customer.name,
+                              placeholder="John Smith", key="cust_name_input")
+with c2:
+    cust_phone = st.text_input("Phone", value=st.session_state.draft_phone,
+                               placeholder="(250) 555-1234", key="cust_phone_input")
+
+c3, c4 = st.columns(2)
+with c3:
+    cust_email = st.text_input("Email", value=st.session_state.draft_customer.email or "",
+                               placeholder="john@example.com", key="cust_email_input")
+with c4:
+    site_address = st.text_input("Job site address", value=st.session_state.draft_site_address,
+                                 placeholder="1234 Smith Rd, Duncan, BC", key="site_addr_input")
+
+st.session_state.draft_customer = Customer(
+    name=cust_name,
+    address=site_address,
+    email=cust_email or None,
+    phone=cust_phone or None,
+)
+st.session_state.draft_phone = cust_phone
+st.session_state.draft_site_address = site_address
+
 # ---- Phased capture flow (Phase 1 → 2 → 3) ------------------------------
 # Phase 1: input voice details
 # Phase 2: AI clarifying questions, you dictate answers
