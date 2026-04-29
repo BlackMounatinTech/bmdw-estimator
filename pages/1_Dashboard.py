@@ -20,7 +20,7 @@ from tools.storage import (
 from tools.storage.paths import data_dir, db_path, is_persistent
 import os as _os
 
-st.set_page_config(page_title="BMDW · Dashboard", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BMDW · Dashboard", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -47,19 +47,19 @@ _env_var = _os.environ.get("BMDW_DATA_DIR", "").strip() or "(not set — auto-de
 
 if _persistent:
     _status_color = "#22c55e"
-    _status_msg = "✓ Persistent storage active. Data survives every deploy."
+    _status_msg = "Persistent storage active. Data survives every deploy."
 else:
     _status_color = "#ef4444"
-    _status_msg = ("🔴 EPHEMERAL storage. Data WILL BE WIPED on every deploy. "
+    _status_msg = ("EPHEMERAL storage. Data WILL BE WIPED on every deploy. "
                    "On Render: confirm a Disk is attached at /var/data (Settings → Disks). "
                    "If your disk mounts elsewhere, set BMDW_DATA_DIR env var to that path.")
 
 st.markdown(
-    f'<div style="background:#111827;border:1px solid #1e293b;'
+    f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
     f'border-left:4px solid {_status_color};border-radius:8px;'
-    f'padding:10px 14px;margin-bottom:12px;color:#cbd5e1;font-size:12px;">'
+    f'padding:10px 14px;margin-bottom:12px;color:#334155;font-size:12px;">'
     f'<strong style="color:{_status_color};">{_status_msg}</strong><br>'
-    f'<span style="color:#94a3b8;">Data dir: <code>{_resolved_dir}</code> · '
+    f'<span style="color:#475569;">Data dir: <code>{_resolved_dir}</code> · '
     f'DB: <code>{_db_file.name}</code> '
     f'({_db_size:,} bytes, {"exists" if _db_exists else "MISSING"}) · '
     f'BMDW_DATA_DIR env: <code>{_env_var}</code></span>'
@@ -96,19 +96,19 @@ else:
         link = f"Quote_Detail?quote_id={q['quote_id']}"
         st.markdown(
             f'<a href="/{link}" target="_self" style="text-decoration:none;">'
-            f'<div style="background:#111827;border:1px solid #1e293b;'
+            f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
             f'border-left:4px solid {color};border-radius:12px;'
             f'padding:14px 18px;margin-bottom:8px;">'
             f'<div style="display:flex;justify-content:space-between;align-items:center;">'
             f'<div>'
-            f'<div style="color:#f1f5f9;font-weight:600;font-size:14px;">'
+            f'<div style="color:#0f172a;font-weight:600;font-size:14px;">'
             f'{q["customer_name"]} — {q["quote_id"]}'
             f"</div>"
             f'<div style="color:#64748b;font-size:12px;margin-top:2px;">'
             f'{q["status"].upper()} · margin {q["margin_pct"]}% · '
             f'updated {q["updated_at"][:10]}'
             f"</div></div>"
-            f'<div style="color:#e2e8f0;font-weight:700;font-size:16px;">'
+            f'<div style="color:#1e293b;font-weight:700;font-size:16px;">'
             f'{fmt_money(q["final_invoiced"] or q["customer_total"])}'
             f"</div></div></div></a>",
             unsafe_allow_html=True,

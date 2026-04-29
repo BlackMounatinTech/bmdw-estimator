@@ -18,7 +18,7 @@ from tools.shared import (
 )
 from tools.storage import init_db, list_recent_quotes, load_quote
 
-st.set_page_config(page_title="BMDW · Jobs", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BMDW · Jobs", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -177,33 +177,33 @@ for col, label in zip(head, labels):
         f'letter-spacing:0.06em;padding:6px 0;">{label}</div>',
         unsafe_allow_html=True,
     )
-st.markdown('<div style="border-top:1px solid #1e293b;margin-bottom:4px;"></div>',
+st.markdown('<div style="border-top:1px solid #e2e8f0;margin-bottom:4px;"></div>',
             unsafe_allow_html=True)
 
 for q in filtered:
     color = STATUS_COLORS.get(q["status"], "#64748b")
     row = st.columns([1.4, 2.2, 0.8, 1.2, 1.2, 1.0, 0.8])
     row[0].markdown(
-        f'<div style="color:#f1f5f9;font-size:13px;font-weight:700;padding:8px 0;">'
+        f'<div style="color:#0f172a;font-size:13px;font-weight:700;padding:8px 0;">'
         f'{q["quote_id"]}</div>',
         unsafe_allow_html=True,
     )
     chips = []
     if q.get("_city"):
         chips.append(
-            f'<span style="display:inline-block;background:#1e293b;color:#94a3b8;'
+            f'<span style="display:inline-block;background:#e2e8f0;color:#475569;'
             f'font-size:10px;padding:2px 8px;border-radius:4px;margin-right:4px;'
             f'letter-spacing:0.04em;">📍 {q["_city"]}</span>'
         )
     for jt in q.get("_job_types", []):
         chips.append(
-            f'<span style="display:inline-block;background:#1e293b;color:#cbd5e1;'
+            f'<span style="display:inline-block;background:#e2e8f0;color:#334155;'
             f'font-size:10px;padding:2px 8px;border-radius:4px;margin-right:4px;'
             f'letter-spacing:0.04em;">{jt.replace("_", " ").title()}</span>'
         )
     chips_html = ("".join(chips)) if chips else ""
     row[1].markdown(
-        f'<div style="color:#cbd5e1;font-size:13px;padding:8px 0;">'
+        f'<div style="color:#334155;font-size:13px;padding:8px 0;">'
         f'{q.get("customer_name", "—")}'
         f'<div style="margin-top:3px;">{chips_html}</div>'
         f'</div>',
@@ -217,17 +217,17 @@ for q in filtered:
         unsafe_allow_html=True,
     )
     row[3].markdown(
-        f'<div style="color:#94a3b8;font-size:13px;padding:8px 0;">'
+        f'<div style="color:#475569;font-size:13px;padding:8px 0;">'
         f'{q["updated_at"][:10]}</div>',
         unsafe_allow_html=True,
     )
     row[4].markdown(
-        f'<div style="color:#f1f5f9;font-size:13px;font-weight:700;padding:8px 0;text-align:right;">'
+        f'<div style="color:#0f172a;font-size:13px;font-weight:700;padding:8px 0;text-align:right;">'
         f'{fmt_money(q.get("final_invoiced") or q["customer_total"])}</div>',
         unsafe_allow_html=True,
     )
     row[5].markdown(
-        f'<div style="color:#94a3b8;font-size:13px;padding:8px 0;text-align:right;">'
+        f'<div style="color:#475569;font-size:13px;padding:8px 0;text-align:right;">'
         f'{q["margin_pct"]:g}%</div>',
         unsafe_allow_html=True,
     )

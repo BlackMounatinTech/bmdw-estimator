@@ -48,7 +48,7 @@ from tools.storage import (
 )
 from tools.storage.paths import attachments_dir, data_dir
 
-st.set_page_config(page_title="BMDW · Quote Detail", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BMDW · Quote Detail", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -143,7 +143,7 @@ with hb1:
         st.query_params.clear()
         st.switch_page("pages/3_Customers.py")
 with hb2:
-    if st.button("🎤 Edit quote with voice", use_container_width=True,
+    if st.button("Edit quote with voice", use_container_width=True,
                  type="primary",
                  help="Go back to Phase 2 (clarifying questions) with this quote loaded — "
                       "dictate what to change and regenerate."):
@@ -180,7 +180,7 @@ st.markdown(
     f"{'<br>📞 ' + contact_line if contact_line else ''}"
     f'<br><a href="/Customers?customer_id={customer_id_for_link}" target="_self" '
     f'style="color:#3b82f6;font-size:12px;text-decoration:none;">'
-    f"✏ Edit customer info →</a>"
+    f"Edit customer info →</a>"
     f"</div>",
     unsafe_allow_html=True,
 )
@@ -199,12 +199,12 @@ st.markdown(
 
 if q.quick_notes:
     st.markdown(
-        f'<div style="background:#111827;border:1px solid #1e293b;'
+        f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
         f'border-left:4px solid #3b82f6;border-radius:12px;'
         f'padding:14px 18px;margin-top:14px;">'
         f'<div style="color:#64748b;font-size:11px;text-transform:uppercase;'
         f'letter-spacing:0.1em;margin-bottom:6px;">Quick notes (on-site)</div>'
-        f'<div style="color:#cbd5e1;font-size:13px;white-space:pre-wrap;">{q.quick_notes}</div>'
+        f'<div style="color:#334155;font-size:13px;white-space:pre-wrap;">{q.quick_notes}</div>'
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -226,9 +226,9 @@ with chain_col:
     insurance_line = ""
     if q.rental_insurance_amount > 0:
         insurance_line = (
-            f'<div style="display:flex;justify-content:space-between;color:#94a3b8;font-size:13px;padding:4px 0;">'
+            f'<div style="display:flex;justify-content:space-between;color:#475569;font-size:13px;padding:4px 0;">'
             f"<span>+ Rental insurance ({q.rental_insurance_pct:g}% on eligible equipment)</span>"
-            f"<span style='color:#cbd5e1;'>{fmt_money(q.rental_insurance_amount)}</span>"
+            f"<span style='color:#334155;'>{fmt_money(q.rental_insurance_amount)}</span>"
             f"</div>"
         )
     discount_line = ""
@@ -240,23 +240,23 @@ with chain_col:
             f"</div>"
         )
     st.markdown(
-        f'<div style="background:#111827;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;">'
+        f'<div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;">'
         f'<div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Pricing chain</div>'
-        f'<div style="display:flex;justify-content:space-between;color:#cbd5e1;font-size:13px;padding:4px 0;">'
+        f'<div style="display:flex;justify-content:space-between;color:#334155;font-size:13px;padding:4px 0;">'
         f"<span>Raw entries (5 buckets)</span><span>{fmt_money(q.raw_entries_total)}</span></div>"
         f"{insurance_line}"
-        f'<div style="display:flex;justify-content:space-between;color:#cbd5e1;font-size:13px;padding:4px 0;border-top:1px solid #1e293b;margin-top:6px;padding-top:8px;">'
+        f'<div style="display:flex;justify-content:space-between;color:#334155;font-size:13px;padding:4px 0;border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;">'
         f"<span><strong>Internal cost</strong></span><span><strong>{fmt_money(q.internal_cost)}</strong></span></div>"
-        f'<div style="display:flex;justify-content:space-between;color:#94a3b8;font-size:13px;padding:4px 0;">'
-        f"<span>+ Markup ({q.markup.overall_pct:g}%)</span><span style='color:#cbd5e1;'>{fmt_money(q.markup_amount)}</span></div>"
-        f'<div style="display:flex;justify-content:space-between;color:#cbd5e1;font-size:13px;padding:4px 0;border-top:1px solid #1e293b;margin-top:6px;padding-top:8px;">'
+        f'<div style="display:flex;justify-content:space-between;color:#475569;font-size:13px;padding:4px 0;">'
+        f"<span>+ Markup ({q.markup.overall_pct:g}%)</span><span style='color:#334155;'>{fmt_money(q.markup_amount)}</span></div>"
+        f'<div style="display:flex;justify-content:space-between;color:#334155;font-size:13px;padding:4px 0;border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;">'
         f"<span>Subtotal pre-discount</span><span>{fmt_money(q.subtotal_pre_discount)}</span></div>"
         f"{discount_line}"
-        f'<div style="display:flex;justify-content:space-between;color:#cbd5e1;font-size:13px;padding:4px 0;border-top:1px solid #1e293b;margin-top:6px;padding-top:8px;">'
+        f'<div style="display:flex;justify-content:space-between;color:#334155;font-size:13px;padding:4px 0;border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;">'
         f"<span>Subtotal</span><span>{fmt_money(q.subtotal)}</span></div>"
-        f'<div style="display:flex;justify-content:space-between;color:#94a3b8;font-size:13px;padding:4px 0;">'
-        f"<span>+ GST + PST ({q.tax_pct:g}%)</span><span style='color:#cbd5e1;'>{fmt_money(q.tax_amount)}</span></div>"
-        f'<div style="display:flex;justify-content:space-between;color:#f1f5f9;font-size:16px;font-weight:700;padding:8px 0 0;border-top:1px solid #1e293b;margin-top:6px;">'
+        f'<div style="display:flex;justify-content:space-between;color:#475569;font-size:13px;padding:4px 0;">'
+        f"<span>+ GST + PST ({q.tax_pct:g}%)</span><span style='color:#334155;'>{fmt_money(q.tax_amount)}</span></div>"
+        f'<div style="display:flex;justify-content:space-between;color:#0f172a;font-size:16px;font-weight:700;padding:8px 0 0;border-top:1px solid #e2e8f0;margin-top:6px;">'
         f"<span>Customer total</span><span>{fmt_money(q.customer_total)}</span></div>"
         f"</div>",
         unsafe_allow_html=True,
@@ -323,7 +323,7 @@ b5.metric("Spoil", fmt_money(q.bucket_total(CostBucket.SPOIL)))
 section_header("Job Details")
 
 tab_desc, tab_sheet, tab_math, tab_contract, tab_plan = st.tabs(
-    ["Description", "📊 Spreadsheet (editable)", "Math Breakdown", "Contract", "Plan"]
+    ["Description", "Spreadsheet (editable)", "Math Breakdown", "Contract", "Plan"]
 )
 
 with tab_desc:
@@ -346,25 +346,25 @@ def _render_entry_rows(entries):
     head[0].markdown('<div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Item</div>', unsafe_allow_html=True)
     head[1].markdown('<div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;text-align:right;">Math</div>', unsafe_allow_html=True)
     head[2].markdown('<div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;text-align:right;">Cost</div>', unsafe_allow_html=True)
-    st.markdown('<div style="border-top:1px solid #1e293b;margin:4px 0 6px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="border-top:1px solid #e2e8f0;margin:4px 0 6px;"></div>', unsafe_allow_html=True)
     subtotal = 0.0
     for e in entries:
         c = st.columns([4, 2, 2])
-        c[0].markdown(f'<div style="color:#cbd5e1;font-size:13px;padding:4px 0;">{e.description}</div>', unsafe_allow_html=True)
-        c[1].markdown(f'<div style="color:#94a3b8;font-size:12px;padding:4px 0;text-align:right;">{e.quantity:g} {e.unit} × {fmt_money(e.unit_cost)}</div>', unsafe_allow_html=True)
-        c[2].markdown(f'<div style="color:#f1f5f9;font-size:13px;font-weight:700;padding:4px 0;text-align:right;">{fmt_money(e.total_cost)}</div>', unsafe_allow_html=True)
+        c[0].markdown(f'<div style="color:#334155;font-size:13px;padding:4px 0;">{e.description}</div>', unsafe_allow_html=True)
+        c[1].markdown(f'<div style="color:#475569;font-size:12px;padding:4px 0;text-align:right;">{e.quantity:g} {e.unit} × {fmt_money(e.unit_cost)}</div>', unsafe_allow_html=True)
+        c[2].markdown(f'<div style="color:#0f172a;font-size:13px;font-weight:700;padding:4px 0;text-align:right;">{fmt_money(e.total_cost)}</div>', unsafe_allow_html=True)
         subtotal += e.total_cost
-    st.markdown('<div style="border-top:1px solid #1e293b;margin:6px 0 4px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="border-top:1px solid #e2e8f0;margin:6px 0 4px;"></div>', unsafe_allow_html=True)
     sf = st.columns([4, 2, 2])
-    sf[0].markdown('<div style="color:#94a3b8;font-size:12px;padding:4px 0;">Subtotal</div>', unsafe_allow_html=True)
-    sf[2].markdown(f'<div style="color:#f1f5f9;font-size:14px;font-weight:700;padding:4px 0;text-align:right;">{fmt_money(subtotal)}</div>', unsafe_allow_html=True)
+    sf[0].markdown('<div style="color:#475569;font-size:12px;padding:4px 0;">Subtotal</div>', unsafe_allow_html=True)
+    sf[2].markdown(f'<div style="color:#0f172a;font-size:14px;font-weight:700;padding:4px 0;text-align:right;">{fmt_money(subtotal)}</div>', unsafe_allow_html=True)
 
 
 with tab_sheet:
     import pandas as pd
     from server.schemas import LineItemEntry as _LIE
 
-    st.markdown("### 📊 Spreadsheet — edit any cell, add/remove rows")
+    st.markdown("### Spreadsheet — edit any cell, add/remove rows")
     st.caption(
         "Tap any cell to edit. Add a row by clicking the blank row at the bottom and "
         "filling it in. Delete a row with its checkbox + the trash icon. "
@@ -396,8 +396,8 @@ with tab_sheet:
         for li_idx, li in enumerate(q.line_items):
             if len(q.line_items) > 1:
                 st.markdown(
-                    f'<div style="color:#f1f5f9;font-size:14px;font-weight:600;'
-                    f'margin-top:14px;margin-bottom:6px;">◆ {li.label}</div>',
+                    f'<div style="color:#0f172a;font-size:14px;font-weight:600;'
+                    f'margin-top:14px;margin-bottom:6px;">{li.label}</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -514,10 +514,10 @@ with tab_sheet:
         for label, amount in chain_rows:
             is_total = label.startswith("= CUSTOMER TOTAL")
             is_subtotal = label.startswith("=") and not is_total
-            color = "#f1f5f9" if (is_total or is_subtotal) else "#cbd5e1"
+            color = "#0f172a" if (is_total or is_subtotal) else "#334155"
             weight = "700" if is_total else ("600" if is_subtotal else "400")
             size = "16px" if is_total else "13px"
-            border = ("border-top:1px solid #1e293b;margin-top:6px;padding-top:8px;"
+            border = ("border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;"
                       if is_subtotal or is_total else "")
             row = st.columns([6, 2])
             row[0].markdown(
@@ -546,7 +546,7 @@ with tab_math:
     if not q.line_items:
         st.info("No projects yet.")
     for li in q.line_items:
-        st.markdown(f"#### ◆ {li.label}  ·  {fmt_money(li.internal_cost)}")
+        st.markdown(f"#### {li.label}  ·  {fmt_money(li.internal_cost)}")
         for bucket in CostBucket:
             entries = [e for e in li.entries if e.bucket == bucket]
             if not entries:
@@ -588,13 +588,13 @@ with tab_math:
         is_subtotal = label.startswith("Subtotal") or label == "Internal cost"
         weight = "700" if is_total else ("600" if is_subtotal else "400")
         size = "16px" if is_total else "13px"
-        color = "#f1f5f9" if (is_total or is_subtotal) else "#cbd5e1"
-        amt_color = "#f1f5f9" if (is_total or is_subtotal) else "#cbd5e1"
+        color = "#0f172a" if (is_total or is_subtotal) else "#334155"
+        amt_color = "#0f172a" if (is_total or is_subtotal) else "#334155"
         if str(amount).startswith("-") or amount < 0:
             amt_color = "#22c55e"
         c = st.columns([4, 3, 2])
         c[0].markdown(f'<div style="color:{color};font-size:{size};font-weight:{weight};padding:4px 0;">{label}</div>', unsafe_allow_html=True)
-        c[1].markdown(f'<div style="color:#94a3b8;font-size:12px;padding:4px 0;">{math}</div>', unsafe_allow_html=True)
+        c[1].markdown(f'<div style="color:#475569;font-size:12px;padding:4px 0;">{math}</div>', unsafe_allow_html=True)
         c[2].markdown(f'<div style="color:{amt_color};font-size:{size};font-weight:{weight};padding:4px 0;text-align:right;">{fmt_money(amount)}</div>', unsafe_allow_html=True)
 
 
@@ -603,7 +603,7 @@ with tab_contract:
     is_custom = q.contract_text is not None and q.contract_text.strip() != ""
     initial = q.contract_text if is_custom else draft_contract_text(q, COMPANY)
 
-    badge = ("✓ Custom (saved)" if is_custom else "○ Auto-drafted (not yet edited)")
+    badge = ("Custom (saved)" if is_custom else "Auto-drafted (not yet edited)")
     badge_color = "#22c55e" if is_custom else "#64748b"
     st.markdown(
         f'<div style="color:{badge_color};font-size:11px;font-weight:700;'
@@ -680,10 +680,10 @@ with tab_plan:
     ]
     for i, step in enumerate(pre_work, start=1):
         st.markdown(
-            f'<div style="background:#111827;border:1px solid #1e293b;'
+            f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
             f'border-left:3px solid #3b82f6;border-radius:8px;'
-            f'padding:8px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
-            f"<strong style='color:#f1f5f9;'>Step {i}.</strong> {step}</div>",
+            f'padding:8px 14px;margin-bottom:6px;color:#334155;font-size:13px;">'
+            f"<strong style='color:#0f172a;'>Step {i}.</strong> {step}</div>",
             unsafe_allow_html=True,
         )
 
@@ -917,14 +917,14 @@ with p5:
 
 # ---- Internal-only PDFs (NOT customer-facing) ---------------------------
 st.markdown(
-    '<div style="color:#94a3b8;font-size:11px;font-weight:700;'
+    '<div style="color:#475569;font-size:11px;font-weight:700;'
     'text-transform:uppercase;letter-spacing:0.06em;margin-top:14px;margin-bottom:6px;">'
     "🔒 Internal-only — for your phone, not the customer</div>",
     unsafe_allow_html=True,
 )
 i1, i2, _ = st.columns(3)
 with i1:
-    if st.button("📋 Material Takeoff PDF", use_container_width=True, disabled=not pdf_configured(),
+    if st.button("Material Takeoff PDF", use_container_width=True, disabled=not pdf_configured(),
                  help="Sourcing list — every material on this quote with SKUs and totals."):
         path, err = render_material_takeoff_pdf(q, COMPANY)
         if err:
@@ -972,16 +972,16 @@ with s3:
 st.markdown("---")
 sf1, sf2, sf3 = st.columns(3)
 with sf1:
-    state = "✓ ready" if sheets_configured() else "○ not configured"
+    state = "ready" if sheets_configured() else "not configured"
     st.caption(f"Google Sheets sync: {state}")
 with sf2:
     method = email_configured_method()
     if method == "smtp":
-        st.caption("Gmail send: ✓ ready (SMTP App Password — works on Render)")
+        st.caption("Gmail send: ready (SMTP App Password — works on Render)")
     elif method == "oauth":
-        st.caption("Gmail send: ✓ ready (OAuth — local Mac only)")
+        st.caption("Gmail send: ready (OAuth — local Mac only)")
     else:
-        st.caption("Gmail send: ○ not configured (see workflows/setup_gmail.md)")
+        st.caption("Gmail send: not configured (see workflows/setup_gmail.md)")
 with sf3:
-    state = "✓ ready" if pdf_configured() else "○ WeasyPrint not installed"
+    state = "ready" if pdf_configured() else "WeasyPrint not installed"
     st.caption(f"PDF generator: {state}")

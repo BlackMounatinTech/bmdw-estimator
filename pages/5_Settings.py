@@ -29,7 +29,7 @@ from tools.storage import (
 )
 from tools.storage.paths import data_dir, db_path, is_persistent
 
-st.set_page_config(page_title="BMDW · Settings", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BMDW · Settings", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -51,17 +51,17 @@ _env_var = os.environ.get("BMDW_DATA_DIR", "").strip() or "(not set — auto-det
 
 if _persistent:
     color = "#22c55e"
-    msg = "✓ Persistent storage active. Data survives every deploy."
+    msg = "Persistent storage active. Data survives every deploy."
 else:
     color = "#ef4444"
-    msg = "🔴 EPHEMERAL storage. Data WILL BE WIPED on every deploy."
+    msg = "EPHEMERAL storage. Data WILL BE WIPED on every deploy."
 
 st.markdown(
-    f'<div style="background:#111827;border:1px solid #1e293b;'
+    f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
     f'border-left:4px solid {color};border-radius:8px;'
-    f'padding:12px 16px;margin-bottom:8px;color:#cbd5e1;font-size:13px;">'
+    f'padding:12px 16px;margin-bottom:8px;color:#334155;font-size:13px;">'
     f'<strong style="color:{color};">{msg}</strong><br>'
-    f'<span style="color:#94a3b8;">Data dir: <code>{_resolved}</code> · '
+    f'<span style="color:#475569;">Data dir: <code>{_resolved}</code> · '
     f'DB: <code>{_db_file.name}</code> ({_db_size:,} bytes) · '
     f'BMDW_DATA_DIR env: <code>{_env_var}</code></span>'
     "</div>",
@@ -154,7 +154,7 @@ st.caption(
     "sidecar files. Idempotent — safe to run anytime; quotes already in the DB "
     "are skipped."
 )
-if st.button("🔄 Restore from snapshots", use_container_width=False):
+if st.button("Restore from snapshots", use_container_width=False):
     with st.spinner("Walking snapshot files..."):
         result = restore_from_snapshots()
     st.success(
@@ -184,7 +184,7 @@ logo_exists = logo_target.exists()
 if logo_exists:
     st.markdown(
         f'<div style="color:#22c55e;font-size:13px;margin-bottom:8px;">'
-        f"✓ Current logo: <code>{logo_target}</code> "
+        f"Current logo: <code>{logo_target}</code> "
         f"({logo_target.stat().st_size:,} bytes)</div>",
         unsafe_allow_html=True,
     )
@@ -204,7 +204,7 @@ if uploaded is not None:
     st.rerun()
 
 if logo_exists:
-    if st.button("🗑 Remove current logo", help="Removes the file. PDFs will fall back to text-only header."):
+    if st.button("Remove current logo", help="Removes the file. PDFs will fall back to text-only header."):
         try:
             logo_target.unlink()
             st.success("Removed.")

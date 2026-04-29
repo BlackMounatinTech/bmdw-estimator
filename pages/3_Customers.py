@@ -20,7 +20,7 @@ from tools.storage import (
     update_customer_meta,
 )
 
-st.set_page_config(page_title="BMDW · Customers", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BMDW · Customers", page_icon="", layout="wide")
 apply_theme()
 require_auth()
 init_db()
@@ -219,16 +219,16 @@ else:
         link = f"Quote_Detail?quote_id={q['quote_id']}"
         st.markdown(
             f'<a href="/{link}" target="_self" style="text-decoration:none;">'
-            f'<div style="background:#111827;border:1px solid #1e293b;'
+            f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
             f'border-left:4px solid {color};border-radius:12px;'
             f'padding:14px 18px;margin-bottom:8px;">'
             f'<div style="display:flex;justify-content:space-between;align-items:center;">'
             f"<div>"
-            f'<div style="color:#f1f5f9;font-weight:600;font-size:14px;">{q["quote_id"]}</div>'
+            f'<div style="color:#0f172a;font-weight:600;font-size:14px;">{q["quote_id"]}</div>'
             f'<div style="color:#64748b;font-size:12px;margin-top:2px;">'
             f'{q["created_at"][:10]} · {q["status"].upper()} · margin {q["margin_pct"]}%'
             f"</div></div>"
-            f'<div style="color:#e2e8f0;font-weight:700;font-size:16px;">'
+            f'<div style="color:#1e293b;font-weight:700;font-size:16px;">'
             f"{fmt_money(q['final_invoiced'] or q['customer_total'])}"
             f"</div></div></div></a>",
             unsafe_allow_html=True,
@@ -253,7 +253,7 @@ _confirm_key = f"_del_cust_confirm_{cust['customer_id']}"
 if st.session_state.get(_confirm_key):
     dc1, dc2, _ = st.columns([1, 1, 3])
     with dc1:
-        if st.button(f"⚠ Confirm — DELETE {cust['name']}",
+        if st.button(f"Confirm — DELETE {cust['name']}",
                      type="primary", use_container_width=True,
                      key=f"_del_cust_yes_{cust['customer_id']}"):
             result = delete_customer(cust["customer_id"])
@@ -270,7 +270,7 @@ if st.session_state.get(_confirm_key):
             st.session_state[_confirm_key] = False
             st.rerun()
 else:
-    if st.button("🗑 Delete customer", key=f"_del_cust_btn_{cust['customer_id']}",
+    if st.button("Delete customer", key=f"_del_cust_btn_{cust['customer_id']}",
                  help="Two-step. Click here, then click Confirm."):
         st.session_state[_confirm_key] = True
         st.rerun()

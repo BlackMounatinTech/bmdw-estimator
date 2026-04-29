@@ -37,7 +37,7 @@ def require_auth() -> None:
     st.markdown(
         '<div style="max-width:360px;margin:80px auto 0;text-align:center;">'
         '<div style="font-size:14px;color:#94a3b8;letter-spacing:0.06em;'
-        'text-transform:uppercase;margin-bottom:8px;">◆ BMDW Estimator</div>'
+        'text-transform:uppercase;margin-bottom:8px;">BMDW Estimator</div>'
         '<div style="color:#cbd5e1;font-size:13px;margin-bottom:20px;">'
         "Enter passcode to continue.</div>"
         "</div>",
@@ -63,55 +63,52 @@ def apply_theme() -> None:
         """
         <style>
         :root {
-            --bg-app: #0a0f1a;
-            --bg-sidebar: #0d1321;
-            --bg-card: #111827;
-            --bg-card-alt: #1a1f2e;
-            --bg-card-accent: #1e293b;
-            --border: #1e293b;
-            --border-hover: #334155;
-            --text-heading: #f1f5f9;
-            --text-body: #cbd5e1;
-            --text-value: #e2e8f0;
-            --text-secondary: #94a3b8;
+            --bg-app: #f8fafc;
+            --bg-sidebar: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f8fafc;
+            --bg-card-accent: #eef2f7;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-heading: #0f172a;
+            --text-body: #334155;
+            --text-value: #1e293b;
+            --text-secondary: #475569;
             --text-tertiary: #64748b;
-            --active-border: #3b82f6;
-            --rag-green: #22c55e;
-            --rag-yellow: #f59e0b;
-            --rag-red: #ef4444;
-            --sev-critical: #ef4444;
-            --sev-high: #f59e0b;
-            --sev-medium: #3b82f6;
+            --active-border: #2563eb;
+            --rag-green: #16a34a;
+            --rag-yellow: #d97706;
+            --rag-red: #dc2626;
+            --sev-critical: #dc2626;
+            --sev-high: #d97706;
+            --sev-medium: #2563eb;
             --sev-low: #64748b;
         }
 
-        .stApp { background-color: #0a0f1a; }
-        [data-testid="stHeader"] { background-color: #0a0f1a; }
+        .stApp { background-color: #f8fafc; }
+        [data-testid="stHeader"] { background-color: #f8fafc; }
         [data-testid="stSidebar"] {
-            background-color: #0d1321;
-            border-right: 1px solid #1e293b;
+            background-color: #f1f5f9;
+            border-right: 1px solid #e2e8f0;
         }
-        [data-testid="stSidebar"] * { color: #94a3b8 !important; }
-        [data-testid="stSidebar"] h1 { color: #f1f5f9 !important; }
-        [data-testid="stSidebar"] img {
-            filter: invert(1) brightness(2);
-            background: transparent !important;
-        }
+        [data-testid="stSidebar"] * { color: #475569 !important; }
+        [data-testid="stSidebar"] h1 { color: #0f172a !important; }
 
         h1, h2, h3 {
-            color: #f1f5f9 !important;
+            color: #0f172a !important;
             font-weight: 600 !important;
             letter-spacing: -0.02em;
         }
-        p, span, label, div { color: #cbd5e1; }
+        p, span, label, div { color: #334155; }
 
         [data-testid="stMetric"] {
-            background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
-            border: 1px solid #1e293b;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 14px 12px;
+            padding: 18px 14px;
             overflow: visible !important;
             min-width: 0;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
         [data-testid="stMetric"] > div { overflow: visible !important; }
         [data-testid="stMetric"] > div > div { overflow: visible !important; }
@@ -124,8 +121,8 @@ def apply_theme() -> None:
             overflow: visible !important;
         }
         [data-testid="stMetricValue"] {
-            color: #f1f5f9 !important;
-            font-size: 18px !important;
+            color: #0f172a !important;
+            font-size: 20px !important;
             font-weight: 700 !important;
             white-space: nowrap !important;
             overflow: visible !important;
@@ -133,99 +130,100 @@ def apply_theme() -> None:
         }
         [data-testid="stMetricDelta"] { font-size: 13px !important; }
 
-        .js-plotly-plot .plotly .main-svg { background: transparent !important; }
-
         [data-testid="stDataFrame"] {
             border-radius: 12px;
             overflow: hidden;
         }
         .stDataFrame div[data-testid="stDataFrameResizable"] {
-            border: 1px solid #1e293b;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
         }
 
-        hr { border-color: #1e293b !important; }
+        hr { border-color: #e2e8f0 !important; }
 
         .stTabs [data-baseweb="tab-list"] {
             gap: 8px;
             background: transparent;
         }
         .stTabs [data-baseweb="tab"] {
-            background: #111827;
-            border: 1px solid #1e293b;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
-            color: #94a3b8;
-            padding: 8px 20px;
+            color: #475569;
+            padding: 10px 20px;
         }
         .stTabs [aria-selected="true"] {
-            background: #1e293b !important;
-            border-color: #3b82f6 !important;
-            color: #f1f5f9 !important;
+            background: #eef4ff !important;
+            border-color: #2563eb !important;
+            color: #0f172a !important;
         }
 
         [data-testid="stSelectbox"] div[data-baseweb="select"] {
-            background: #111827;
-            border-color: #1e293b;
+            background: #ffffff;
+            border-color: #e2e8f0;
         }
 
         #MainMenu, footer { display: none; }
 
-        /* Touch-friendly buttons for on-site mobile use. */
+        /* Touch-friendly buttons */
         .stButton > button {
-            min-height: 44px;
+            min-height: 48px;
             border-radius: 10px;
-            border: 1px solid #1e293b;
-            background: #111827;
-            color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #0f172a;
             font-weight: 600;
             transition: all 0.15s ease;
+            padding: 14px 18px !important;
         }
         .stButton > button:hover {
-            border-color: #3b82f6;
+            border-color: #2563eb;
+            background: #f8fafc;
         }
 
         /* Project card */
         .project-card {
-            background: linear-gradient(135deg, #111827 0%, #1a1f2e 100%);
-            border: 1px solid #1e293b;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 24px;
+            padding: 28px;
             transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
         }
-        .project-card:hover { border-color: #334155; }
+        .project-card:hover { border-color: #cbd5e1; }
         .card-label {
             color: #64748b;
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
         .card-project {
-            color: #f1f5f9;
+            color: #0f172a;
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 14px;
-            line-height: 1.3;
+            line-height: 1.4;
         }
         .card-number {
             font-size: 36px;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         .card-detail {
             color: #64748b;
             font-size: 13px;
-            line-height: 1.7;
+            line-height: 1.8;
         }
-        .card-detail-value { color: #e2e8f0; font-weight: 500; }
+        .card-detail-value { color: #1e293b; font-weight: 500; }
         .card-risk {
-            color: #94a3b8;
+            color: #475569;
             font-size: 12px;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid #1e293b;
-            line-height: 1.5;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+            line-height: 1.6;
         }
         .status-dot {
             display: inline-block;
@@ -236,147 +234,160 @@ def apply_theme() -> None:
         }
 
         .risk-row {
-            background: #111827;
-            border: 1px solid #1e293b;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 14px 18px;
-            margin-bottom: 8px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .risk-label { color: #cbd5e1; font-size: 13px; }
+        .risk-label { color: #334155; font-size: 13px; }
         .risk-project { color: #64748b; font-size: 11px; margin-top: 2px; }
         .risk-amount { font-size: 16px; font-weight: 700; }
 
         .section-header {
-            color: #f1f5f9;
+            color: #0f172a;
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            font-weight: 600;
-            margin-bottom: 20px;
+            font-weight: 700;
+            margin-top: 32px;
+            margin-bottom: 18px;
             padding-bottom: 12px;
-            border-bottom: 1px solid #1e293b;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        /* Selectbox + dropdown styling is handled by Streamlit's dark theme
-           config (.streamlit/config.toml). No manual CSS overrides needed —
-           previous attempts caused white-on-white. */
-
-        /* --- Primary button — make it clearly visible on dark background.
-           Streamlit's default primary blue blends in; give it a bright outline
-           and lift it off the surrounding form with extra top margin. --- */
+        /* --- Primary button — clearly visible blue on light bg --- */
         [data-testid="stButton"] button[kind="primary"],
         button[data-testid="baseButton-primary"],
         button[data-testid="stBaseButton-primary"] {
-            background: #3b82f6 !important;
+            background: #2563eb !important;
             color: #ffffff !important;
             -webkit-text-fill-color: #ffffff !important;
-            border: 2px solid #ffffff !important;
-            box-shadow: 0 0 0 1px #3b82f6, 0 4px 12px rgba(59, 130, 246, 0.35) !important;
+            border: 1px solid #1d4ed8 !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25) !important;
             font-weight: 700 !important;
-            padding: 12px 18px !important;
+            padding: 14px 18px !important;
             margin-top: 14px !important;
         }
         [data-testid="stButton"] button[kind="primary"]:hover,
         button[data-testid="baseButton-primary"]:hover,
         button[data-testid="stBaseButton-primary"]:hover {
-            background: #2563eb !important;
-            border-color: #ffffff !important;
-            box-shadow: 0 0 0 1px #2563eb, 0 6px 16px rgba(59, 130, 246, 0.5) !important;
+            background: #1d4ed8 !important;
+            border-color: #1e40af !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
         }
         [data-testid="stButton"] button[kind="primary"]:disabled,
         button[data-testid="baseButton-primary"]:disabled,
         button[data-testid="stBaseButton-primary"]:disabled {
-            background: #1e293b !important;
-            color: #64748b !important;
-            -webkit-text-fill-color: #64748b !important;
-            border: 2px solid #334155 !important;
+            background: #e2e8f0 !important;
+            color: #94a3b8 !important;
+            -webkit-text-fill-color: #94a3b8 !important;
+            border: 1px solid #cbd5e1 !important;
             box-shadow: none !important;
             cursor: not-allowed !important;
         }
 
-        /* --- Mobile responsive overrides (Section 5 of design system) --- */
-        /* --- Looser spacing across the whole app for breathing room --- */
-        .stButton > button { padding-top: 12px !important; padding-bottom: 12px !important; }
-        .section-header { margin-top: 28px !important; margin-bottom: 18px !important; }
-        h1, h2, h3 { margin-top: 18px !important; margin-bottom: 14px !important; }
-        [data-testid="stExpander"] { margin-bottom: 14px !important; }
-        [data-testid="stMetric"] { padding: 18px 14px !important; }
-        .stTextInput, .stTextArea, .stSelectbox, .stNumberInput { margin-bottom: 8px !important; }
+        /* --- Looser spacing — real breathing room --- */
+        h1, h2, h3 { margin-top: 24px !important; margin-bottom: 16px !important; }
+        [data-testid="stExpander"] { margin-bottom: 18px !important; }
+        .stTextInput, .stTextArea, .stSelectbox, .stNumberInput { margin-bottom: 14px !important; }
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            color: #0f172a !important;
+            padding: 12px 14px !important;
+        }
+        [data-testid="stTextInput"] input:focus,
+        [data-testid="stTextArea"] textarea:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+        }
+
+        /* Generous block container so content doesn't hug the screen edges */
+        .main .block-container,
+        [data-testid="stAppViewContainer"] .main .block-container {
+            padding-top: 2rem !important;
+            padding-bottom: 4rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+        }
+        /* Vertical breathing room between auto-stacked elements */
+        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+            gap: 0.9rem !important;
+        }
 
         @media (max-width: 768px) {
-            /* Global zoom-out so the whole UI feels less crammed on iPhone. */
-            html { zoom: 0.85; -webkit-text-size-adjust: 85%; }
-            /* Side gutters: a touch more padding so content isn't hugging the edges. */
+            html { -webkit-text-size-adjust: 100%; }
             .main .block-container,
             [data-testid="stAppViewContainer"] .main .block-container {
-                padding-left: 0.9rem !important;
-                padding-right: 0.9rem !important;
-                padding-top: 1.2rem !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                padding-top: 1.4rem !important;
                 max-width: 100% !important;
             }
-            /* Vertical breathing room between Streamlit's auto-stacked elements */
             [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
-                gap: 0.4rem !important;
+                gap: 0.7rem !important;
             }
             .stApp { padding: 0 !important; }
             [data-testid="stSidebar"] { min-width: 200px !important; }
 
             [data-testid="stHorizontalBlock"] {
                 flex-wrap: wrap !important;
-                gap: 8px !important;
+                gap: 10px !important;
             }
             [data-testid="stHorizontalBlock"] > div {
                 flex: 1 1 100% !important;
                 min-width: 0 !important;
             }
             [data-testid="stMetric"] {
-                padding: 10px 10px !important;
-                border-radius: 8px !important;
+                padding: 14px 12px !important;
+                border-radius: 10px !important;
             }
-            [data-testid="stMetricValue"] { font-size: 16px !important; }
+            [data-testid="stMetricValue"] { font-size: 17px !important; }
             [data-testid="stMetricLabel"] { font-size: 10px !important; }
 
             .project-card {
-                padding: 14px !important;
-                border-radius: 10px !important;
+                padding: 18px !important;
+                border-radius: 12px !important;
             }
-            .card-number { font-size: 24px !important; }
-            .card-project { font-size: 14px !important; }
-            .card-detail { font-size: 11px !important; }
+            .card-number { font-size: 26px !important; }
+            .card-project { font-size: 15px !important; }
+            .card-detail { font-size: 12px !important; }
 
             [data-testid="stDataFrame"] { overflow-x: auto !important; }
 
             .stTabs [data-baseweb="tab"] {
-                padding: 6px 12px !important;
+                padding: 8px 14px !important;
                 font-size: 12px !important;
             }
-            .js-plotly-plot { width: 100% !important; }
 
             .section-header {
                 font-size: 11px !important;
-                margin-bottom: 12px !important;
-                padding-bottom: 8px !important;
+                margin-top: 22px !important;
+                margin-bottom: 14px !important;
+                padding-bottom: 10px !important;
             }
             .risk-row {
-                padding: 10px 12px !important;
+                padding: 12px 14px !important;
                 flex-direction: column !important;
-                gap: 4px !important;
+                gap: 6px !important;
             }
             .risk-amount { font-size: 14px !important; }
 
-            /* Big touch-friendly primary action button */
             .stButton > button { min-height: 56px; font-size: 16px; }
         }
 
         @media (max-width: 480px) {
-            [data-testid="stMetricValue"] { font-size: 14px !important; }
-            .card-number { font-size: 20px !important; }
-            h1 { font-size: 20px !important; }
-            h2 { font-size: 16px !important; }
-            h3 { font-size: 14px !important; }
+            [data-testid="stMetricValue"] { font-size: 15px !important; }
+            .card-number { font-size: 22px !important; }
+            h1 { font-size: 22px !important; }
+            h2 { font-size: 18px !important; }
+            h3 { font-size: 15px !important; }
         }
         </style>
         """,
@@ -542,7 +553,7 @@ def render_project_takeoff(li, key_prefix: str) -> bool:
                             unsafe_allow_html=True,
                         )
                         with ec[3]:
-                            if st.button("✏", key=f"edit_btn_{row_key}", help="Edit"):
+                            if st.button("", key=f"edit_btn_{row_key}", help="Edit"):
                                 st.session_state[edit_flag_key] = True
                                 st.rerun()
                     else:

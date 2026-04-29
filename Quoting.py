@@ -16,7 +16,7 @@ from server.schemas import (
     Quote,
     Urgency,
 )
-from tools.calculator import JOB_TYPES, create_empty_project, get_job_type
+from tools.calculator import JOB_TYPES
 from tools.parser.checklist import JOB_TYPE_QUESTIONS, UNIVERSAL_QUESTIONS
 from tools.parser.notes_to_line_items import (
     generate_clarifying_questions,
@@ -44,7 +44,7 @@ from tools.storage import (
 
 st.set_page_config(
     page_title="BMDW Estimator",
-    page_icon="◆",
+    page_icon="",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -300,8 +300,8 @@ def _draft_quote() -> Quote:
 st.markdown(
     '<div style="display:flex;align-items:center;justify-content:space-between;'
     'margin-bottom:8px">'
-    '<div style="font-size:14px;color:#94a3b8;letter-spacing:0.06em;'
-    'text-transform:uppercase;">◆ BMDW Estimator</div>'
+    '<div style="font-size:14px;color:#475569;letter-spacing:0.06em;'
+    'text-transform:uppercase;">BMDW Estimator</div>'
     '<div style="font-size:11px;color:#64748b;">v0.5</div>'
     "</div>",
     unsafe_allow_html=True,
@@ -318,17 +318,17 @@ _p_db_size = _p_db.stat().st_size if _p_db.exists() else 0
 
 if _p_persistent:
     _p_color = "#22c55e"
-    _p_icon = "✓"
+    _p_icon = ""
     _p_label = "Persistent — safe to save"
 else:
     _p_color = "#ef4444"
-    _p_icon = "🔴"
+    _p_icon = ""
     _p_label = "EPHEMERAL — saves WILL be wiped on next deploy"
 
 st.markdown(
-    f'<div style="background:#0d1321;border:1px solid #1e293b;'
+    f'<div style="background:#f1f5f9;border:1px solid #e2e8f0;'
     f'border-left:4px solid {_p_color};border-radius:6px;'
-    f'padding:6px 10px;margin-bottom:10px;color:#cbd5e1;font-size:11px;'
+    f'padding:6px 10px;margin-bottom:10px;color:#334155;font-size:11px;'
     f'display:flex;justify-content:space-between;align-items:center;">'
     f'<span><strong style="color:{_p_color};">{_p_icon} {_p_label}</strong></span>'
     f'<span style="color:#64748b;">DB {_p_db_size / 1024:,.1f} KB · '
@@ -344,10 +344,10 @@ if st.session_state.current_editing_id:
     eb1, eb2 = st.columns([4, 1])
     with eb1:
         st.markdown(
-            f'<div style="background:#111827;border:1px solid #1e293b;'
+            f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
             f'border-left:4px solid #3b82f6;border-radius:8px;'
-            f'padding:10px 14px;color:#cbd5e1;font-size:13px;margin-bottom:8px;">'
-            f"✏ Editing <strong>{st.session_state.current_editing_id}</strong> — "
+            f'padding:10px 14px;color:#334155;font-size:13px;margin-bottom:8px;">'
+            f"Editing <strong>{st.session_state.current_editing_id}</strong> — "
             f"Save Draft will overwrite this quote.</div>",
             unsafe_allow_html=True,
         )
@@ -360,15 +360,15 @@ else:
     # Show any in-progress drafts as a quick-edit picker
     drafts = [q for q in list_recent_quotes(limit=20) if q["status"] == "draft"]
     if drafts:
-        with st.expander(f"📝 {len(drafts)} draft{'s' if len(drafts) != 1 else ''} in progress — click to edit", expanded=False):
+        with st.expander(f"{len(drafts)} draft{'s' if len(drafts) != 1 else ''} in progress — click to edit", expanded=False):
             for q in drafts[:10]:
                 qid = q["quote_id"]
                 pending_delete = st.session_state.delete_confirm_id == qid
                 bcol_a, bcol_b, bcol_c = st.columns([4, 1, 1])
                 with bcol_a:
                     st.markdown(
-                        f'<div style="color:#cbd5e1;font-size:13px;padding:6px 0;">'
-                        f"<strong style='color:#f1f5f9;'>{qid}</strong> — "
+                        f'<div style="color:#334155;font-size:13px;padding:6px 0;">'
+                        f"<strong style='color:#0f172a;'>{qid}</strong> — "
                         f"{q['customer_name']} · {q['updated_at'][:10]}"
                         f"</div>",
                         unsafe_allow_html=True,
@@ -388,14 +388,14 @@ else:
                                 st.query_params.clear()
                             st.rerun()
                     else:
-                        if st.button("🗑", key=f"del_draft_{qid}", use_container_width=True,
+                        if st.button("Delete", key=f"del_draft_{qid}", use_container_width=True,
                                      help="Delete this draft permanently"):
                             st.session_state.delete_confirm_id = qid
                             st.rerun()
                 if pending_delete:
                     cc1, cc2 = st.columns([5, 1])
                     with cc1:
-                        st.caption(f"⚠ Delete {qid} permanently? Tap Confirm to delete or Cancel to keep.")
+                        st.caption(f"Delete {qid} permanently? Tap Confirm to delete or Cancel to keep.")
                     with cc2:
                         if st.button("Cancel", key=f"cancel_del_{qid}", use_container_width=True):
                             st.session_state.delete_confirm_id = None
@@ -405,10 +405,6 @@ else:
 # ---- Customer ------------------------------------------------------------
 
 section_header("Project name")
-st.caption(
-    "Short label for this quote — what you want to see in the Customers / Jobs lists "
-    "and on the Quote Detail header. Optional but useful (e.g. 'Smith — wall + driveway')."
-)
 project_name_input = st.text_input(
     "Project name",
     value=st.session_state.draft_project_name,
@@ -474,10 +470,10 @@ def _phase_pill(current: int) -> None:
     for i in range(1, 4):
         active = i == current
         done = i < current
-        bg = "#3b82f6" if active else ("#1e293b" if done else "#0d1321")
-        color = "white" if active else ("#94a3b8" if done else "#475569")
+        bg = "#3b82f6" if active else ("#e2e8f0" if done else "#f1f5f9")
+        color = "white" if active else ("#475569" if done else "#475569")
         weight = "700" if active else "500"
-        marker = "●" if active else ("✓" if done else "○")
+        marker = "●" if active else ("" if done else "○")
         bits.append(
             f'<span style="display:inline-block;background:{bg};color:{color};'
             f'font-size:11px;font-weight:{weight};padding:6px 12px;border-radius:14px;'
@@ -502,14 +498,16 @@ bucket_color = {
 quick_notes = st.session_state.draft_quick_notes
 
 
-# Phases run for new quotes (not editing) OR when editing via voice (regenerate flow).
-if (not is_editing) or st.session_state.voice_edit_mode:
+# Phases ALWAYS render when phase is set (1/2/3) — even when editing an existing
+# draft. The phased flow is the primary capture path for both new and resumed quotes.
+# voice_edit_mode is a special Phase-2 variant; included for safety.
+if st.session_state.voice_edit_mode or phase in (1, 2, 3):
     if st.session_state.voice_edit_mode:
         st.markdown(
-            f'<div style="background:#111827;border:1px solid #1e293b;'
+            f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
             f'border-left:4px solid #f59e0b;border-radius:8px;'
-            f'padding:10px 14px;color:#cbd5e1;font-size:13px;margin-bottom:8px;">'
-            f"🎤 <strong>Voice-editing {st.session_state.current_editing_id}</strong> — "
+            f'padding:10px 14px;color:#334155;font-size:13px;margin-bottom:8px;">'
+            f"<strong>Voice-editing {st.session_state.current_editing_id}</strong> — "
             f"dictate what to change in Phase 2 below. Lock-in will overwrite this quote."
             f"</div>",
             unsafe_allow_html=True,
@@ -519,14 +517,6 @@ if (not is_editing) or st.session_state.voice_edit_mode:
     # ===== PHASE 1 — INPUT DETAILS =====
     if phase == 1:
         section_header("Phase 1 — Input Details")
-        st.markdown(
-            '<div style="color:#64748b;font-size:12px;margin-bottom:6px;">'
-            "Dictate everything you know about the job — projects, dimensions, materials, "
-            "site notes. Use the iPhone keyboard 🎤 button. The AI will read this and "
-            "ask you targeted clarifying questions in Phase 2."
-            "</div>",
-            unsafe_allow_html=True,
-        )
         quick_notes = st.text_area(
             "Quick notes",
             value=st.session_state.draft_quick_notes,
@@ -550,7 +540,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
         if not parser_configured():
             clarify_help += "  (Set ANTHROPIC_API_KEY in .env to enable.)"
 
-        if st.button("Ask me clarifying questions  →", use_container_width=True,
+        if st.button("Ask me clarifying questions →", use_container_width=True,
                      type="primary", disabled=not quick_notes.strip(),
                      help=clarify_help):
             try:
@@ -573,7 +563,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                 reason = result.get("reason") or "Unknown failure."
                 st.session_state.clarifier_error = reason
                 st.error(
-                    f"❌ AI clarifier failed: {reason}\n\n"
+                    f"AI clarifier failed: {reason}\n\n"
                     "Your notes are still here. Common fixes:\n"
                     "• If the ANTHROPIC_API_KEY is missing or wrong, set it in Render Environment.\n"
                     "• If it's a network/timeout, wait 10 seconds and click again.\n"
@@ -584,25 +574,15 @@ if (not is_editing) or st.session_state.voice_edit_mode:
     # ===== PHASE 2 — CLARIFYING QUESTIONS (or VOICE-EDIT) =====
     elif phase == 2:
         if st.session_state.voice_edit_mode:
-            # ---- Voice-edit variant: show the current quote as reference,
-            # then a single textarea for change instructions. ----
             section_header("Phase 2 — Edit existing quote")
-            st.markdown(
-                '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
-                "Below is the current quote. Dictate the changes you want — add lines, "
-                "modify quantities or descriptions, change the location/supplier, swap a "
-                "material, remove something, etc. Then hit <strong>Generate Updated Quote</strong>."
-                "</div>",
-                unsafe_allow_html=True,
-            )
 
             # Current quote summary (compact)
-            with st.expander(f"📋 Current quote — {len(st.session_state.draft_line_items)} project(s)",
+            with st.expander(f"Current quote — {len(st.session_state.draft_line_items)} project(s)",
                              expanded=True):
                 for li in st.session_state.draft_line_items:
                     st.markdown(
-                        f'<div style="color:#f1f5f9;font-size:13px;font-weight:600;'
-                        f'margin-top:8px;margin-bottom:4px;">◆ {li.label}</div>',
+                        f'<div style="color:#0f172a;font-size:13px;font-weight:600;'
+                        f'margin-top:8px;margin-bottom:4px;">{li.label}</div>',
                         unsafe_allow_html=True,
                     )
                     for bucket in CostBucket:
@@ -617,9 +597,9 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                         )
                         for e in entries:
                             st.markdown(
-                                f'<div style="color:#cbd5e1;font-size:12px;padding:1px 0;">'
+                                f'<div style="color:#334155;font-size:12px;padding:1px 0;">'
                                 f"• {e.description} — {e.quantity:g} {e.unit} × ${e.unit_cost:.2f} "
-                                f'<span style="color:#94a3b8;">= ${e.total_cost:.2f}</span></div>',
+                                f'<span style="color:#475569;">= ${e.total_cost:.2f}</span></div>',
                                 unsafe_allow_html=True,
                             )
 
@@ -651,7 +631,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     st.query_params["quote_id"] = qid
                     st.switch_page("pages/4_Quote_Detail.py")
             with b2:
-                if st.button("Generate Updated Quote  →", use_container_width=True,
+                if st.button("Generate Updated Quote →", use_container_width=True,
                              type="primary",
                              disabled=not (parser_configured() and clarifying_answers.strip()),
                              help="AI applies your changes to the existing quote and "
@@ -677,29 +657,21 @@ if (not is_editing) or st.session_state.voice_edit_mode:
 
             if not questions:
                 st.markdown(
-                    '<div style="background:#111827;border:1px solid #1e293b;'
-                    'border-left:4px solid #22c55e;border-radius:8px;'
-                    'padding:12px 16px;margin-bottom:12px;color:#cbd5e1;font-size:13px;">'
-                    "✓ The AI didn't have any clarifying questions — your brief was complete enough. "
-                    "You can still add anything you forgot below, or skip straight to generation."
+                    '<div style="background:#ffffff;border:1px solid #e2e8f0;'
+                    'border-left:4px solid #16a34a;border-radius:8px;'
+                    'padding:12px 16px;margin-bottom:12px;color:#334155;font-size:13px;">'
+                    "No clarifying questions — your brief was complete. "
+                    "Add anything you forgot below, or skip to generation."
                     "</div>",
                     unsafe_allow_html=True,
                 )
             else:
-                st.markdown(
-                    '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
-                    "Read the questions, then dictate your answers below — one big block is fine, "
-                    "the AI parses what you say. Cover the questions in any order. "
-                    "Reminder on round-trip times: close pit ≈ 1 hr · Campbell River ≈ 2 hr · Tofino ≈ 8 hr."
-                    "</div>",
-                    unsafe_allow_html=True,
-                )
                 for i, q in enumerate(questions, start=1):
                     st.markdown(
-                        f'<div style="background:#111827;border:1px solid #1e293b;'
+                        f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
                         f'border-left:4px solid #3b82f6;border-radius:8px;'
-                        f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
-                        f'<strong style="color:#f1f5f9;">Q{i}.</strong> {q}</div>',
+                        f'padding:10px 14px;margin-bottom:6px;color:#334155;font-size:13px;">'
+                        f'<strong style="color:#0f172a;">Q{i}.</strong> {q}</div>',
                         unsafe_allow_html=True,
                     )
 
@@ -726,7 +698,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     st.session_state.quote_phase = 1
                     st.rerun()
             with b2:
-                if st.button("Generate Quote  →", use_container_width=True, type="primary",
+                if st.button("Generate Quote →", use_container_width=True, type="primary",
                              disabled=not parser_configured(),
                              help="AI uses your brief + answers to produce the line items, "
                                   "then asks any final review questions."):
@@ -782,10 +754,10 @@ if (not is_editing) or st.session_state.voice_edit_mode:
 
             for w in parsed.warnings:
                 st.markdown(
-                    f'<div style="background:#111827;border:1px solid #1e293b;'
+                    f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
                     f'border-left:4px solid #f59e0b;border-radius:8px;'
-                    f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
-                    f"⚠ {w}</div>",
+                    f'padding:10px 14px;margin-bottom:6px;color:#334155;font-size:13px;">'
+                    f"{w}</div>",
                     unsafe_allow_html=True,
                 )
 
@@ -814,14 +786,8 @@ if (not is_editing) or st.session_state.voice_edit_mode:
             }
             BUCKET_BY_LABEL = {v: k for k, v in BUCKET_LABELS.items()}
 
-            st.caption(
-                "Spreadsheet is **editable** — tap any cell to change description, "
-                "qty, unit, or unit cost. Add a row by clicking the bottom blank line; "
-                "delete with the row's checkbox + the trash icon. Changes apply on lock-in."
-            )
-
             for li_idx, li in enumerate(phase3_items):
-                section_header(f"◆ {li.label}")
+                section_header(f"{li.label}")
 
                 rows = []
                 for bucket in BUCKET_ORDER_PHASE3:
@@ -899,10 +865,10 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     col.metric(BUCKET_LABELS[bucket], fmt_money(li.bucket_total(bucket)))
 
                 st.markdown(
-                    f'<div style="color:#94a3b8;font-size:12px;margin-top:6px;'
+                    f'<div style="color:#475569;font-size:12px;margin-top:6px;'
                     f'margin-bottom:16px;text-align:right;">'
                     f"Project internal cost (pre-markup, pre-tax): "
-                    f'<strong style="color:#f1f5f9;">{fmt_money(li.internal_cost)}</strong></div>',
+                    f'<strong style="color:#0f172a;">{fmt_money(li.internal_cost)}</strong></div>',
                     unsafe_allow_html=True,
                 )
 
@@ -933,7 +899,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     detected_job_types.append(proj.job_type)
                     seen_jt.add(proj.job_type)
 
-            with st.expander("📋 Final review checklist (optional reference)", expanded=False):
+            with st.expander("Final review checklist (optional reference)", expanded=False):
                 st.markdown(
                     '<div style="color:#3b82f6;font-size:11px;font-weight:700;'
                     'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Universal</div>',
@@ -941,7 +907,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                 )
                 for q in UNIVERSAL_QUESTIONS:
                     st.markdown(
-                        f'<div style="color:#cbd5e1;font-size:13px;padding:3px 0;">• {q}</div>',
+                        f'<div style="color:#334155;font-size:13px;padding:3px 0;">• {q}</div>',
                         unsafe_allow_html=True,
                     )
                 for jt in detected_job_types:
@@ -957,7 +923,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     )
                     for q in qs:
                         st.markdown(
-                            f'<div style="color:#cbd5e1;font-size:13px;padding:3px 0;">• {q}</div>',
+                            f'<div style="color:#334155;font-size:13px;padding:3px 0;">• {q}</div>',
                             unsafe_allow_html=True,
                         )
 
@@ -967,31 +933,21 @@ if (not is_editing) or st.session_state.voice_edit_mode:
             # AI's review questions (if any) are surfaced as suggestions above the
             # textarea — but the textarea is freeform and accepts ANY iteration.
             st.markdown("&nbsp;", unsafe_allow_html=True)
-            section_header("Iterate — what would you change?")
-            st.markdown(
-                '<div style="color:#64748b;font-size:12px;margin-bottom:10px;">'
-                "Look at the spreadsheet above. Dictate anything you want to "
-                "add, remove, or adjust — more trucking, less of a material, "
-                "swap supplier, add a project line, fix a quantity, etc. "
-                "Then hit <strong>🔄 Update quote</strong> and the AI re-generates "
-                "with your changes. Or skip straight to Lock in if it looks good."
-                "</div>",
-                unsafe_allow_html=True,
-            )
+            section_header("What would you change?")
             review_qs = st.session_state.review_questions
             if review_qs:
                 st.markdown(
-                    '<div style="color:#94a3b8;font-size:11px;font-weight:700;'
+                    '<div style="color:#475569;font-size:11px;font-weight:700;'
                     'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
-                    "💡 AI suggestions — things worth confirming</div>",
+                    "AI suggestions — things worth confirming</div>",
                     unsafe_allow_html=True,
                 )
                 for i, rq in enumerate(review_qs, start=1):
                     st.markdown(
-                        f'<div style="background:#111827;border:1px solid #1e293b;'
+                        f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
                         f'border-left:4px solid #f59e0b;border-radius:8px;'
-                        f'padding:10px 14px;margin-bottom:6px;color:#cbd5e1;font-size:13px;">'
-                        f'<strong style="color:#f1f5f9;">{i}.</strong> {rq}</div>',
+                        f'padding:10px 14px;margin-bottom:6px;color:#334155;font-size:13px;">'
+                        f'<strong style="color:#0f172a;">{i}.</strong> {rq}</div>',
                         unsafe_allow_html=True,
                     )
                 st.markdown("&nbsp;", unsafe_allow_html=True)
@@ -1022,7 +978,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     st.rerun()
             with b2:
                 regen_disabled = not (parser_configured() and st.session_state.review_answers.strip())
-                if st.button("🔄 Update quote with changes", use_container_width=True,
+                if st.button("Update quote with changes", use_container_width=True,
                              disabled=regen_disabled,
                              help="Re-run the AI with your iteration text — produces an "
                                   "updated spreadsheet. Stay in Phase 3 to keep iterating."):
@@ -1050,7 +1006,7 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     except Exception as exc:
                         st.error(f"Regenerate failed: {exc}")
             with b3:
-                if st.button("✓ Lock in & open Quote Detail", use_container_width=True,
+                if st.button("Lock in & open Quote Detail", use_container_width=True,
                              type="primary",
                              help="Save this quote and open the Quote Detail for review."):
                     # Use the user's EDITED line items from the Phase 3 spreadsheet,
@@ -1103,48 +1059,6 @@ if (not is_editing) or st.session_state.voice_edit_mode:
                     st.switch_page("pages/4_Quote_Detail.py")
 
 
-# ---- Manual / fallback path: add an empty project -----------------------
-# Only show this when:
-#   - editing an existing draft (need to add more projects manually), OR
-#   - in Phase 1 with no projects yet (giving the manual escape hatch)
-
-show_manual_add = is_editing or (phase == 1 and not st.session_state.draft_line_items)
-
-if show_manual_add:
-    st.markdown("---")
-    n_projects = len(st.session_state.draft_line_items)
-    if is_editing:
-        section_header("Add another project (manual)")
-        st.caption(
-            f"This quote has {n_projects} project{'s' if n_projects != 1 else ''}. "
-            "Add another by picking a job type — fills the 5 buckets directly, no AI."
-        )
-    else:
-        section_header("Or — skip the AI and add a project manually")
-        st.caption("If you already know exactly what you want (no AI needed), pick a job type.")
-
-    job_type_keys = [j["key"] for j in JOB_TYPES]
-    mc1, mc2, mc3 = st.columns([2, 3, 2])
-    with mc1:
-        selected_key = st.selectbox(
-            "Job type", job_type_keys,
-            format_func=lambda k: get_job_type(k)["label"],
-            label_visibility="collapsed",
-        )
-    with mc2:
-        custom_label = st.text_input(
-            "Optional label",
-            placeholder=f"e.g. {get_job_type(selected_key)['label']} — back yard",
-            label_visibility="collapsed",
-        )
-    with mc3:
-        btn_label = "+ Add another" if n_projects > 0 else "+ Add project"
-        if st.button(btn_label, use_container_width=True):
-            li = create_empty_project(selected_key, custom_label or None)
-            st.session_state.draft_line_items.append(li)
-            st.rerun()
-
-
 # ---- Projects on the draft (with full takeoff inline) -------------------
 
 if st.session_state.draft_line_items:
@@ -1155,7 +1069,7 @@ if st.session_state.draft_line_items:
 
     for li_idx, li in enumerate(st.session_state.draft_line_items):
         proj_label = (
-            f"◆ {li.label}  ·  {job_type_labels.get(li.job_type, li.job_type)}  ·  "
+            f"{li.label}  ·  {job_type_labels.get(li.job_type, li.job_type)}  ·  "
             f"{fmt_money(li.internal_cost) if li.entries else '—'}"
         )
         with st.expander(proj_label, expanded=(li_idx == len(st.session_state.draft_line_items) - 1)):
@@ -1175,7 +1089,7 @@ if st.session_state.draft_line_items:
                     li.label = new_label
                     edited = True
             with pa2:
-                if st.button("🗑 Remove", key=f"del_draft_{li_idx}", use_container_width=True):
+                if st.button("Remove", key=f"del_draft_{li_idx}", use_container_width=True):
                     st.session_state.draft_line_items.pop(li_idx)
                     st.rerun()
 
@@ -1223,12 +1137,12 @@ if st.session_state.draft_line_items:
         st.session_state.draft_insurance_pct = new_insurance
 
     st.markdown(
-        f'<div style="color:#94a3b8;font-size:13px;margin-top:8px;">'
+        f'<div style="color:#475569;font-size:13px;margin-top:8px;">'
         f"Cost {fmt_money(q_preview.internal_cost)} → "
         f"+ markup ({q_preview.markup.overall_pct:g}%) → "
         f"− discount ({q_preview.discount_pct:g}%) → "
         f"+ tax ({q_preview.tax_pct:g}%) → "
-        f"<strong style='color:#f1f5f9;'>{fmt_money(q_preview.customer_total)}</strong>"
+        f"<strong style='color:#0f172a;'>{fmt_money(q_preview.customer_total)}</strong>"
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -1261,7 +1175,7 @@ with a1:
         st.success(f"{'Updated' if is_editing else 'Saved'} as {saved_id}.")
 
 with a2:
-    if st.button("Review & Send  →", use_container_width=True, type="primary",
+    if st.button("Review & Send →", use_container_width=True, type="primary",
                  disabled=not ready_to_review,
                  help="Persist the quote and open the Quote Detail for contract + send."):
         q = _draft_quote()
@@ -1277,29 +1191,16 @@ with a2:
 
 # ---- Clear page (always available, bottom of page) ---------------------
 st.markdown("---")
-st.markdown(
-    '<div style="color:#64748b;font-size:11px;font-weight:700;'
-    'text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">'
-    "Reset</div>",
-    unsafe_allow_html=True,
-)
-st.caption(
-    "Wipes the customer info, quick notes, clarifying answers, and any in-progress projects "
-    "from this page. Saved quotes in the database are NOT touched — they're still visible "
-    "from Customers / Jobs / Quote Detail."
-)
-cp1, cp2, cp3 = st.columns([1, 2, 2])
+cp1, cp2, _ = st.columns([1, 2, 2])
 with cp1:
     if st.session_state.get("_clear_confirm"):
         if st.button("Confirm clear", type="primary", use_container_width=True):
             _reset_draft_state(reset_id=True)
             st.session_state["_clear_confirm"] = False
             st.query_params.clear()
-            st.success("Page cleared.")
             st.rerun()
     else:
-        if st.button("🗑 Clear page", use_container_width=True,
-                     help="Reset all in-progress data on this page (saved quotes are kept)."):
+        if st.button("Clear page", use_container_width=True):
             st.session_state["_clear_confirm"] = True
             st.rerun()
 with cp2:
