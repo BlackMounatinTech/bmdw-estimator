@@ -55,6 +55,18 @@ CRITICAL RULES:
 4. If an item the contractor mentioned isn't in any catalogue (e.g. "bark mulch" if not present), still create a line entry with a clear description, set `needs_catalogue_add: true`, and add a warning explaining what to add.
 5. Each project includes its own day-by-day project plan covering only that project's work.
 6. Be honest about uncertainty. If notes are ambiguous, add a warning. Never invent dimensions.
+7. NEVER emit quantity = 0 OR a freeform unit_cost = 0. If you don't know a quantity,
+   estimate the smallest reasonable non-zero number (e.g. 1) AND add a warning saying
+   "Quantity unknown — estimated, please confirm." Zero values look like broken lines
+   in the spreadsheet and the contractor can't tell if it's a real zero or a parser miss.
+8. EQUIPMENT BILLING UNIT — pick the most cost-effective rate for the contractor:
+   - duration < 5 days → unit "day", quantity = duration_days
+   - duration 5-21 days → unit "week", quantity = ceil(duration_days / 5) (5 working
+     days per week is the rental industry rule; 6 days = 2 weeks of weekly billing
+     is cheaper than 6 × daily)
+   - duration > 21 days → unit "month", quantity = ceil(duration_days / 21)
+   The hydrator picks `daily_rate`, `weekly_rate`, or `monthly_rate` from the catalogue
+   based on the unit you set. Default to "day" if duration is unclear.
 
 VALID job_type values:
 retaining_wall, patio, concrete_driveway, gravel_driveway, land_clearing,
@@ -166,13 +178,17 @@ AGGREGATE TRUCKING (hourly trucks — TRUCKING bucket, all hourly trucks live in
 - Compute: num_loads = ceil(total_aggregate_cu_yd / capacity); truck_hours = num_loads × round_trip_hours.
 - Emit ONE TRUCKING-bucket line per truck source with quantity = truck_hours, unit = hour.
 
-EXCAVATOR MOBILIZATION / DEMOBILIZATION (EQUIPMENT bucket):
-- The clarifier always asks per excavator. The contractor's answer determines what to emit:
-  - "supplier delivery" / "supplier dropping it off" / "rental delivers" → emit TWO Equipment-bucket
-    lines for that excavator: description "Mobilization (excavator delivery)", qty 1, unit "lump",
-    catalogue_type "equipment", catalogue_key matching the excavator (e.g. excavator_9t),
-    needs_catalogue_add false; AND a matching "Demobilization (excavator pickup)" line.
-    Use the equipment entry's `mobilization_each_way` value as the unit_cost for each line
+EXCAVATOR MOBILIZATION / DEMOBILIZATION (TRUCKING bucket, equipment-priced):
+- Mob/demob is hauling cost — it lives in the TRUCKING bucket — but the rate
+  comes from the excavator's catalogue entry (`mobilization_each_way`).
+- The clarifier always asks per excavator. The answer determines what to emit:
+  - "supplier delivery" / "supplier dropping it off" / "rental delivers" → emit TWO TRUCKING-bucket
+    lines for that excavator:
+      • description "Mobilization — Nt excavator (supplier delivery)", qty 1, unit "lump",
+        bucket "trucking", catalogue_type "equipment", catalogue_key matching the
+        excavator (e.g. excavator_9t), needs_catalogue_add false.
+      • Matching "Demobilization — Nt excavator (supplier pickup)" line.
+    The hydrator pulls each line's unit_cost from that excavator's `mobilization_each_way`
     ($135 for 2/4/6-ton, $195 for 9t+).
   - "dump trailer" / "trailer takes it" → DO NOT emit mob/demob lines (the dump trailer's
     rental rate already covers transport).
@@ -183,18 +199,28 @@ EXCAVATOR MOBILIZATION / DEMOBILIZATION (EQUIPMENT bucket):
 
 SUPPLIER → REGION MAPPING (pick the supplier closest to the job site):
 - Browns River Pit (suffix `_brownsriver`) — serves Courtenay, Comox, Cumberland.
-- Upland's Gravel (suffix `_uplands`) — central Vancouver Island default (Cobble Hill, Duncan, Mill Bay, etc.).
-- Northwin Gravel (suffix `_northwin`) — alternative central VI supplier.
+- Northwin Pit (suffix `_northwin`) — Campbell River area. Pick this when the job is
+  in or north of Campbell River.
+- Upland's Gravel (suffix `_uplands`) — central Vancouver Island default (Cobble Hill,
+  Duncan, Mill Bay, Cowichan, Mid-Island).
 If Michael names a supplier explicitly, use it. Otherwise pick by location.
 
 SPOIL DUMP DESTINATIONS:
-- Upland's / Northwin / unspecified default: weight-based, $10/ton.
-  Convert: tons = spoil_cu_yd × 1.25. Cost = tons × $10.
-  Emit a freeform Spoil line: description "Dump fee — N tons × $10", quantity = tons, unit = "ton", unit_cost = 10.
-- Browns River Pit (Courtenay / Comox / Cumberland jobs): $90 MINIMUM per dump trip.
-  Same $90 whether it's a small load or a full 10 cu_yd tandem. Compute trips = ceil(spoil_cu_yd / 10).
-  Emit a freeform Spoil line: description "Browns River dump fee — N trips × $90 minimum",
-  quantity = trips, unit = "trip", unit_cost = 90.
+- Upland's / Northwin: $10 per cu_yd (Michael's rule: 1 cu_yd = 1 ton, 1:1 conversion).
+  Cost = spoil_cu_yd × $10. Emit a freeform Spoil line: description "Dump fee at
+  [Upland's | Northwin] — N cu_yd × $10", quantity = spoil_cu_yd, unit = "cu_yd",
+  unit_cost = 10.
+- Browns River Pit (Courtenay / Comox / Cumberland jobs): $90 PER TANDEM LOAD (10 cu_yd ≈ 10-11 tons).
+  Compute loads = ceil(spoil_cu_yd / 10). Emit a freeform Spoil line:
+  description "Browns River dump — N tandem loads × $90", quantity = loads,
+  unit = "load", unit_cost = 90.
+
+FUEL — CRITICAL RULE: When Michael states a dollar amount of fuel ("$1200 in fuel",
+"$500 fuel", "fuel about $300"), that dollar value IS the line total. Emit a single
+Materials line: description "Fuel — estimated", quantity = 1, unit = "lump",
+unit_cost = the_dollar_amount, needs_catalogue_add = false. NEVER multiply by
+$2.25/L or any per-litre rate when Michael gave a dollar amount. The $2.25/L baseline
+is ONLY for back-calculating litres in the project plan description, not for pricing.
 
 CUSTOM-WALL ESCALATION: If Michael's notes say "significantly bigger" or "unusual"
 or anything that doesn't fit standard scope, draft best-effort quantities AND add a
@@ -705,7 +731,16 @@ def hydrate_to_line_items(parsed: ParsedNotesOutput) -> List[JobLineItem]:
                         elif raw.unit == "each":
                             unit_cost = float(item.get("mobilization_each_way") or item.get("mobilization") or 0)
                     elif cat == "trucking":
-                        unit_cost = float(item.get("per_load_rate", 0))
+                        # Trucks bill either hourly (in_house_trucking, DHK, Upland's,
+                        # Browns River) or per-load (block_delivery). Pick by unit.
+                        if raw.unit in ("hour", "hr"):
+                            unit_cost = float(item.get("hourly_rate") or 0)
+                        elif raw.unit == "load":
+                            unit_cost = float(item.get("per_load_rate") or 0)
+                        else:
+                            # Fallback — try hourly first, then per-load
+                            unit_cost = float(item.get("hourly_rate")
+                                              or item.get("per_load_rate") or 0)
                     elif cat == "labour":
                         unit_cost = float(item.get("hourly_rate", 0))
                     catalogue_sku = item.get("sku")

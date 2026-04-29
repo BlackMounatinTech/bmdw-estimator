@@ -20,10 +20,11 @@
       "notes": "$10 per cu_yd (1:1 with tons). Default for central Vancouver Island jobs."
     },
     "northwin": {
-      "name": "Northwin Gravel",
+      "name": "Northwin Pit",
       "billing_model": "per_cu_yd",
       "rate_per_cu_yd": 10.0,
-      "notes": "$10 per cu_yd (1:1 with tons). Alternate central VI option."
+      "serves_areas": ["Campbell River", "Courtenay (north)"],
+      "notes": "$10 per cu_yd (1:1 with tons). Located in the Campbell River area — pick this one when the job is in or north of Campbell River."
     }
   }
 }
