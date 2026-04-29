@@ -59,14 +59,21 @@ CRITICAL RULES:
    estimate the smallest reasonable non-zero number (e.g. 1) AND add a warning saying
    "Quantity unknown — estimated, please confirm." Zero values look like broken lines
    in the spreadsheet and the contractor can't tell if it's a real zero or a parser miss.
-8. EQUIPMENT BILLING UNIT — pick the most cost-effective rate for the contractor:
-   - duration < 5 days → unit "day", quantity = duration_days
-   - duration 5-21 days → unit "week", quantity = ceil(duration_days / 5) (5 working
-     days per week is the rental industry rule; 6 days = 2 weeks of weekly billing
-     is cheaper than 6 × daily)
-   - duration > 21 days → unit "month", quantity = ceil(duration_days / 21)
-   The hydrator picks `daily_rate`, `weekly_rate`, or `monthly_rate` from the catalogue
-   based on the unit you set. Default to "day" if duration is unclear.
+8. EQUIPMENT BILLING UNIT — the unit you emit MUST match what the contractor said.
+   Rules in priority order:
+   a) If the contractor explicitly named a billing period — "for a week", "weekly",
+      "for two weeks", "for a month", "monthly", "for X days" — emit that unit
+      VERBATIM (`week`, `month`, or `day`). Do NOT convert "a week" into "5 days".
+   b) If no billing period was named, pick the most cost-effective bracket for the
+      contractor based on stated duration:
+      - duration < 5 days → unit "day", quantity = duration_days
+      - duration 5-21 days → unit "week", quantity = ceil(duration_days / 5)
+      - duration > 21 days → unit "month", quantity = ceil(duration_days / 21)
+   c) If duration is completely unclear, default to "day" with a warning.
+   The hydrator picks `daily_rate`, `weekly_rate`, or `monthly_rate` from the
+   catalogue based on the unit you set — so if you emit "week" you get the
+   weekly rate. NEVER emit unit "day" then multiply qty by 7 to mean a week —
+   use unit "week", qty 1 instead.
 
 VALID job_type values:
 retaining_wall, patio, concrete_driveway, gravel_driveway, land_clearing,
@@ -142,10 +149,12 @@ RETAINING_WALL — base geometry:
 - Base cu yd = base_length × base_width × 0.5 / 27.
 
 RETAINING_WALL — required line items on EVERY wall (always include these unless
-Michael's notes explicitly say otherwise):
-- Equipment: plate_compactor (priced by day, match wall duration) — required.
-- Equipment: laser_level (priced by day, match wall duration) — required.
-- Equipment: excavator (sized by block type — see below; daily rate × duration) — required.
+Michael's notes explicitly say otherwise). For ALL equipment lines below, pick
+the unit (day/week/month) per CRITICAL RULE 8 — match what Michael said, or
+the cost-effective bracket for the duration:
+- Equipment: plate_compactor — required.
+- Equipment: laser_level — required.
+- Equipment: excavator (sized by block type — see below) — required.
 - Materials: road_crush_34_uplands (or _northwin if Michael said Northwin) — base course.
 - Materials: drain_pipe — $120/roll, 100 ft per roll. Use ceil(wall_length/100) rolls.
 - Materials: filter_fabric — $280/roll, one roll standard for walls under 50 ft. If
