@@ -1,19 +1,26 @@
 {
-  "_README": "Global trucking catalogue. All trucks live HERE (not in equipment.json) regardless of billing model. Hourly trucks have `hourly_rate`; per-load trucks have `per_load_rate`. Trucks have commercial insurance, so the 16% rental insurance surcharge never applies. DEFAULT: BMDW does the trucking in-house at $100/hr (catalogue key `in_house_trucking`) unless Michael explicitly names a contractor truck (Browns River, Upland's, Northwin).",
+  "_README": "Global trucking catalogue. All trucks live HERE (not in equipment.json) regardless of billing model. Hourly trucks have `hourly_rate` and `capacity_cu_yd`; per-load trucks have `per_load_rate`. Trucks have commercial insurance, so the 16% rental insurance surcharge never applies. DEFAULT: BMDW does the trucking in-house at $100/hr (catalogue key `in_house_trucking`) UNLESS Michael explicitly names a contractor (DHK / Upland's / Browns River).",
 
   "in_house_trucking": {
     "sku": "TRK-INHOUSE",
     "name": "In-house trucking ($100/hr)",
     "hourly_rate": 100.0,
-    "capacity_cu_yd": 10.0,
-    "notes": "BMDW's own truck. $100/hr — flat hourly rate. DEFAULT trucking option — use this unless Michael explicitly names a contractor (Browns River / Upland's / Northwin)."
+    "capacity_cu_yd": 3.0,
+    "notes": "BMDW's own truck. $100/hr — flat hourly rate. Capacity 3 cu_yd per load (small truck). DEFAULT — use this unless Michael explicitly names a contractor."
   },
-  "tandem_dump": {
-    "sku": "TRK-TANDEM",
-    "name": "Tandem dump truck (contractor)",
+  "uplands_trucking": {
+    "sku": "TRK-UPLANDS",
+    "name": "Upland's Trucking",
     "hourly_rate": 170.0,
-    "capacity_cu_yd": 10.0,
-    "notes": "Generic contractor tandem. $170/hr. Use only when Michael says it's being subbed out and the supplier isn't Browns River."
+    "capacity_cu_yd": 9.0,
+    "notes": "$170/hr. 9 cu_yd capacity. Use when Michael says Upland's is doing the trucking."
+  },
+  "dhk_trucking": {
+    "sku": "TRK-DHK",
+    "name": "DHK Trucking",
+    "hourly_rate": 150.0,
+    "capacity_cu_yd": 9.0,
+    "notes": "$150/hr. 9 cu_yd capacity. Use when Michael says DHK is doing the trucking."
   },
   "tandem_dump_brownsriver": {
     "sku": "TRK-TANDEM-BR",
@@ -30,12 +37,6 @@
     "notes": "~16 yd^3 (tandem + pup trailer). $205/hr. Used for big aggregate hauls when Michael explicitly requests it."
   },
 
-  "mobilization": {
-    "sku": "TRK-MOB",
-    "name": "Equipment mobilization (one way)",
-    "per_load_rate": 140.0,
-    "notes": "$140 per direction. Drop-off + pick-up = 2 trips = $280. Add manually when the job needs an excavator/skid/etc. trucked in."
-  },
   "block_delivery": {
     "sku": "TRK-BLOCK",
     "name": "Block delivery (heavy haul, per load)",

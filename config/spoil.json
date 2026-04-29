@@ -1,29 +1,29 @@
 {
-  "_README": "Global spoil/dump rates. Two billing models in play: weight-based ($/ton with cu_yd → ton conversion) for most pits, and minimum-flat-fee for Browns River. Per-destination overrides live under `dump_destinations`. Import (delivery of clean fill) is NOT a flat fee — it's material × truck hours, calculated per-quote in the Materials + Trucking buckets. Swell factor is NOT auto-applied — Michael accounts for swell in his notes when needed.",
+  "_README": "Global spoil/dump rates. Two billing models: per-cu_yd (Upland's, Northwin) and per-tandem-load (Browns River). For Upland's + Northwin, 1 cu_yd = 1 ton (1:1 — Michael's rule), so $10/cu_yd === $10/ton. Browns River is $90 per tandem (~10 cu_yd ≈ 10-11 tons). Import (delivery of clean fill) is NOT a flat fee — it's material × truck hours in the Materials + Trucking buckets.",
 
   "dump_fee_per_ton": 10.0,
-  "cu_yd_to_tons_conversion": 1.25,
+  "cu_yd_to_tons_conversion": 1.0,
 
   "dump_destinations": {
     "browns_river": {
       "name": "Browns River Pit",
-      "billing_model": "per_trip_minimum",
-      "minimum_charge": 90.0,
+      "billing_model": "per_load",
+      "rate_per_load": 90.0,
       "load_capacity_cu_yd": 10.0,
       "serves_areas": ["Courtenay", "Comox", "Cumberland"],
-      "notes": "$90 MINIMUM charge per dump trip — applies whether it's a small dump trailer load or a full tandem (10 cu_yd). Same $90 either way. Compute trips = ceil(spoil_cu_yd / 10); cost = trips × 90."
+      "notes": "$90 per tandem load (10 cu_yd, roughly 10-11 tons). Compute loads = ceil(spoil_cu_yd / 10); cost = loads × 90."
     },
     "uplands": {
       "name": "Upland's Gravel",
-      "billing_model": "per_ton",
-      "rate_per_ton": 10.0,
-      "notes": "$10/ton (weight-based). Convert cu_yd → tons via 1.25 multiplier. Default model for central Vancouver Island jobs."
+      "billing_model": "per_cu_yd",
+      "rate_per_cu_yd": 10.0,
+      "notes": "$10 per cu_yd (1:1 with tons). Default for central Vancouver Island jobs."
     },
     "northwin": {
       "name": "Northwin Gravel",
-      "billing_model": "per_ton",
-      "rate_per_ton": 10.0,
-      "notes": "$10/ton (same as Upland's). Weight-based, cu_yd × 1.25 = tons."
+      "billing_model": "per_cu_yd",
+      "rate_per_cu_yd": 10.0,
+      "notes": "$10 per cu_yd (1:1 with tons). Alternate central VI option."
     }
   }
 }

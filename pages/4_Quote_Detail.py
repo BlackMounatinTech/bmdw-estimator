@@ -364,11 +364,24 @@ with tab_sheet:
     import pandas as pd
     from server.schemas import LineItemEntry as _LIE
 
-    st.markdown("### Spreadsheet — edit any cell, add/remove rows")
+    # ---- Voice-edit at the top of the spreadsheet tab ----
+    st.markdown("### Edit with voice")
     st.caption(
-        "Tap any cell to edit. Add a row by clicking the blank row at the bottom and "
-        "filling it in. Delete a row with its checkbox + the trash icon. "
-        "Saves automatically. Order: Equipment → Materials → Spoil → Trucking → Labour."
+        "Dictate any change — e.g. 'change blue chip from 6 to 7 yd³', 'add a "
+        "second 9-ton excavator day', 'drop the buggy dumper'. The AI rewrites the "
+        "line items below. Manual cell edits in the spreadsheet are also saved on Save changes."
+    )
+    qd_voice_key = f"qd_voice_{q.quote_id}"
+    voice_text = st.text_area(
+        "Voice edit", value=st.session_state.get(qd_voice_key, ""),
+        height=110, label_visibility="collapsed", key=qd_voice_key,
+        placeholder="Tap the iPhone keyboard mic and dictate the change you want.",
+    )
+
+    st.markdown("### Spreadsheet")
+    st.caption(
+        "Tap any cell to edit. Add a row at the bottom. Bucket order: "
+        "Equipment → Materials → Trucking → Spoil → Labour."
     )
 
     if not q.line_items:
@@ -377,8 +390,8 @@ with tab_sheet:
         BUCKET_ORDER = [
             CostBucket.EQUIPMENT,
             CostBucket.MATERIALS,
-            CostBucket.SPOIL,
             CostBucket.TRUCKING,
+            CostBucket.SPOIL,
             CostBucket.LABOUR,
         ]
         BUCKET_LABELS = {
@@ -469,12 +482,70 @@ with tab_sheet:
             old_serial = [(e.bucket.value, e.description, e.quantity, e.unit, e.unit_cost) for e in li.entries]
             new_serial = [(e.bucket.value, e.description, e.quantity, e.unit, e.unit_cost) for e in new_entries]
             if old_serial != new_serial:
+                # Apply edits to in-memory line items so bucket subtotals reflect
+                # them — but DON'T persist until Save changes is clicked.
                 li.entries = new_entries
-                changed = True
 
-            if changed:
+        # ---- Save changes button — applies voice + spreadsheet edits ----
+        st.markdown("&nbsp;", unsafe_allow_html=True)
+        save_col1, save_col2 = st.columns([3, 1])
+        with save_col2:
+            if st.button("Save changes", type="primary", use_container_width=True,
+                         key=f"qd_save_changes_{q.quote_id}",
+                         help="Save spreadsheet edits to the quote. If you've dictated "
+                              "voice changes above, the AI applies those first."):
+                from tools.parser.notes_to_line_items import (
+                    parse_notes_to_structure as _reparse,
+                    is_configured as _parser_ok,
+                    hydrate_to_line_items as _hydrate,
+                )
+
+                # Step 1 — apply voice via AI if non-empty
+                voice_block = (st.session_state.get(qd_voice_key) or "").strip()
+                if voice_block and _parser_ok():
+                    # Build "current quote" context so AI can apply changes on top
+                    quote_ctx_lines = []
+                    for li2 in q.line_items:
+                        quote_ctx_lines.append(f"\nProject: {li2.label}  ({li2.job_type})")
+                        for b in CostBucket:
+                            es = [e for e in li2.entries if e.bucket == b]
+                            if not es: continue
+                            quote_ctx_lines.append(f"  {b.value.upper()}:")
+                            for e in es:
+                                quote_ctx_lines.append(
+                                    f"    - {e.description}: {e.quantity:g} {e.unit} "
+                                    f"× ${e.unit_cost:.2f} = ${e.total_cost:.2f}"
+                                )
+                    context_str = "\n".join(quote_ctx_lines)
+                    notes = (
+                        "EXISTING QUOTE — current state of the line items:\n"
+                        f"{context_str}\n\n"
+                        "CHANGES THE CONTRACTOR WANTS APPLIED (dictated):\n"
+                        f"{voice_block}\n\n"
+                        "REGENERATION RULES:\n"
+                        "1. Apply EVERY change item from the dictation.\n"
+                        "2. KEEP every existing line the contractor didn't mention.\n"
+                        "3. When a specific bucket is named, put new lines there.\n"
+                        "4. Re-emit the FULL updated quote (not a diff)."
+                    )
+                    try:
+                        with st.spinner("Applying voice changes (10-15s)..."):
+                            parsed = _reparse(notes)
+                        if parsed and parsed.projects:
+                            q.line_items = _hydrate(parsed)
+                    except Exception as exc:
+                        st.error(f"Voice update failed: {exc}\n\nSpreadsheet edits will still be saved.")
+
+                # Step 2 — persist (always, since spreadsheet edits are in-memory)
                 save_quote(q)
-                log_event(q.quote_id, "spreadsheet_edited", {"project": li.label})
+                log_event(q.quote_id, "qd_save_changes", {
+                    "had_voice": bool(voice_block),
+                    "line_items": sum(len(li2.entries) for li2 in q.line_items),
+                })
+                # Clear the voice box so it doesn't re-apply on next save
+                st.session_state[qd_voice_key] = ""
+                st.success("Saved. Contract / PDF / project plan all reflect the new quote.")
+                st.rerun()
 
         # Per-bucket subtotals — across the whole quote
         st.markdown("&nbsp;", unsafe_allow_html=True)

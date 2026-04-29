@@ -811,8 +811,8 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
             BUCKET_ORDER_PHASE3 = [
                 CostBucket.EQUIPMENT,
                 CostBucket.MATERIALS,
-                CostBucket.SPOIL,
                 CostBucket.TRUCKING,
+                CostBucket.SPOIL,
                 CostBucket.LABOUR,
             ]
             BUCKET_LABELS = {
@@ -1045,9 +1045,10 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                     except Exception as exc:
                         st.error(f"Regenerate failed: {exc}")
             with b3:
-                if st.button("Lock in & open Quote Detail", use_container_width=True,
+                if st.button("Generate Quote", use_container_width=True,
                              type="primary",
-                             help="Save this quote and open the Quote Detail for review."):
+                             help="Finalize this quote — saves it and opens the Quote Detail "
+                                  "where you can keep iterating with voice + spreadsheet edits."):
                     # Use the user's EDITED line items from the Phase 3 spreadsheet,
                     # not a fresh hydration of parsed_preview (which would lose edits).
                     new_items = (st.session_state.phase3_line_items

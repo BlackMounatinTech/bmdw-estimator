@@ -155,19 +155,29 @@ BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 - Magnum stones: 26 per load at $850/load. Same catalogue_key = block_delivery.
   Compute loads = ceil(block_count / 26); cost = loads × $850.
 
-AGGREGATE TRUCKING (hourly tandem dump — TRUCKING bucket, all hourly tandems live in trucking.json):
-- Capacity: 10 cu yd per load.
+AGGREGATE TRUCKING (hourly trucks — TRUCKING bucket, all hourly trucks live in trucking.json):
+- Capacities vary by truck — use the catalogue's `capacity_cu_yd`:
+  - in_house_trucking: 3 cu_yd, $100/hr (DEFAULT)
+  - dhk_trucking: 9 cu_yd, $150/hr
+  - uplands_trucking: 9 cu_yd, $170/hr
+  - tandem_dump_brownsriver: 10 cu_yd, $160/hr
+  - truck_and_pup: 16 cu_yd, $205/hr
 - Round trip: 2 hours default (60 min each way + load/dump). Bump up if site is far.
-- DEFAULT: BMDW does the trucking with the in-house truck. Use catalogue_key = in_house_trucking
-  ($100/hr) UNLESS Michael explicitly names a contractor truck in his brief. This is the
-  default assumption; do not switch off it without explicit cause.
-- Other options ONLY if explicitly named:
-  - tandem_dump ($170/hr) — generic contractor tandem
-  - tandem_dump_brownsriver ($160/hr) — Browns River subcontracted tandem
-  - truck_and_pup ($205/hr) — bigger 16 cu yd truck if Michael asks for it
-- Compute: num_loads = ceil(total_aggregate_cu_yd / 10); truck_hours = num_loads × round_trip_hours.
-- Emit ONE TRUCKING-bucket line: bucket = trucking, catalogue_type = trucking,
-  catalogue_key = in_house_trucking (or other if explicit), quantity = truck_hours, unit = hour.
+- Compute: num_loads = ceil(total_aggregate_cu_yd / capacity); truck_hours = num_loads × round_trip_hours.
+- Emit ONE TRUCKING-bucket line per truck source with quantity = truck_hours, unit = hour.
+
+EXCAVATOR MOBILIZATION / DEMOBILIZATION (EQUIPMENT bucket):
+- The clarifier always asks per excavator. The contractor's answer determines what to emit:
+  - "supplier delivery" / "supplier dropping it off" / "rental delivers" → emit TWO Equipment-bucket
+    lines for that excavator: description "Mobilization (excavator delivery)", qty 1, unit "lump",
+    catalogue_type "equipment", catalogue_key matching the excavator (e.g. excavator_9t),
+    needs_catalogue_add false; AND a matching "Demobilization (excavator pickup)" line.
+    Use the equipment entry's `mobilization_each_way` value as the unit_cost for each line
+    ($135 for 2/4/6-ton, $195 for 9t+).
+  - "dump trailer" / "trailer takes it" → DO NOT emit mob/demob lines (the dump trailer's
+    rental rate already covers transport).
+  - "already on site" / "stays here" → DO NOT emit mob/demob lines.
+- For 9-ton+ excavators, supplier delivery is mandatory (won't fit in a dump trailer).
 - Multiple tandems in the same quote ONLY if Michael explicitly says so (e.g. "BMDW + Browns River
   tandems for the volume"). Default = single BMDW truck for the whole job.
 
@@ -341,11 +351,18 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "supplier delivery, customer-supplied); (3) unit cost. This info goes into "
         "his user catalogue for future quotes — getting it right once means he "
         "doesn't have to re-research next time.\n"
-        "- TRUCKING SOURCE — DEFAULT is BMDW in-house truck ($100/hr). If trucking is "
-        "involved but the brief doesn't say who's doing it, ASK to confirm: "
-        "'You're handling trucking with the BMDW truck ($100/hr), or is this being "
-        "subbed out to a contractor (Browns River $160/hr, generic $170/hr)?'. "
-        "Skip if Michael explicitly named the trucker or said he'll handle it.\n"
+        "- TRUCKING SOURCE — DEFAULT is BMDW in-house truck ($100/hr, 3 cu_yd capacity). "
+        "If trucking is involved but the brief doesn't say who's doing it, ASK to confirm: "
+        "'In-house ($100/hr, 3 cu_yd), DHK ($150/hr, 9 cu_yd), Upland's ($170/hr, 9 cu_yd), "
+        "or Browns River ($160/hr)?'. Skip if Michael explicitly named the trucker.\n"
+        "- MOBILIZATION / DEMOBILIZATION — ALWAYS ask per excavator listed, no exceptions. "
+        "Logistics matter, not just the rate: a 2/4-ton machine can ride in a dump trailer "
+        "(if Michael's renting one anyway, the trailer covers mob), or come from the "
+        "supplier; a 9+ ton has to come by supplier delivery. ASK each time: 'How is the "
+        "[N-ton excavator] being mobilized — supplier delivery (~$135 each way for 2/4/6t, "
+        "$195 each way for 9t+), in your dump trailer, or already on site?'. Then the "
+        "parser uses the answer: supplier → emit Mobilization + Demobilization Equipment "
+        "lines at the rate; trailer or on-site → no extra lines.\n"
         "- ELEVATIONS + WATER POOLING — does the site slope toward or away from the "
         "structure? Any low spots where water collects after rain? Where does runoff go? "
         "Affects drainage spec, sub-base prep, and whether extra grading is in scope.\n"
@@ -677,8 +694,16 @@ def hydrate_to_line_items(parsed: ParsedNotesOutput) -> List[JobLineItem]:
                             unit_cost = float(item.get("hourly_rate") or 0)
                         elif raw.unit == "day":
                             unit_cost = float(item.get("daily_rate") or 0)
+                        elif raw.unit == "week":
+                            unit_cost = float(item.get("weekly_rate") or 0)
+                        elif raw.unit == "month":
+                            unit_cost = float(item.get("monthly_rate") or 0)
+                        elif raw.unit == "lump":
+                            # Mob/demob lines: parser emits unit "lump" with the
+                            # excavator's catalogue_key. Pull mobilization_each_way.
+                            unit_cost = float(item.get("mobilization_each_way") or 0)
                         elif raw.unit == "each":
-                            unit_cost = float(item.get("mobilization") or 0)
+                            unit_cost = float(item.get("mobilization_each_way") or item.get("mobilization") or 0)
                     elif cat == "trucking":
                         unit_cost = float(item.get("per_load_rate", 0))
                     elif cat == "labour":
