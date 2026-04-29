@@ -137,22 +137,11 @@ if q is None:
 
 # ---- Header --------------------------------------------------------------
 
-hb1, hb2, _ = st.columns([1.2, 1.6, 3])
+hb1, _ = st.columns([1.2, 4])
 with hb1:
     if st.button("← Back to customer", use_container_width=True):
         st.query_params.clear()
         st.switch_page("pages/3_Customers.py")
-with hb2:
-    if st.button("Edit quote with voice", use_container_width=True,
-                 type="primary",
-                 help="Go back to Phase 2 (clarifying questions) with this quote loaded — "
-                      "dictate what to change and regenerate."):
-        # Hand off to Quoting.py: load this quote as a draft AND jump straight
-        # to Phase 2 in edit mode.
-        st.session_state["_pending_quote_id"] = q.quote_id
-        st.session_state["_voice_edit_mode"] = True
-        st.query_params["quote_id"] = q.quote_id
-        st.switch_page("Quoting.py")
 
 if q.name:
     st.markdown(f"## {q.name}")
@@ -318,6 +307,23 @@ b4.metric("Trucking", fmt_money(q.bucket_total(CostBucket.TRUCKING)))
 b5.metric("Spoil", fmt_money(q.bucket_total(CostBucket.SPOIL)))
 
 
+# ---- Voice edit at top (above tabs) ----------------------------------
+# Dictate any change here — Save changes button at the bottom of the page
+# applies it via AI and persists. Stays on this page; no navigation.
+section_header("Edit with voice")
+st.caption(
+    "Dictate any change to this quote — material qty, swap supplier, add/remove "
+    "line, switch excavator from week to day, etc. The AI rewrites the spreadsheet "
+    "below. Manual cell edits in the Spreadsheet tab are also applied on save."
+)
+qd_voice_ver = st.session_state.get(f"qd_voice_ver_{q.quote_id}", 0)
+qd_voice_key = f"qd_voice_{q.quote_id}_v{qd_voice_ver}"
+voice_text = st.text_area(
+    "Voice edit", height=110, label_visibility="collapsed", key=qd_voice_key,
+    placeholder="Tap the iPhone keyboard mic and dictate the changes you want.",
+)
+
+
 # ---- Tabs ----------------------------------------------------------------
 
 section_header("Job Details")
@@ -364,27 +370,10 @@ with tab_sheet:
     import pandas as pd
     from server.schemas import LineItemEntry as _LIE
 
-    # ---- Voice-edit at the top of the spreadsheet tab ----
-    st.markdown("### Edit with voice")
-    st.caption(
-        "Dictate any change — e.g. 'change blue chip from 6 to 7 yd³', 'add a "
-        "second 9-ton excavator day', 'drop the buggy dumper'. The AI rewrites the "
-        "line items below. Manual cell edits in the spreadsheet are also saved on Save changes."
-    )
-    # Version counter so we can "clear" the textarea after Save by giving the
-    # widget a brand-new key — Streamlit forbids writing to a widget's key
-    # after it's instantiated, but a new key starts fresh and empty.
-    qd_voice_ver = st.session_state.get(f"qd_voice_ver_{q.quote_id}", 0)
-    qd_voice_key = f"qd_voice_{q.quote_id}_v{qd_voice_ver}"
-    voice_text = st.text_area(
-        "Voice edit", height=110, label_visibility="collapsed", key=qd_voice_key,
-        placeholder="Tap the iPhone keyboard mic and dictate the change you want.",
-    )
-
-    st.markdown("### Spreadsheet")
     st.caption(
         "Tap any cell to edit. Add a row at the bottom. Bucket order: "
-        "Equipment → Materials → Trucking → Spoil → Labour."
+        "Equipment → Materials → Trucking → Spoil → Labour. "
+        "Use the voice box above the tabs for broader changes; press Save changes at the bottom."
     )
 
     if not q.line_items:
@@ -488,69 +477,6 @@ with tab_sheet:
                 # Apply edits to in-memory line items so bucket subtotals reflect
                 # them — but DON'T persist until Save changes is clicked.
                 li.entries = new_entries
-
-        # ---- Save changes button — applies voice + spreadsheet edits ----
-        st.markdown("&nbsp;", unsafe_allow_html=True)
-        save_col1, save_col2 = st.columns([3, 1])
-        with save_col2:
-            if st.button("Save changes", type="primary", use_container_width=True,
-                         key=f"qd_save_changes_{q.quote_id}",
-                         help="Save spreadsheet edits to the quote. If you've dictated "
-                              "voice changes above, the AI applies those first."):
-                from tools.parser.notes_to_line_items import (
-                    parse_notes_to_structure as _reparse,
-                    is_configured as _parser_ok,
-                    hydrate_to_line_items as _hydrate,
-                )
-
-                # Step 1 — apply voice via AI if non-empty
-                voice_block = (st.session_state.get(qd_voice_key) or "").strip()
-                if voice_block and _parser_ok():
-                    # Build "current quote" context so AI can apply changes on top
-                    quote_ctx_lines = []
-                    for li2 in q.line_items:
-                        quote_ctx_lines.append(f"\nProject: {li2.label}  ({li2.job_type})")
-                        for b in CostBucket:
-                            es = [e for e in li2.entries if e.bucket == b]
-                            if not es: continue
-                            quote_ctx_lines.append(f"  {b.value.upper()}:")
-                            for e in es:
-                                quote_ctx_lines.append(
-                                    f"    - {e.description}: {e.quantity:g} {e.unit} "
-                                    f"× ${e.unit_cost:.2f} = ${e.total_cost:.2f}"
-                                )
-                    context_str = "\n".join(quote_ctx_lines)
-                    notes = (
-                        "EXISTING QUOTE — current state of the line items:\n"
-                        f"{context_str}\n\n"
-                        "CHANGES THE CONTRACTOR WANTS APPLIED (dictated):\n"
-                        f"{voice_block}\n\n"
-                        "REGENERATION RULES:\n"
-                        "1. Apply EVERY change item from the dictation.\n"
-                        "2. KEEP every existing line the contractor didn't mention.\n"
-                        "3. When a specific bucket is named, put new lines there.\n"
-                        "4. Re-emit the FULL updated quote (not a diff)."
-                    )
-                    try:
-                        with st.spinner("Applying voice changes (10-15s)..."):
-                            parsed = _reparse(notes)
-                        if parsed and parsed.projects:
-                            q.line_items = _hydrate(parsed)
-                    except Exception as exc:
-                        st.error(f"Voice update failed: {exc}\n\nSpreadsheet edits will still be saved.")
-
-                # Step 2 — persist (always, since spreadsheet edits are in-memory)
-                save_quote(q)
-                log_event(q.quote_id, "qd_save_changes", {
-                    "had_voice": bool(voice_block),
-                    "line_items": sum(len(li2.entries) for li2 in q.line_items),
-                })
-                # Bump the voice-textarea version so it renders with a fresh
-                # (empty) key on the next run — Streamlit forbids writing to
-                # the existing widget key after instantiation.
-                st.session_state[f"qd_voice_ver_{q.quote_id}"] = qd_voice_ver + 1
-                st.success("Saved. Contract / PDF / project plan all reflect the new quote.")
-                st.rerun()
 
         # Per-bucket subtotals — across the whole quote
         st.markdown("&nbsp;", unsafe_allow_html=True)
@@ -792,23 +718,71 @@ with tab_plan:
 
 
 
-# ---- Save (explicit, for the cautious) ----------------------------------
-# Most edits auto-save inline (Edit Quote tab, contract editor, pricing form,
-# etc.) but having a big visible Save button gives peace of mind and acts as
-# a belt-and-suspenders backstop.
+# ---- Save changes — applies voice (top) + spreadsheet edits, persists everything ----
 st.markdown("---")
 sv1, sv2 = st.columns([1, 4])
 with sv1:
-    if st.button("💾 Save changes", use_container_width=True, type="primary",
-                 help="Force-save the current quote state to the database. "
-                      "Most edits already auto-save — this is for peace of mind."):
+    if st.button("Save changes", use_container_width=True, type="primary",
+                 key=f"qd_save_changes_bottom_{q.quote_id}",
+                 help="Apply the voice dictation at the top of the page (if any) "
+                      "via AI, save spreadsheet edits, and update contract / PDF / "
+                      "project plan. Stays on this page."):
+        from tools.parser.notes_to_line_items import (
+            parse_notes_to_structure as _reparse,
+            is_configured as _parser_ok,
+            hydrate_to_line_items as _hydrate,
+        )
+
+        # Step 1 — apply voice via AI if non-empty
+        voice_block = (st.session_state.get(qd_voice_key) or "").strip()
+        if voice_block and _parser_ok():
+            quote_ctx_lines = []
+            for li2 in q.line_items:
+                quote_ctx_lines.append(f"\nProject: {li2.label}  ({li2.job_type})")
+                for b in CostBucket:
+                    es = [e for e in li2.entries if e.bucket == b]
+                    if not es: continue
+                    quote_ctx_lines.append(f"  {b.value.upper()}:")
+                    for e in es:
+                        quote_ctx_lines.append(
+                            f"    - {e.description}: {e.quantity:g} {e.unit} "
+                            f"× ${e.unit_cost:.2f} = ${e.total_cost:.2f}"
+                        )
+            context_str = "\n".join(quote_ctx_lines)
+            notes = (
+                "EXISTING QUOTE — current state of the line items:\n"
+                f"{context_str}\n\n"
+                "CHANGES THE CONTRACTOR WANTS APPLIED (dictated):\n"
+                f"{voice_block}\n\n"
+                "REGENERATION RULES:\n"
+                "1. Apply EVERY change item from the dictation.\n"
+                "2. KEEP every existing line the contractor didn't mention.\n"
+                "3. When a specific bucket is named, put new lines there.\n"
+                "4. Re-emit the FULL updated quote (not a diff)."
+            )
+            try:
+                with st.spinner("Applying voice changes (10-15s)..."):
+                    parsed = _reparse(notes)
+                if parsed and parsed.projects:
+                    q.line_items = _hydrate(parsed)
+            except Exception as exc:
+                st.error(f"Voice update failed: {exc}\n\nSpreadsheet edits will still be saved.")
+
+        # Step 2 — persist (spreadsheet edits live in q.line_items in-memory)
         save_quote(q)
-        log_event(q.quote_id, "manual_save", {"customer_total": q.customer_total})
-        st.success("Saved.")
+        log_event(q.quote_id, "qd_save_changes", {
+            "had_voice": bool(voice_block),
+            "line_items": sum(len(li2.entries) for li2 in q.line_items),
+        })
+        # Bump voice version so the textarea key resets to empty next render
+        st.session_state[f"qd_voice_ver_{q.quote_id}"] = qd_voice_ver + 1
+        st.success("Saved. Contract / PDF / project plan all reflect the new quote.")
+        st.rerun()
 with sv2:
     st.caption(
-        "Quote Detail edits auto-save as you make them. This button force-saves "
-        "the current state — useful after a batch of changes or if you're not sure."
+        "Save applies any voice dictation at the top of the page (AI rewrites the "
+        "spreadsheet) AND any manual spreadsheet edits. Contract / PDF / project plan "
+        "all update from the saved quote — no navigation off this page."
     )
 
 
