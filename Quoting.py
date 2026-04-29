@@ -16,7 +16,6 @@ from server.schemas import (
     Quote,
     Urgency,
 )
-from tools.calculator import JOB_TYPES
 from tools.parser.checklist import JOB_TYPE_QUESTIONS, UNIVERSAL_QUESTIONS
 from tools.parser.notes_to_line_items import (
     generate_clarifying_questions,
@@ -29,7 +28,6 @@ from tools.parser.notes_to_line_items import (
 from tools.shared import (
     apply_theme,
     fmt_money,
-    render_project_takeoff,
     require_auth,
     section_header,
 )
@@ -255,6 +253,18 @@ def _load_draft_into_session(quote_id: str) -> bool:
     st.session_state.clarifying_answers = getattr(q, "clarifying_answers", "") or ""
     st.session_state.review_questions = list(getattr(q, "review_questions", []) or [])
     st.session_state.review_answers = getattr(q, "review_answers", "") or ""
+    # Streamlit gotcha: text_input widgets with key= ignore value= on subsequent
+    # renders — they read from session_state[key]. Set those keys directly so
+    # the customer fields show the loaded values, not the previously-typed ones.
+    st.session_state.cust_name_input = q.customer.name or ""
+    st.session_state.cust_phone_input = q.customer.phone or ""
+    st.session_state.cust_email_input = q.customer.email or ""
+    st.session_state.site_addr_input = q.site_address or q.customer.address or ""
+    # If the draft was saved at Phase 3, hydrate phase3_line_items from the
+    # saved line items so the spreadsheet renders even though parsed_preview
+    # (session-only, not persisted) is None on reload.
+    if st.session_state.quote_phase >= 3 and q.line_items:
+        st.session_state.phase3_line_items = list(q.line_items)
     return True
 
 
@@ -747,7 +757,13 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
         parsed = st.session_state.parsed_preview
         section_header("Phase 3 — Generated Quote")
 
-        if parsed is None or not parsed.projects:
+        # Two ways to land here:
+        #   (a) Just generated in this session — `parsed` is populated.
+        #   (b) Reloaded a saved draft — `parsed` is None (session-only) but
+        #       `phase3_line_items` was hydrated from saved q.line_items.
+        # Only error if BOTH are missing.
+        has_resumed_items = bool(st.session_state.phase3_line_items)
+        if (parsed is None or not parsed.projects) and not has_resumed_items:
             st.error(
                 "Generation failed or produced no projects. "
                 + (parsed.warnings[0] if (parsed and parsed.warnings) else "")
@@ -756,7 +772,7 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                 st.session_state.quote_phase = 2
                 st.rerun()
         else:
-            if parsed.summary:
+            if parsed and parsed.summary:
                 st.markdown(f"**Summary:** {parsed.summary}")
 
             # Show customer info the AI pulled from the voice notes — so you
@@ -790,23 +806,25 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                     unsafe_allow_html=True,
                 )
 
-            for w in parsed.warnings:
-                st.markdown(
-                    f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
-                    f'border-left:4px solid #f59e0b;border-radius:8px;'
-                    f'padding:10px 14px;margin-bottom:6px;color:#334155;font-size:13px;">'
-                    f"{w}</div>",
-                    unsafe_allow_html=True,
-                )
+            if parsed:
+                for w in parsed.warnings:
+                    st.markdown(
+                        f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
+                        f'border-left:4px solid #f59e0b;border-radius:8px;'
+                        f'padding:10px 14px;margin-bottom:6px;color:#334155;font-size:13px;">'
+                        f"{w}</div>",
+                        unsafe_allow_html=True,
+                    )
 
             # Hydrate parsed_preview into editable JobLineItems once;
             # re-hydrate only when parsed_preview changes (regen sets the flag).
+            # When resuming a saved draft, phase3_line_items is already populated.
             import pandas as _pd
             from server.schemas import LineItemEntry as _LIE
 
-            if st.session_state.phase3_line_items is None:
+            if st.session_state.phase3_line_items is None and parsed:
                 st.session_state.phase3_line_items = hydrate_to_line_items(parsed)
-            phase3_items = st.session_state.phase3_line_items
+            phase3_items = st.session_state.phase3_line_items or []
 
             BUCKET_ORDER_PHASE3 = [
                 CostBucket.EQUIPMENT,
@@ -932,10 +950,11 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
             # targeted questions in Phase 2, but still useful as a final scan.
             detected_job_types = []
             seen_jt = set()
-            for proj in parsed.projects:
-                if proj.job_type not in seen_jt:
-                    detected_job_types.append(proj.job_type)
-                    seen_jt.add(proj.job_type)
+            if parsed:
+                for proj in parsed.projects:
+                    if proj.job_type not in seen_jt:
+                        detected_job_types.append(proj.job_type)
+                        seen_jt.add(proj.job_type)
 
             with st.expander("Final review checklist (optional reference)", expanded=False):
                 st.markdown(
@@ -1097,44 +1116,6 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                     st.session_state["_pending_quote_id"] = saved_id
                     st.query_params["quote_id"] = saved_id
                     st.switch_page("pages/4_Quote_Detail.py")
-
-
-# ---- Projects on the draft (with full takeoff inline) -------------------
-
-if st.session_state.draft_line_items:
-    section_header("Projects on This Quote")
-
-    job_type_labels = {j["key"]: j["label"] for j in JOB_TYPES}
-    edited = False
-
-    for li_idx, li in enumerate(st.session_state.draft_line_items):
-        proj_label = (
-            f"{li.label}  ·  {job_type_labels.get(li.job_type, li.job_type)}  ·  "
-            f"{fmt_money(li.internal_cost) if li.entries else '—'}"
-        )
-        with st.expander(proj_label, expanded=(li_idx == len(st.session_state.draft_line_items) - 1)):
-            project_edited = render_project_takeoff(li, key_prefix=f"draft_{li_idx}")
-            if project_edited:
-                edited = True
-
-            # Project actions at bottom
-            st.markdown("&nbsp;", unsafe_allow_html=True)
-            pa1, pa2 = st.columns([3, 1])
-            with pa1:
-                new_label = st.text_input(
-                    "Rename project", value=li.label, key=f"rename_draft_{li_idx}",
-                    label_visibility="collapsed",
-                )
-                if new_label != li.label:
-                    li.label = new_label
-                    edited = True
-            with pa2:
-                if st.button("Remove", key=f"del_draft_{li_idx}", use_container_width=True):
-                    st.session_state.draft_line_items.pop(li_idx)
-                    st.rerun()
-
-    if edited:
-        st.rerun()
 
 
 # ---- Running pricing summary --------------------------------------------
