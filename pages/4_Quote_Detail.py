@@ -655,8 +655,7 @@ with tab_contract:
             st.rerun()
 
     st.caption(
-        "Customer accepts by reply email or first payment. "
-        "Insurance/WCB papers attach automatically when sent."
+        "Customer accepts by reply email or first payment."
     )
 
 
@@ -832,28 +831,22 @@ with a1:
             st.success(f"Quote sent to {q.customer.email}.")
         st.rerun()
 with a2:
-    if st.button("Send Contract + Docs", use_container_width=True, disabled=not _email_ready,
-                 help=("Sends the contract PDF (and insurance cert if present) to the customer. "
+    if st.button("Send Contract", use_container_width=True, disabled=not _email_ready,
+                 help=("Sends the contract PDF to the customer. "
                        + ("" if _email_ready else
                           "Disabled — email isn't configured. See Settings or workflows/setup_gmail.md."))):
         contract_body = q.contract_text or draft_contract_text(q, COMPANY)
         contract_pdf_path = None
         if pdf_configured():
             contract_pdf_path, _ = render_contract_pdf(q, COMPANY, body_text=contract_body)
-        # Always attach insurance cert if present
-        insurance_cert = COMPANY.get("insurance_certificate_path")
-        attachments = _collect_attachments(
-            contract_pdf_path,
-            insurance_cert and (Path(__file__).resolve().parents[1] / insurance_cert),
-        )
+        attachments = _collect_attachments(contract_pdf_path)
         result = send_email(
             to=q.customer.email or "",
             subject=f"Contract {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
             body_text=(
                 f"Hi {q.customer.name},\n\n"
-                f"Please find the contract for {q.quote_id} attached, along with our "
-                f"insurance certificate. You can accept by reply email or by making the "
-                f"deposit payment.\n\n"
+                f"Please find the contract for {q.quote_id} attached. You can accept by "
+                f"reply email or by making the deposit payment.\n\n"
                 f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
             ),
             attachments=attachments,
