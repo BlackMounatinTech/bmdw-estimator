@@ -79,7 +79,10 @@ def init_db() -> None:
 
 
 def _now() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds")
+    # Pacific time, not UTC — Render is UTC and would otherwise stamp
+    # quotes with tomorrow's date once it's past 4pm PT.
+    from tools.dates import pacific_iso
+    return pacific_iso(timespec="seconds")
 
 
 def _slug(text: str) -> str:

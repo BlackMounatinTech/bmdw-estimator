@@ -13,6 +13,8 @@ Customer-facing principles (per Michael, 2026-04-27):
 import json
 import os
 from datetime import date
+
+from tools.dates import pacific_today as _pacific_today
 from typing import Optional
 
 from server.schemas import Quote
@@ -276,7 +278,7 @@ _____________________________
 
 def draft_contract_text(q: Quote, company: dict, today: Optional[date] = None) -> str:
     """Deterministic templated contract — always works, no API call."""
-    today = today or date.today()
+    today = today or _pacific_today()
     return _render(q, company, _scope_block_deterministic(q), today)
 
 
@@ -285,7 +287,7 @@ def draft_contract_text_ai(q: Quote, company: dict, today: Optional[date] = None
 
     Falls back to deterministic version if Anthropic call fails or unconfigured.
     """
-    today = today or date.today()
+    today = today or _pacific_today()
     ai_scope = _scope_block_ai(q)
     if ai_scope:
         return _render(q, company, "\n" + ai_scope + "\n", today)

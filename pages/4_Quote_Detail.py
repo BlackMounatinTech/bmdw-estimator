@@ -879,9 +879,9 @@ with a3:
 # (Removed the explicit expander UI — was clutter. If a job ever needs
 # different amounts, edit the PDF after generation or wire a per-quote field
 # later.)
-import datetime as _dt
+from tools.dates import pacific_today as _pacific_today
 deposit_amt = q.customer_total * 0.5
-deposit_dt = _dt.date.today()
+deposit_dt = _pacific_today()
 final_amt = q.customer_total - deposit_amt
 
 p1, p2 = st.columns(2)
@@ -952,7 +952,7 @@ with p5:
         path, err = render_receipt_pdf(q, COMPANY,
                                        amount_received=float(final_amt),
                                        receipt_kind="final",
-                                       received_date=_dt.date.today())
+                                       received_date=_pacific_today())
         if err:
             st.warning(err)
         else:

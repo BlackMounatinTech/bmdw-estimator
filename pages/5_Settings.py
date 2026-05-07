@@ -15,11 +15,10 @@ import io
 import json
 import os
 import zipfile
-from datetime import datetime
-from pathlib import Path
 
 import streamlit as st
 
+from tools.dates import pacific_iso, pacific_now
 from tools.shared import apply_theme, fmt_money, require_auth, section_header
 from tools.storage import (
     init_db,
@@ -102,7 +101,7 @@ def _build_bundle() -> bytes:
                 zf.write(path, arcname=f"backups/{path.name}")
         # 3. Manifest
         manifest = {
-            "exported_at": datetime.utcnow().isoformat(timespec="seconds"),
+            "exported_at": pacific_iso(timespec="seconds"),
             "quote_count_in_db": len(all_quotes),
             "snapshot_count": len(snapshots),
             "data_dir": str(_resolved),
@@ -117,7 +116,7 @@ with b1:
     if st.button("📦 Build backup bundle", use_container_width=True):
         bundle_bytes = _build_bundle()
         st.session_state["_bundle_bytes"] = bundle_bytes
-        st.session_state["_bundle_built_at"] = datetime.utcnow().isoformat(timespec="seconds")
+        st.session_state["_bundle_built_at"] = pacific_iso(timespec="seconds")
         st.success(f"Bundle ready — {len(bundle_bytes) / 1024:,.1f} KB.")
 with b2:
     if "_bundle_bytes" in st.session_state:
@@ -231,7 +230,7 @@ if st.button("📄 Build quotes JSON"):
     st.success(f"Built JSON of {len(out)} quote(s) — {len(payload) / 1024:.1f} KB")
 
 if "_json_export_bytes" in st.session_state:
-    ts = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+    ts = pacific_now().strftime("%Y-%m-%d_%H-%M-%S")
     st.download_button(
         f"⬇ Download all-quotes-{ts}.json",
         data=st.session_state["_json_export_bytes"],

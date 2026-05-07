@@ -11,7 +11,6 @@ dropdowns on the Edit Quote tab and Phase 3 spreadsheet.
 """
 
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -24,7 +23,8 @@ def _path() -> Path:
 
 
 def _now() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds")
+    from tools.dates import pacific_iso
+    return pacific_iso(timespec="seconds")
 
 
 def load_user_catalogue() -> List[dict]:

@@ -13,6 +13,8 @@ are unreliable across WeasyPrint versions and container filesystems).
 import base64
 import mimetypes
 from datetime import date
+
+from tools.dates import pacific_today as _pacific_today
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -442,7 +444,7 @@ def render_quote_pdf(q: Quote, company: dict) -> Tuple[Optional[Path], Optional[
     except Exception as exc:
         return None, f"WeasyPrint unavailable: {exc}"
     out_path = _ensure_dir(q.quote_id) / "quote.pdf"
-    HTML(string=_quote_html(q, company, date.today())).write_pdf(str(out_path))
+    HTML(string=_quote_html(q, company, _pacific_today())).write_pdf(str(out_path))
     return out_path, None
 
 
@@ -453,7 +455,7 @@ def render_contract_pdf(q: Quote, company: dict, body_text: Optional[str] = None
         return None, f"WeasyPrint unavailable: {exc}"
     out_path = _ensure_dir(q.quote_id) / "contract.pdf"
     text = body_text or q.contract_text or draft_contract_text(q, company)
-    HTML(string=_contract_html(q, company, text, date.today())).write_pdf(str(out_path))
+    HTML(string=_contract_html(q, company, text, _pacific_today())).write_pdf(str(out_path))
     return out_path, None
 
 
@@ -466,7 +468,7 @@ def render_invoice_pdf(q: Quote, company: dict,
     except Exception as exc:
         return None, f"WeasyPrint unavailable: {exc}"
     out_path = _ensure_dir(q.quote_id) / "invoice.pdf"
-    HTML(string=_invoice_html(q, company, date.today(),
+    HTML(string=_invoice_html(q, company, _pacific_today(),
                               deposit_received, deposit_received_date)).write_pdf(str(out_path))
     return out_path, None
 
@@ -479,7 +481,7 @@ def render_material_takeoff_pdf(q: Quote, company: dict) -> Tuple[Optional[Path]
         return None, f"WeasyPrint unavailable: {exc}"
     out_path = _ensure_dir(q.quote_id) / "material-takeoff.pdf"
     html = _internal_list_html(
-        q, company, date.today(), CostBucket.MATERIALS, "MATERIAL TAKEOFF",
+        q, company, _pacific_today(), CostBucket.MATERIALS, "MATERIAL TAKEOFF",
         "Materials to source / pick up for this job. Includes catalogue SKUs "
         "where available so you can match against supplier orders."
     )
@@ -495,7 +497,7 @@ def render_equipment_list_pdf(q: Quote, company: dict) -> Tuple[Optional[Path], 
         return None, f"WeasyPrint unavailable: {exc}"
     out_path = _ensure_dir(q.quote_id) / "equipment-list.pdf"
     html = _internal_list_html(
-        q, company, date.today(), CostBucket.EQUIPMENT, "EQUIPMENT LIST",
+        q, company, _pacific_today(), CostBucket.EQUIPMENT, "EQUIPMENT LIST",
         "Equipment to mobilize for this job. Confirm availability and book "
         "rentals/transport before the start date."
     )
@@ -514,6 +516,6 @@ def render_receipt_pdf(q: Quote, company: dict,
         return None, f"WeasyPrint unavailable: {exc}"
     suffix = "deposit" if receipt_kind == "deposit" else "final"
     out_path = _ensure_dir(q.quote_id) / f"receipt-{suffix}.pdf"
-    HTML(string=_receipt_html(q, company, date.today(),
+    HTML(string=_receipt_html(q, company, _pacific_today(),
                               amount_received, receipt_kind, received_date)).write_pdf(str(out_path))
     return out_path, None
