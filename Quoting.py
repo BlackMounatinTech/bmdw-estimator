@@ -309,6 +309,26 @@ if st.session_state.pop("_voice_edit_mode", False):
     st.session_state.clarifying_questions = []
     st.session_state.parsed_preview = None
 
+# New-project handoff from the Customers page — start a fresh draft pre-filled
+# with this customer's contact info so Michael can dictate the next project.
+_new_proj_cust = st.session_state.pop("_new_project_customer", None)
+if _new_proj_cust:
+    _reset_draft_state(reset_id=True)
+    st.session_state.draft_customer = Customer(
+        name=_new_proj_cust["name"],
+        address=_new_proj_cust["address"],
+        email=_new_proj_cust["email"] or None,
+        phone=_new_proj_cust["phone"] or None,
+    )
+    st.session_state.draft_phone = _new_proj_cust["phone"]
+    st.session_state.draft_site_address = _new_proj_cust["address"]
+    st.session_state.cust_name_input = _new_proj_cust["name"]
+    st.session_state.cust_phone_input = _new_proj_cust["phone"]
+    st.session_state.cust_email_input = _new_proj_cust["email"]
+    st.session_state.site_addr_input = _new_proj_cust["address"]
+    # Wipe any stale URL quote_id so we don't accidentally reload an old draft
+    st.query_params.clear()
+
 
 def _draft_quote() -> Quote:
     """Build a Quote from current session-state. Uses current_editing_id if set,

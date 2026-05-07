@@ -210,6 +210,22 @@ m3.metric("Last Activity", (cust["last_activity_at"] or "—")[:10])
 # Projects (quotes)
 section_header("Projects")
 
+# + New project — pre-fills the Quoting page with this customer's contact info
+np1, _ = st.columns([1.2, 4])
+with np1:
+    if st.button("+ New project", type="primary", use_container_width=True,
+                 key=f"new_proj_{cust['customer_id']}",
+                 help=f"Start a fresh quote for {cust['name']} — contact info pre-filled."):
+        st.session_state["_new_project_customer"] = {
+            "name": cust.get("name") or "",
+            "phone": cust.get("phone") or "",
+            "email": cust.get("email") or "",
+            "address": cust.get("address") or "",
+        }
+        st.switch_page("Quoting.py")
+
+st.markdown("&nbsp;", unsafe_allow_html=True)
+
 quotes = list_quotes_for_customer(cust["customer_id"])
 if not quotes:
     st.info("No projects with this customer yet.")
