@@ -253,6 +253,14 @@ def save_quote(q: Quote) -> str:
     Also writes a JSON snapshot to <data_dir>/backups/ as redundant insurance."""
     if q.quote_id == "DRAFT" or not q.quote_id:
         q.quote_id = next_quote_id()
+    # Auto-sync the fuel line (7% of internal, $300 min) before persisting
+    # — unless the user dictated a specific fuel amount, in which case the
+    # FUEL-STATED marker tells sync_fuel to leave it alone.
+    try:
+        from tools.fuel import sync_fuel
+        sync_fuel(q)
+    except Exception:
+        pass  # never block a save on fuel sync
     customer_id = upsert_customer_from_quote(q)
 
     conn = _connect()

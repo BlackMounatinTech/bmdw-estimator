@@ -159,10 +159,9 @@ the cost-effective bracket for the duration:
 - Materials: drain_pipe — $120/roll, 100 ft per roll. Use ceil(wall_length/100) rolls.
 - Materials: filter_fabric — $280/roll, one roll standard for walls under 50 ft. If
   the wall is over 50 ft or unusual, add a warning and use Michael's stated qty.
-- Materials: diesel — Michael typically estimates fuel as a dollar amount.
-  Default to $250-$500 range; if he stated a number, use it. Add as a freeform
-  Materials line: description "Fuel — estimated", quantity 1, unit "lump",
-  unit_cost matches his estimate. Mark needs_catalogue_add: false.
+- Materials: fuel — DO NOT emit by default. The system auto-computes fuel at
+  7% of internal cost ($300 min). Only emit a fuel line if Michael explicitly
+  states a dollar amount in his notes (see FUEL CRITICAL RULE).
 - Labour: lead_hand + helper as the default crew. Compute hours from duration:
   duration_days × 8 hours each. Emit two LABOUR entries (one per role).
 
@@ -224,12 +223,15 @@ SPOIL DUMP DESTINATIONS:
   description "Browns River dump — N tandem loads × $90", quantity = loads,
   unit = "load", unit_cost = 90.
 
-FUEL — CRITICAL RULE: When Michael states a dollar amount of fuel ("$1200 in fuel",
-"$500 fuel", "fuel about $300"), that dollar value IS the line total. Emit a single
-Materials line: description "Fuel — estimated", quantity = 1, unit = "lump",
-unit_cost = the_dollar_amount, needs_catalogue_add = false. NEVER multiply by
-$2.25/L or any per-litre rate when Michael gave a dollar amount. The $2.25/L baseline
-is ONLY for back-calculating litres in the project plan description, not for pricing.
+FUEL — CRITICAL RULE: Fuel is normally auto-computed downstream (7% of internal
+cost, $300 minimum). DO NOT emit a fuel line by default — leave it to the system.
+ONLY emit a fuel line if Michael explicitly states a specific dollar amount ("$1200
+in fuel", "$500 fuel", "fuel about $300"). When he does, emit a Materials line:
+description "Fuel — stated by contractor", quantity 1, unit "lump",
+unit_cost = the_stated_dollar_amount, catalogue_type "materials", catalogue_key
+omit (null), needs_catalogue_add false, AND set notes to "FUEL-STATED" so the
+hydrator knows this was a deliberate override. NEVER multiply by $2.25/L —
+the dollar amount IS the line total.
 
 CUSTOM-WALL ESCALATION: If Michael's notes say "significantly bigger" or "unusual"
 or anything that doesn't fit standard scope, draft best-effort quantities AND add a
@@ -776,6 +778,12 @@ def hydrate_to_line_items(parsed: ParsedNotesOutput) -> List[JobLineItem]:
             ) or description.lower().startswith(("mobilization", "demobilization"))
             if is_mob_line:
                 bucket = _CB.TRUCKING
+
+            # Detect user-stated fuel lines (parser notes flagged "FUEL-STATED")
+            # so the auto-fuel sync downstream knows to leave them alone.
+            if (raw.notes or "").strip().upper() == "FUEL-STATED" or \
+               description.lower().startswith("fuel — stated"):
+                catalogue_sku = "FUEL-STATED"
 
             entries.append(LineItemEntry(
                 bucket=bucket,
