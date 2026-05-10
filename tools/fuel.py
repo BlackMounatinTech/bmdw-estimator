@@ -12,7 +12,7 @@ that marker and leaves the user-stated amount alone.
 
 from typing import Optional
 
-from server.schemas import CostBucket, JobLineItem, LineItemEntry, Quote
+from server.schemas import CostBucket, LineItemEntry, Quote
 
 FUEL_PCT = 0.07
 FUEL_MIN = 300.0
@@ -24,55 +24,32 @@ def _is_fuel_line(e: LineItemEntry) -> bool:
     return (e.description or "").strip().lower().startswith("fuel")
 
 
-def _has_user_stated_fuel(q: Quote) -> bool:
-    """User dictated a specific fuel amount — leave it alone."""
+def _has_any_fuel_line(q: Quote) -> bool:
     for li in q.line_items:
         for e in li.entries:
-            if _is_fuel_line(e) and (e.catalogue_sku or "") == FUEL_STATED_SKU:
+            if _is_fuel_line(e):
                 return True
     return False
 
 
-def _internal_cost_excluding_fuel(q: Quote) -> float:
-    """Total internal cost minus any existing fuel lines (auto or stated).
-    Used as the base for the 7% calc so fuel doesn't compound on itself."""
-    fuel_total = 0.0
-    for li in q.line_items:
-        for e in li.entries:
-            if _is_fuel_line(e):
-                fuel_total += e.total_cost
-    return max(0.0, q.internal_cost - fuel_total)
-
-
-def _remove_auto_fuel_lines(q: Quote) -> None:
-    """Strip every FUEL-AUTO line from every project so we can re-add a
-    single accurate one. User-stated fuel lines are left alone."""
-    for li in q.line_items:
-        li.entries = [
-            e for e in li.entries
-            if not (_is_fuel_line(e) and (e.catalogue_sku or "") == FUEL_AUTO_SKU)
-        ]
-
-
 def sync_fuel(q: Quote) -> Optional[float]:
-    """Make sure the quote has exactly one fuel line at the correct amount.
+    """Inject a fuel line ONLY when the quote doesn't already have one.
 
-    - If the user dictated a specific fuel amount (FUEL-STATED line), do nothing.
-    - Otherwise: remove any stale FUEL-AUTO lines, compute fuel = max($300,
-      7% of internal-excluding-fuel), and inject one Materials-bucket fuel
-      line into the first project.
+    Once a fuel line exists — whether auto-injected on first save, dictated
+    by Michael in voice, or hand-typed in the spreadsheet — it stays put.
+    Manual edits to the fuel amount are permanent.
 
-    Returns the auto fuel amount applied, or None if user-stated fuel exists.
+    To force a fresh 7%-of-internal recalc: delete the fuel line in the
+    spreadsheet and save — sync_fuel sees no fuel line and re-injects.
+
+    Returns the auto fuel amount applied, or None if a fuel line already exists.
     """
     if not q.line_items:
         return None
-    if _has_user_stated_fuel(q):
+    if _has_any_fuel_line(q):
         return None
 
-    _remove_auto_fuel_lines(q)
-    base = _internal_cost_excluding_fuel(q)
-    fuel = max(FUEL_MIN, round(FUEL_PCT * base, 2))
-
+    fuel = max(FUEL_MIN, round(FUEL_PCT * q.internal_cost, 2))
     fuel_line = LineItemEntry(
         bucket=CostBucket.MATERIALS,
         description="Fuel (auto — 7% of internal, $300 min)",
