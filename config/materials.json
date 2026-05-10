@@ -184,5 +184,55 @@
     "unit": "sf",
     "cost_per_unit": 1.10,
     "notes": "PLACEHOLDER price — confirm with Michael."
+  },
+
+  "concrete": {
+    "sku": "CONC-CUM",
+    "name": "Concrete (delivered, per cu m)",
+    "unit": "cu_m",
+    "cost_per_unit": 425.0,
+    "notes": "$425/cu m delivered. Includes delivery within ~1 hour of supplier. Loads under 3.5 cu m have a $150 small-load surcharge — see concrete_small_load_surcharge."
+  },
+  "concrete_small_load_surcharge": {
+    "sku": "CONC-SMALL-LOAD",
+    "name": "Concrete small-load surcharge (under 3.5 cu m)",
+    "unit": "lump",
+    "cost_per_unit": 150.0,
+    "notes": "Auto-add when total concrete volume on the pad is under 3.5 cu m."
+  },
+  "concrete_finish_flat": {
+    "sku": "CONC-FIN-FLAT",
+    "name": "Concrete flat finish (per sq ft)",
+    "unit": "sf",
+    "cost_per_unit": 2.15,
+    "notes": "Standard troweled flat finish. Quantity = pad sq ft."
+  },
+  "concrete_finish_exposed": {
+    "sku": "CONC-FIN-EXP",
+    "name": "Concrete exposed-aggregate finish (per sq ft)",
+    "unit": "sf",
+    "cost_per_unit": 3.00,
+    "notes": "Exposed-aggregate finish. Quantity = pad sq ft."
+  },
+  "rebar_10mm_20ft": {
+    "sku": "REBAR-10MM-20FT",
+    "name": "Rebar — 10 mm × 20 ft length",
+    "unit": "each",
+    "cost_per_unit": 14.0,
+    "notes": "Standard for residential pads. Quantity = number of 20-ft sticks. For a grid layout with bars in both axes at S-foot spacing on an L×W pad, total linear ft = L × (ceil(W/S)+1) + W × (ceil(L/S)+1); sticks = ceil(total_lf / 20)."
+  },
+  "rebar_accessories": {
+    "sku": "REBAR-ACC",
+    "name": "Rebar tie wire + chairs (per linear ft)",
+    "unit": "lf",
+    "cost_per_unit": 0.10,
+    "notes": "Bundled estimate: tie wire (~1 roll per 500 lf) + plastic chairs every ~4 ft. Quantity = total linear ft of rebar on the pad."
+  },
+  "concrete_forms": {
+    "sku": "CONC-FORMS",
+    "name": "Concrete forms (lump — Michael estimates)",
+    "unit": "lump",
+    "cost_per_unit": 0.0,
+    "notes": "Michael guesses based on linear-ft of perimeter. Parser asks him for a $ amount and uses that as unit_cost (qty 1). Don't auto-calculate."
   }
 }

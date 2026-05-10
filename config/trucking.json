@@ -42,5 +42,11 @@
     "name": "Block delivery (heavy haul, per load)",
     "per_load_rate": 850.0,
     "notes": "Heavy-haul truck for retaining-wall blocks. 16 lock blocks per load OR 26 magnum stones per load. Same $850 either way. Compute loads = ceil(block_count / capacity)."
+  },
+  "concrete_pump": {
+    "sku": "TRK-CONC-PUMP",
+    "name": "Concrete pump truck",
+    "per_load_rate": 1100.0,
+    "notes": "$1100 minimum per call-out. Add when pad is large, hard to reach (up a hill, behind a house, no truck access), or when contractor explicitly asks for one."
   }
 }

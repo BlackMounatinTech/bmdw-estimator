@@ -169,6 +169,54 @@ RETAINING_WALL — excavator sizing:
 - Lock blocks → minimum excavator_9t (9-ton). Lock blocks are too heavy for smaller iron.
 - Magnum stone blocks → excavator_4t (4-ton) is fine.
 
+CONCRETE_PAD — geometry & math:
+- Volume math: vol_cu_m = (L_ft × W_ft × thickness_ft) / 35.3147
+  - Example: 20 × 40 × 4" thick = 20 × 40 × (4/12) / 35.3147 = 7.55 cu_m
+- Pad area: area_sf = L_ft × W_ft
+
+CONCRETE_PAD — required line items on EVERY pad (unless contractor says otherwise):
+- Materials: concrete (catalogue_key `concrete`, unit `cu_m`, qty = vol_cu_m). $425/cu_m.
+- Materials: concrete_small_load_surcharge (qty 1, unit `lump`) — ONLY add when vol_cu_m < 3.5.
+- Materials: finishing — pick by what Michael says:
+  - Default / "flat finish" / unstated → catalogue_key `concrete_finish_flat`, unit `sf`, qty = area_sf ($2.15/sf)
+  - "exposed aggregate" / "exposed" → catalogue_key `concrete_finish_exposed`, unit `sf`, qty = area_sf ($3/sf)
+- Materials: concrete_forms (qty 1, unit `lump`, unit_cost = the $ amount Michael states).
+  Michael guesses forms cost based on perimeter — clarifier asks him for the dollar amount.
+  If he doesn't state one, set unit_cost=0 and add a warning to confirm.
+- Labour: lead_hand + helper as default crew, scaled by pad size:
+  - Small pad (<200 sf): 1 day each
+  - Medium (200-500 sf): 2 days each
+  - Big (>500 sf): 3+ days each (or use Michael's stated duration if given)
+
+CONCRETE_PAD — REBAR (only when contractor mentions it / says rebar):
+- 24" (2 ft) grid both axes, 10 mm × 20 ft sticks.
+- Linear ft of rebar:
+  - Bars in L-axis = ceil(W_ft / 2) + 1, each L_ft long → contributes (ceil(W/2)+1) × L linear ft
+  - Bars in W-axis = ceil(L_ft / 2) + 1, each W_ft long → contributes (ceil(L/2)+1) × W linear ft
+  - total_lf = sum of both
+- Sticks needed = ceil(total_lf / 20). Emit as Materials line, catalogue_key `rebar_10mm_20ft`, unit `each`, qty = sticks. ($14/stick)
+- Tie wire + chairs: emit a Materials line, catalogue_key `rebar_accessories`, unit `lf`, qty = total_lf. ($0.10/lf — bundled estimate)
+
+CONCRETE_PAD — BASE MATERIAL (only when contractor says fresh ground / new pad / dig down):
+- Skip entirely if pad goes on existing concrete/asphalt driveway.
+- When base IS needed, ask the contractor for the depth (4-6" typical) and material
+  (default: 3/4" road crush from nearest pit per supplier mapping).
+- Compute base cu_yd = (L_ft × W_ft × depth_ft) / 27. Emit Materials + truck-hours per
+  the AGGREGATE TRUCKING rules.
+
+CONCRETE_PAD — EXCAVATOR (only when base is needed / dig down):
+- Default to excavator_4t (4-ton) for concrete pads.
+- Skip entirely when pad goes on existing surface (no dig).
+- Mob/demob per the standard EXCAVATOR MOBILIZATION rule (clarifier asks).
+
+CONCRETE_PAD — PUMP TRUCK (only when contractor mentions it / large pad / hard access):
+- Catalogue_key `concrete_pump`, bucket `trucking`, unit `each`, qty 1, unit_cost from catalogue ($1100 minimum).
+- Only emit when contractor mentions a pump OR pad is large + hard to reach (clarifier asks).
+
+CONCRETE_PAD — SPOIL (only when base is dug):
+- If pad goes on existing surface, no spoil.
+- If digging for base, spoil cu_yd = base cu_yd. Use standard SPOIL DUMP DESTINATIONS rules.
+
 BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 - Lock blocks: 16 per load at $850/load. catalogue_key = block_delivery.
   Compute loads = ceil(block_count / 16); cost = loads × $850.
@@ -423,7 +471,20 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "(typical 15-20%, so 600 cu yd in-place becomes ~720 cu yd loose). This drives "
         "spoil-haul truck count and cost. Same logic for IMPORTED fill: confirm whether "
         "his stated volume is loose (delivered) or compacted (in-place). Skip for small "
-        "jobs where it's a few extra inches in a tandem.\n\n"
+        "jobs where it's a few extra inches in a tandem.\n"
+        "- CONCRETE PAD specifics — when the brief mentions a concrete pad, almost "
+        "ALWAYS ask the following four (skip any Michael already covered):\n"
+        "  (1) FORMS COST — Michael guesses based on linear-ft of perimeter. Ask: "
+        "'What dollar amount for concrete forms?'.\n"
+        "  (2) SURFACE — going on existing concrete/asphalt driveway, OR fresh ground "
+        "needing dig + base material? (This decides whether excavator + base + spoil "
+        "lines apply. Skip if obvious from notes.)\n"
+        "  (3) BASE DEPTH + MATERIAL when fresh ground — typical is 4-6\" of 3/4\" road "
+        "crush. Confirm depth + supplier.\n"
+        "  (4) PUMP TRUCK — only ask if pad is large or access is tight. Default no pump.\n"
+        "  Rebar is OPTIONAL — only ask if Michael didn't say either way ('with rebar?' "
+        "or 'no rebar?'). Finish defaults to flat — only ask if context suggests "
+        "exposed-aggregate (decorative patio, pool deck, etc.).\n\n"
         "==============================\n"
         "FORMATTING:\n"
         "==============================\n"
