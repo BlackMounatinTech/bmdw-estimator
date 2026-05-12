@@ -31,10 +31,10 @@
   },
   "truck_and_pup": {
     "sku": "TRK-PUP",
-    "name": "Truck and pup",
-    "hourly_rate": 205.0,
-    "capacity_cu_yd": 16.0,
-    "notes": "~16 yd^3 (tandem + pup trailer). $205/hr. Used for big aggregate hauls when Michael explicitly requests it."
+    "name": "Truck and pup (20 cu_yd)",
+    "hourly_rate": 200.0,
+    "capacity_cu_yd": 20.0,
+    "notes": "Tandem dump (10 cu_yd) + pup trailer (10 cu_yd) = 20 cu_yd total. $200/hr regardless of supplier. Available from DHK or Upland's only — in-house BMDW does NOT have a truck-and-pup option. Use when Michael asks for big-volume hauls."
   },
 
   "block_delivery": {

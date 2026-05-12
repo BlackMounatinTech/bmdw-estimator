@@ -57,10 +57,14 @@
     "rental_insurance_eligible": true
   },
   "skid_steer": {
-    "sku": "SKID-S70",
-    "name": "Skid steer",
-    "hourly_rate": 95.0,
-    "rental_insurance_eligible": true
+    "sku": "SKID-TL6",
+    "name": "Skid steer (TL6)",
+    "daily_rate": 322.0,
+    "weekly_rate": 928.0,
+    "monthly_rate": 2348.0,
+    "mobilization_each_way": 135.0,
+    "rental_insurance_eligible": true,
+    "notes": "TL6 skid steer. Mob/demob same pattern as small excavators: $135 each way for supplier delivery, OR rides in the dump trailer if Michael's already renting one."
   },
   "plate_compactor": {
     "sku": "COMP-PLATE",
@@ -83,6 +87,15 @@
     "weekly_rate": 391.0,
     "monthly_rate": 1134.0,
     "rental_insurance_eligible": true
+  },
+  "equipment_trailer": {
+    "sku": "TRL-EQUIP",
+    "name": "Equipment trailer",
+    "daily_rate": 100.0,
+    "weekly_rate": 278.0,
+    "monthly_rate": 802.0,
+    "rental_insurance_eligible": true,
+    "notes": "For hauling equipment to/from site (not dumping). Separate from the dump trailer."
   },
   "buggy_dumper": {
     "sku": "BUGGY-DMP",

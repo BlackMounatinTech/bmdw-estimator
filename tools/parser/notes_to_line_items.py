@@ -225,31 +225,32 @@ BLOCK TRUCKING (heavy haul, per load — Trucking bucket):
 
 AGGREGATE TRUCKING (hourly trucks — TRUCKING bucket, all hourly trucks live in trucking.json):
 - Capacities vary by truck — use the catalogue's `capacity_cu_yd`:
-  - in_house_trucking: 3 cu_yd, $100/hr (DEFAULT)
+  - in_house_trucking: 3 cu_yd, $100/hr (DEFAULT — but NO truck-and-pup option)
   - dhk_trucking: 9 cu_yd, $150/hr
   - uplands_trucking: 9 cu_yd, $170/hr
   - tandem_dump_brownsriver: 10 cu_yd, $160/hr
-  - truck_and_pup: 16 cu_yd, $205/hr
+  - truck_and_pup: 20 cu_yd (10 truck + 10 pup), $200/hr — contractor-only; DHK or Upland's supplies the rig at this same rate. In-house BMDW cannot do truck-and-pup. Use only when Michael explicitly asks for it for big-volume hauls.
 - Round trip: 2 hours default (60 min each way + load/dump). Bump up if site is far.
 - Compute: num_loads = ceil(total_aggregate_cu_yd / capacity); truck_hours = num_loads × round_trip_hours.
 - Emit ONE TRUCKING-bucket line per truck source with quantity = truck_hours, unit = hour.
 
-EXCAVATOR MOBILIZATION / DEMOBILIZATION (TRUCKING bucket, equipment-priced):
-- Mob/demob is hauling cost — it lives in the TRUCKING bucket — but the rate
-  comes from the excavator's catalogue entry (`mobilization_each_way`).
-- The clarifier always asks per excavator. The answer determines what to emit:
+MACHINE MOBILIZATION / DEMOBILIZATION (TRUCKING bucket, equipment-priced):
+Applies to every excavator AND the skid steer. Rate lives on the equipment
+catalogue entry (`mobilization_each_way`) — TRUCKING bucket for display.
+- Clarifier always asks per machine. The answer determines what to emit:
   - "supplier delivery" / "supplier dropping it off" / "rental delivers" → emit TWO TRUCKING-bucket
-    lines for that excavator:
-      • description "Mobilization — Nt excavator (supplier delivery)", qty 1, unit "lump",
+    lines for that machine:
+      • description "Mobilization — [machine label] (supplier delivery)", qty 1, unit "lump",
         bucket "trucking", catalogue_type "equipment", catalogue_key matching the
-        excavator (e.g. excavator_9t), needs_catalogue_add false.
-      • Matching "Demobilization — Nt excavator (supplier pickup)" line.
-    The hydrator pulls each line's unit_cost from that excavator's `mobilization_each_way`
-    ($135 for 2/4/6-ton, $195 for 9t+).
+        machine (e.g. excavator_9t, skid_steer), needs_catalogue_add false.
+      • Matching "Demobilization — [machine label] (supplier pickup)" line.
+    The hydrator pulls each line's unit_cost from that machine's `mobilization_each_way`:
+      $135 for 2/4/6-ton excavator and skid steer; $195 for 9t+ excavator.
   - "dump trailer" / "trailer takes it" → DO NOT emit mob/demob lines (the dump trailer's
     rental rate already covers transport).
   - "already on site" / "stays here" → DO NOT emit mob/demob lines.
 - For 9-ton+ excavators, supplier delivery is mandatory (won't fit in a dump trailer).
+- Skid steer can ride in either the dump trailer or come via supplier delivery — ask.
 - Multiple tandems in the same quote ONLY if Michael explicitly says so (e.g. "BMDW + Browns River
   tandems for the volume"). Default = single BMDW truck for the whole job.
 
