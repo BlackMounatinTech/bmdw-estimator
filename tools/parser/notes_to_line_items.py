@@ -76,8 +76,8 @@ CRITICAL RULES:
    use unit "week", qty 1 instead.
 
 VALID job_type values:
-retaining_wall, patio, concrete_driveway, gravel_driveway, land_clearing,
-foundation, road_building, drainage, septic, site_prep, machine_hours
+retaining_wall, patio, concrete_pad, concrete_driveway, gravel_driveway,
+land_clearing, foundation, road_building, drainage, septic, site_prep, machine_hours
 
 PROJECT PLAN — produce a COMPREHENSIVE WORK-PHASE plan per project. The
 contract template will automatically wrap your work-phase steps with universal

@@ -74,6 +74,7 @@ class JobLineItem(BaseModel):
     job_type: Literal[
         "retaining_wall",
         "patio",
+        "concrete_pad",
         "concrete_driveway",
         "gravel_driveway",
         "land_clearing",
@@ -303,9 +304,9 @@ class ParsedProject(BaseModel):
     detected project type.
     """
     job_type: Literal[
-        "retaining_wall", "patio", "concrete_driveway", "gravel_driveway",
-        "land_clearing", "foundation", "road_building", "drainage",
-        "septic", "site_prep", "machine_hours",
+        "retaining_wall", "patio", "concrete_pad", "concrete_driveway",
+        "gravel_driveway", "land_clearing", "foundation", "road_building",
+        "drainage", "septic", "site_prep", "machine_hours",
     ]
     label: str  # e.g. "Retaining Wall 30' × 4'"
     line_entries: List[ParsedLineEntry] = Field(default_factory=list)
