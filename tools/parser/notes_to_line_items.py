@@ -182,9 +182,11 @@ CONCRETE_PAD — required line items on EVERY pad (unless contractor says otherw
 - Materials: finishing — pick by what Michael says:
   - Default / "flat finish" / unstated → catalogue_key `concrete_finish_flat`, unit `sf`, qty = area_sf ($2.15/sf)
   - "exposed aggregate" / "exposed" → catalogue_key `concrete_finish_exposed`, unit `sf`, qty = area_sf ($3/sf)
-- Materials: concrete_forms (qty 1, unit `lump`, unit_cost = the $ amount Michael states).
-  Michael guesses forms cost based on perimeter — clarifier asks him for the dollar amount.
-  If he doesn't state one, set unit_cost=0 and add a warning to confirm.
+- Materials: concrete_forms (catalogue_key `concrete_forms`, unit `lump`, qty 1).
+  Default $250 (from catalogue) — DO NOT prompt Michael for the amount on standard pads.
+  ONLY override when Michael explicitly states a different dollar amount in voice
+  ("forms will be $400 — it's a big one"). When overridden, emit unit_cost = stated $
+  with description "Concrete forms (custom — $X)" so the hydrator skips the catalogue lookup.
 - Labour: lead_hand + helper as default crew, scaled by pad size:
   - Small pad (<200 sf): 1 day each
   - Medium (200-500 sf): 2 days each
@@ -515,8 +517,9 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "jobs where it's a few extra inches in a tandem.\n"
         "- CONCRETE PAD specifics — when the brief mentions a concrete pad, almost "
         "ALWAYS ask the following four (skip any Michael already covered):\n"
-        "  (1) FORMS COST — Michael guesses based on linear-ft of perimeter. Ask: "
-        "'What dollar amount for concrete forms?'.\n"
+        "  (1) FORMS COST — DO NOT ASK unless the pad is unusually big. Default is "
+        "$250 (from catalogue). Only ask if the brief suggests a big pad: 'Forms "
+        "will be over $250 — what amount?'.\n"
         "  (2) SURFACE — going on existing concrete/asphalt driveway, OR fresh ground "
         "needing dig + base material? (This decides whether excavator + base + spoil "
         "lines apply. Skip if obvious from notes.)\n"

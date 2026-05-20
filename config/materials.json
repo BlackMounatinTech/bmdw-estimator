@@ -234,9 +234,9 @@
   },
   "concrete_forms": {
     "sku": "CONC-FORMS",
-    "name": "Concrete forms (lump — Michael estimates)",
+    "name": "Concrete forms (lump)",
     "unit": "lump",
-    "cost_per_unit": 0.0,
-    "notes": "Michael guesses based on linear-ft of perimeter. Parser asks him for a $ amount and uses that as unit_cost (qty 1). Don't auto-calculate."
+    "cost_per_unit": 250.0,
+    "notes": "Standard $250 for typical residential pads. Michael overrides with a different number when it's a really big pad. Parser auto-uses $250 unless contractor states a different dollar amount in voice."
   }
 }

@@ -1086,8 +1086,28 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
             with b3:
                 if st.button("Generate Quote", use_container_width=True,
                              type="primary",
-                             help="Finalize this quote — saves it and opens the Quote Detail "
-                                  "where you can keep iterating with voice + spreadsheet edits."):
+                             help="Finalize the quote. If you've typed iteration changes "
+                                  "above ('drop the helper', 'change excavator to 1 day'), "
+                                  "the AI applies those first, THEN saves."):
+                    # NEW: if Michael typed iteration text and hit Generate Quote
+                    # directly (skipping the separate Update button), run the AI
+                    # with the iteration text first so his edits actually land.
+                    iteration_text = (st.session_state.review_answers or "").strip()
+                    if iteration_text and parser_configured():
+                        try:
+                            with st.spinner("Applying your last-minute iteration before saving..."):
+                                result = parse_notes_to_structure(_combined_notes_for_parser())
+                            if result and result.projects:
+                                st.session_state.parsed_preview = result
+                                _hydrate_customer_from_parsed(result)
+                                # New line items from the AI become the spreadsheet
+                                st.session_state.phase3_line_items = hydrate_to_line_items(result)
+                                parsed = result
+                        except Exception as exc:
+                            st.warning(
+                                f"Couldn't apply iteration text — saving the current "
+                                f"spreadsheet as-is. Reason: {exc}"
+                            )
                     # Use the user's EDITED line items from the Phase 3 spreadsheet,
                     # not a fresh hydration of parsed_preview (which would lose edits).
                     new_items = (st.session_state.phase3_line_items
