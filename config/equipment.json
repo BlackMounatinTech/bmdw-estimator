@@ -1,5 +1,5 @@
 {
-  "_README": "Equipment catalogue (on-site iron). Each excavator entry includes `mobilization_each_way` — the per-direction supplier-delivery cost when the rental supplier drops off / picks up. 2/4/6-ton machines = $135 each way; 9-ton+ = $195 each way. The parser ALWAYS asks how each excavator is mobilized: supplier delivery (use these rates), dump trailer (mob handled by trailer rental), or already on site (no mob). `rental_insurance_eligible` controls whether the 16% rental insurance surcharge applies (true for rentals, false for vehicles with own commercial insurance).",
+  "_README": "Equipment catalogue (on-site iron). Each excavator entry includes `mobilization_each_way` — the per-direction supplier-delivery cost when the rental supplier drops off / picks up. Rates: 2/4/6/9-ton machines + skid steer = $135 each way. 12-ton and bigger (15t, 25t) = $195 each way (needs a lowboy trailer). The parser ALWAYS asks how each excavator is mobilized: supplier delivery (use these rates), dump trailer (mob handled by trailer rental), or already on site (no mob). `rental_insurance_eligible` controls whether the 16% rental insurance surcharge applies (true for rentals, false for vehicles with own commercial insurance).",
 
   "excavator_2t": {
     "sku": "EXC-2T",
@@ -35,7 +35,7 @@
     "daily_rate": 481.0,
     "weekly_rate": 1721.0,
     "monthly_rate": 4323.0,
-    "mobilization_each_way": 195.0,
+    "mobilization_each_way": 135.0,
     "rental_insurance_eligible": true
   },
   "excavator_15t": {

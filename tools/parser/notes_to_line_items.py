@@ -247,32 +247,49 @@ catalogue entry (`mobilization_each_way`) — TRUCKING bucket for display.
         machine (e.g. excavator_9t, skid_steer), needs_catalogue_add false.
       • Matching "Demobilization — [machine label] (supplier pickup)" line.
     The hydrator pulls each line's unit_cost from that machine's `mobilization_each_way`:
-      $135 for 2/4/6-ton excavator and skid steer; $195 for 9t+ excavator.
+      $135 for 2/4/6/9-ton excavator and skid steer; $195 for 12-ton and bigger
+      (15t, 25t — needs a lowboy trailer to haul).
   - "dump trailer" / "trailer takes it" → DO NOT emit mob/demob lines (the dump trailer's
     rental rate already covers transport).
   - "already on site" / "stays here" → DO NOT emit mob/demob lines.
 - For 9-ton+ excavators, supplier delivery is mandatory (won't fit in a dump trailer).
+- For 12-ton+ excavators, the supplier needs a lowboy trailer — hence the $195 vs $135 jump.
 - Skid steer can ride in either the dump trailer or come via supplier delivery — ask.
 - Multiple tandems in the same quote ONLY if Michael explicitly says so (e.g. "BMDW + Browns River
   tandems for the volume"). Default = single BMDW truck for the whole job.
 
 SUPPLIER → REGION MAPPING (pick the supplier closest to the job site):
 - Browns River Pit (suffix `_brownsriver`) — serves Courtenay, Comox, Cumberland.
-- Northwin Pit (suffix `_northwin`) — Campbell River area. Pick this when the job is
-  in or north of Campbell River.
-- Upland's Gravel (suffix `_uplands`) — central Vancouver Island default (Cobble Hill,
-  Duncan, Mill Bay, Cowichan, Mid-Island).
-If Michael names a supplier explicitly, use it. Otherwise pick by location.
+- Upland's Gravel (suffix `_uplands`) — central Vancouver Island (Cobble Hill, Duncan,
+  Mill Bay, Cowichan, Mid-Island) AND Campbell River (Upland's has a Campbell River
+  location too).
+- Northwin Pit (suffix `_northwin`) — Campbell River area.
 
-SPOIL DUMP DESTINATIONS:
-- Upland's / Northwin: $10 per cu_yd (Michael's rule: 1 cu_yd = 1 ton, 1:1 conversion).
-  Cost = spoil_cu_yd × $10. Emit a freeform Spoil line: description "Dump fee at
-  [Upland's | Northwin] — N cu_yd × $10", quantity = spoil_cu_yd, unit = "cu_yd",
-  unit_cost = 10.
-- Browns River Pit (Courtenay / Comox / Cumberland jobs): $90 PER TANDEM LOAD (10 cu_yd ≈ 10-11 tons).
-  Compute loads = ceil(spoil_cu_yd / 10). Emit a freeform Spoil line:
-  description "Browns River dump — N tandem loads × $90", quantity = loads,
-  unit = "load", unit_cost = 90.
+CAMPBELL RIVER SPECIAL CASE: Both Upland's and Northwin serve Campbell River, at
+opposite ends of town. Some jobs are closer to Upland's, some are closer to Northwin.
+Michael picks based on proximity, NOT a default. So for Campbell River jobs:
+- If Michael names "Upland's" → use `_uplands` keys (definitely)
+- If Michael names "Northwin" → use `_northwin` keys (definitely)
+- If Michael doesn't name one → pick either (no preference) OR add a warning asking
+  which one is closer. DO NOT default to Northwin just because the job is Campbell River.
+
+ABSOLUTE RULE: If Michael names a supplier explicitly anywhere in the brief, that
+supplier wins — use ITS catalogue keys (materials, trucking, spoil destination).
+Never override the contractor's stated supplier choice.
+
+SPOIL DUMP DESTINATIONS (SPOIL bucket; emit with catalogue_type="spoil" and
+catalogue_key set so the hydrator looks up the rate from spoil.json):
+- Upland's: catalogue_type "spoil", catalogue_key "uplands". $10/cu_yd
+  (1 cu_yd = 1 ton, 1:1). Emit qty = spoil_cu_yd, unit = "cu_yd". The hydrator
+  fills unit_cost = 10 from the catalogue. Description: "Dump fee — Upland's".
+- Northwin: catalogue_type "spoil", catalogue_key "northwin". $10/cu_yd same rule.
+  Description: "Dump fee — Northwin".
+- Browns River: catalogue_type "spoil", catalogue_key "browns_river". $90 per tandem
+  load (10 cu_yd capacity). Emit qty = ceil(spoil_cu_yd / 10), unit = "load".
+  Description: "Dump — Browns River — N tandem loads".
+
+DO NOT emit unit_cost for spoil — leave it for the hydrator to fill from spoil.json.
+This was a bug previously (AI emitted unit_cost=0 leaving Upland's spoil at $0).
 
 FUEL — CRITICAL RULE: Fuel is normally auto-computed downstream (7% of internal
 cost, $300 minimum). DO NOT emit a fuel line by default — leave it to the system.
@@ -467,8 +484,9 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "Logistics matter, not just the rate: a 2/4-ton machine can ride in a dump trailer "
         "(if Michael's renting one anyway, the trailer covers mob), or come from the "
         "supplier; a 9+ ton has to come by supplier delivery. ASK each time: 'How is the "
-        "[N-ton excavator] being mobilized — supplier delivery (~$135 each way for 2/4/6t, "
-        "$195 each way for 9t+), in your dump trailer, or already on site?'. Then the "
+        "[N-ton excavator] being mobilized — supplier delivery (~$135 each way for "
+        "2/4/6/9-ton, $195 each way for 12-ton+ which needs a lowboy trailer), in "
+        "your dump trailer, or already on site?'. Then the "
         "parser uses the answer: supplier → emit Mobilization + Demobilization Equipment "
         "lines at the rate; trailer or on-site → no extra lines.\n"
         "- ELEVATIONS + WATER POOLING — does the site slope toward or away from the "
@@ -806,7 +824,11 @@ def hydrate_to_line_items(parsed: ParsedNotesOutput) -> List[JobLineItem]:
             lookup_failed = False
             if cat and key and not raw.needs_catalogue_add:
                 cat_data = catalogues.get(cat, {})
-                item = cat_data.get(key)
+                # Spoil has a nested structure (dump_destinations) — look up there
+                if cat == "spoil":
+                    item = cat_data.get("dump_destinations", {}).get(key)
+                else:
+                    item = cat_data.get(key)
                 if item:
                     if cat == "materials":
                         unit_cost = float(item.get("cost_per_unit", 0))
@@ -838,6 +860,16 @@ def hydrate_to_line_items(parsed: ParsedNotesOutput) -> List[JobLineItem]:
                                               or item.get("per_load_rate") or 0)
                     elif cat == "labour":
                         unit_cost = float(item.get("hourly_rate", 0))
+                    elif cat == "spoil":
+                        # Spoil destinations bill by cu_yd, load, or ton —
+                        # use billing_model to pick the right rate field.
+                        bm = item.get("billing_model", "")
+                        if bm == "per_cu_yd":
+                            unit_cost = float(item.get("rate_per_cu_yd") or 0)
+                        elif bm == "per_load":
+                            unit_cost = float(item.get("rate_per_load") or 0)
+                        elif bm == "per_ton":
+                            unit_cost = float(item.get("rate_per_ton") or 0)
                     catalogue_sku = item.get("sku")
                 else:
                     # Key was provided by AI but doesn't exist in the catalogue.

@@ -284,8 +284,8 @@ class ParsedLineEntry(BaseModel):
     description: str
     quantity: float
     unit: str
-    catalogue_key: Optional[str] = None  # references key in materials/equipment/trucking/labour
-    catalogue_type: Optional[Literal["materials", "equipment", "trucking", "labour"]] = None
+    catalogue_key: Optional[str] = None  # references key in materials/equipment/trucking/labour/spoil
+    catalogue_type: Optional[Literal["materials", "equipment", "trucking", "labour", "spoil"]] = None
     needs_catalogue_add: bool = False    # True if AI mentioned an item not yet in any catalogue
     notes: Optional[str] = None
 

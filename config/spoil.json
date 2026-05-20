@@ -6,6 +6,7 @@
 
   "dump_destinations": {
     "browns_river": {
+      "sku": "DUMP-BR",
       "name": "Browns River Pit",
       "billing_model": "per_load",
       "rate_per_load": 90.0,
@@ -14,17 +15,20 @@
       "notes": "$90 per tandem load (10 cu_yd, roughly 10-11 tons). Compute loads = ceil(spoil_cu_yd / 10); cost = loads × 90."
     },
     "uplands": {
+      "sku": "DUMP-UP",
       "name": "Upland's Gravel",
       "billing_model": "per_cu_yd",
       "rate_per_cu_yd": 10.0,
-      "notes": "$10 per cu_yd (1:1 with tons). Default for central Vancouver Island jobs."
+      "serves_areas": ["Cobble Hill", "Duncan", "Mill Bay", "Cowichan", "Mid-Island", "Campbell River"],
+      "notes": "$10 per cu_yd (1:1 with tons). Serves central Vancouver Island AND Campbell River (Upland's has multiple locations including one in Campbell River). Use when Michael says 'Upland's' or when the job is mid-island."
     },
     "northwin": {
+      "sku": "DUMP-NW",
       "name": "Northwin Pit",
       "billing_model": "per_cu_yd",
       "rate_per_cu_yd": 10.0,
       "serves_areas": ["Campbell River", "Courtenay (north)"],
-      "notes": "$10 per cu_yd (1:1 with tons). Located in the Campbell River area — pick this one when the job is in or north of Campbell River."
+      "notes": "$10 per cu_yd (1:1 with tons). Located in Campbell River area. Use when Michael says 'Northwin'. Both Northwin AND Upland's serve Campbell River (separate ends of town) — let Michael pick which one based on job location proximity; don't default to one over the other for Campbell River."
     }
   }
 }
