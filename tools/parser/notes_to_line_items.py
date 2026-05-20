@@ -157,8 +157,10 @@ the cost-effective bracket for the duration:
 - Equipment: excavator (sized by block type — see below) — required.
 - Materials: road_crush_34_uplands (or _northwin if Michael said Northwin) — base course.
 - Materials: drain_pipe — $120/roll, 100 ft per roll. Use ceil(wall_length/100) rolls.
-- Materials: filter_fabric — $280/roll, one roll standard for walls under 50 ft. If
-  the wall is over 50 ft or unusual, add a warning and use Michael's stated qty.
+- Materials: filter_fabric — $240/roll (5 ft × 250 ft = 1250 sq ft per roll). One roll
+  standard for walls under 50 ft. For longer walls, compute rolls = ceil(wall_face_sf
+  × 1.1 / 1250) (the 1.1 accounts for overlap between rolls). Add a warning if the
+  wall is unusual / sloped / multi-tier so Michael can confirm.
 - Materials: fuel — DO NOT emit by default. The system auto-computes fuel at
   7% of internal cost ($300 min). Only emit a fuel line if Michael explicitly
   states a dollar amount in his notes (see FUEL CRITICAL RULE).
@@ -281,6 +283,24 @@ unit_cost = the_stated_dollar_amount, catalogue_type "materials", catalogue_key
 omit (null), needs_catalogue_add false, AND set notes to "FUEL-STATED" so the
 hydrator knows this was a deliberate override. NEVER multiply by $2.25/L —
 the dollar amount IS the line total.
+
+STANDARD TRADE TERM → CATALOGUE_KEY ALIASES (always use the catalogue key on
+the right, no matter which spoken term Michael used; never ask to clarify):
+- "blast rock", "3 ft+ rip rap", "3-plus rip rap", "big rip rap" → rip_rap_3plus_uplands ($28/ton)
+- "1-3 ft rip rap", "small rip rap" → rip_rap_1_3ft_uplands ($28/ton)
+- "landscape fabric", "filter fabric", "geotextile", "weed barrier" → filter_fabric ($240/roll, 5×250 ft = 1250 sq ft per roll, round UP for overlap)
+- "blue chip" → blue_chip_uplands ($46/cu_yd) by default; blue_chip_brownsriver ($63) for Courtenay/Comox/Cumberland; blue_chip_northwin ($65) for Campbell River
+- "road crush", "3/4 road crush", "3/4 inch crush" → road_crush_34_uplands by default; road_crush_34_brownsriver for north-island jobs
+- "pit run" → pit_run_uplands by default; supplier-specific version for the job's region
+- "drain pipe", "perforated pipe" → drain_pipe ($120/100 ft roll)
+- "drain rock" → drain_rock_uplands by default; drain_rock_brownsriver for north-island
+- "lock block", "lock blocks" → lock_block_no1 ($150) or lock_block_no2 ($130) — ask only if Michael didn't say which
+- "magnum stones", "magnum stone blocks" → magnum_stone_block ($205)
+- "concrete" (for a pad) → concrete ($425/cu_m)
+- "rebar" (10 mm) → rebar_10mm_20ft ($14/stick)
+
+If a trade term appears that's NOT in this list AND not obviously in the catalogue,
+that's a candidate for needs_catalogue_add=true with a warning.
 
 CUSTOM-WALL ESCALATION: If Michael's notes say "significantly bigger" or "unusual"
 or anything that doesn't fit standard scope, draft best-effort quantities AND add a

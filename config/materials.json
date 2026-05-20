@@ -176,8 +176,11 @@
     "sku": "FAB-NW-ROLL",
     "name": "Landscape / filter fabric (roll)",
     "unit": "roll",
-    "cost_per_unit": 230.0,
-    "notes": "Same product whether called 'landscape fabric' or 'filter fabric' (geotextile). $230/roll. Standard pricing for retaining walls < 50 ft. Bigger walls may need custom pricing — flag in quick notes."
+    "cost_per_unit": 240.0,
+    "roll_dimensions": "5 ft wide × 250 ft long",
+    "coverage_sf": 1250,
+    "aliases": ["landscape fabric", "filter fabric", "geotextile", "weed barrier"],
+    "notes": "Same product whether called 'landscape fabric' or 'filter fabric' (geotextile). $240/roll. Each roll is 5 ft × 250 ft = 1250 sq ft. Multiple rolls overlap each other so effective coverage is slightly less — round UP when computing roll count. Standard for retaining walls < 50 ft is 1 roll."
   },
   "geogrid": {
     "sku": "GEO-UX1500",
