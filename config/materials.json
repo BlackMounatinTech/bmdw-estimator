@@ -79,11 +79,12 @@
   },
   "rip_rap_3plus_uplands": {
     "sku": "RR-3PLUS-UP",
-    "name": "Rip rap 3 ft+ (Upland's)",
+    "name": "Rip rap 3 ft+ / Blast rock (Upland's)",
     "unit": "ton",
     "cost_per_unit": 28.0,
     "supplier": "Upland's Gravel",
-    "notes": "$39/cu_yd alternative if billed by volume. ~3/4 ton per 3-ft boulder for AI estimating."
+    "aliases": ["blast rock", "blast rock 3ft+", "3 ft rip rap", "3+ rip rap"],
+    "notes": "Same product as 'blast rock' — interchangeable trade terms. $28/ton. $39/cu_yd alternative if billed by volume. ~3/4 ton per 3-ft boulder for AI estimating."
   },
 
   "pit_run_northwin": {
