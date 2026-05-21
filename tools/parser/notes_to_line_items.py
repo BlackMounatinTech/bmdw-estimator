@@ -290,6 +290,16 @@ catalogue_key set so the hydrator looks up the rate from spoil.json):
   load (10 cu_yd capacity). Emit qty = ceil(spoil_cu_yd / 10), unit = "load".
   Description: "Dump — Browns River — N tandem loads".
 
+STUMP DISPOSAL — separate from regular soil spoil:
+- Stumps pulled during land clearing / site prep dispose at $195/ton (uniform —
+  doesn't matter which pit). Use catalogue_type "spoil", catalogue_key
+  "stump_disposal", unit "ton", qty = total stump tonnage Michael stated.
+  Description: "Stump disposal — N tons".
+- Rule of thumb: a 'decent size' stump ≈ 1 ton. If Michael says "six decent stumps"
+  without a tonnage, that's roughly 6 tons — but ALWAYS ask to confirm tonnage.
+- Stumps and soil spoil are SEPARATE lines on the same quote (different per-ton rates,
+  different categories) — don't combine them.
+
 DO NOT emit unit_cost for spoil — leave it for the hydrator to fill from spoil.json.
 This was a bug previously (AI emitted unit_cost=0 leaving Upland's spoil at $0).
 
@@ -317,6 +327,7 @@ the right, no matter which spoken term Michael used; never ask to clarify):
 - "magnum stones", "magnum stone blocks" → magnum_stone_block ($205)
 - "concrete" (for a pad) → concrete ($425/cu_m)
 - "rebar" (10 mm) → rebar_10mm_20ft ($14/stick)
+- "stumps", "stump disposal", "pulling stumps" → catalogue_type "spoil", catalogue_key "stump_disposal" ($195/ton) — unit "ton", quantity = total tonnage. Decent-size stump ≈ 1 ton rule of thumb.
 
 If a trade term appears that's NOT in this list AND not obviously in the catalogue,
 that's a candidate for needs_catalogue_add=true with a warning.
@@ -528,7 +539,13 @@ def generate_clarifying_questions(quick_notes: str) -> dict:
         "  (4) PUMP TRUCK — only ask if pad is large or access is tight. Default no pump.\n"
         "  Rebar is OPTIONAL — only ask if Michael didn't say either way ('with rebar?' "
         "or 'no rebar?'). Finish defaults to flat — only ask if context suggests "
-        "exposed-aggregate (decorative patio, pool deck, etc.).\n\n"
+        "exposed-aggregate (decorative patio, pool deck, etc.).\n"
+        "- STUMP TONNAGE — when Michael mentions pulling stumps but doesn't state a "
+        "total tonnage, ALWAYS ask: 'Roughly how many tons of stumps total? "
+        "(decent-size stump ≈ 1 ton each)'. Stumps dispose at $195/ton uniform "
+        "(catalogue_key stump_disposal), so the tonnage drives the whole disposal "
+        "cost. Skip the ask only if he already gave a tonnage or a count he wants "
+        "treated as the tonnage (e.g. 'four 1-ton stumps' = 4 tons).\n\n"
         "==============================\n"
         "FORMATTING:\n"
         "==============================\n"

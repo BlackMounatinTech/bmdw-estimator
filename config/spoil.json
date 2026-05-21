@@ -29,6 +29,13 @@
       "rate_per_cu_yd": 10.0,
       "serves_areas": ["Campbell River", "Courtenay (north)"],
       "notes": "$10 per cu_yd (1:1 with tons). Located in Campbell River area. Use when Michael says 'Northwin'. Both Northwin AND Upland's serve Campbell River (separate ends of town) — let Michael pick which one based on job location proximity; don't default to one over the other for Campbell River."
+    },
+    "stump_disposal": {
+      "sku": "DUMP-STUMP",
+      "name": "Stump disposal",
+      "billing_model": "per_ton",
+      "rate_per_ton": 195.0,
+      "notes": "$195 per ton — uniform rate regardless of which pit takes the load. Use for stumps pulled during land clearing / site prep. Rule of thumb: a 'decent size' stump ≈ 1 ton. Michael always confirms estimated total tonnage; clarifier asks when not stated."
     }
   }
 }
