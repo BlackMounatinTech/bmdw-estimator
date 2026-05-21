@@ -258,4 +258,3 @@
     "notes": "8\" × 4\" = 32 sq in surface area per brick. Coverage: 144/32 = 4.5 bricks per sq ft. Quantity formula: ceil(area_sf × 4.5 × 1.05) — the 1.05 is a 5% waste factor for cuts, chips, breakage. Bricks sit on 1\" sand bed on top of 4\" road crush base."
   }
 }
-}
