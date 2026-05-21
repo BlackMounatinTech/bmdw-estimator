@@ -48,6 +48,14 @@
     "cost_per_unit": 14.0,
     "supplier": "Upland's Gravel"
   },
+  "sand_uplands": {
+    "sku": "AGG-SAND-UP",
+    "name": "Sand (Upland's)",
+    "unit": "cu_yd",
+    "cost_per_unit": 31.0,
+    "supplier": "Upland's Gravel",
+    "notes": "$31/cu_yd. Used for the 1\" setting bed under paver bricks."
+  },
   "road_crush_34_uplands": {
     "sku": "AGG-RC-34-UP",
     "name": "3/4\" road crush (Upland's)",
@@ -238,5 +246,16 @@
     "unit": "lump",
     "cost_per_unit": 250.0,
     "notes": "Standard $250 for typical residential pads. Michael overrides with a different number when it's a really big pad. Parser auto-uses $250 unless contractor states a different dollar amount in voice."
+  },
+
+  "paver_brick": {
+    "sku": "PAVER-8X4",
+    "name": "Paver brick (8\" × 4\")",
+    "unit": "each",
+    "cost_per_unit": 1.45,
+    "dimensions_in": [8, 4],
+    "surface_sq_in": 32,
+    "notes": "8\" × 4\" = 32 sq in surface area per brick. Coverage: 144/32 = 4.5 bricks per sq ft. Quantity formula: ceil(area_sf × 4.5 × 1.05) — the 1.05 is a 5% waste factor for cuts, chips, breakage. Bricks sit on 1\" sand bed on top of 4\" road crush base."
   }
+}
 }

@@ -171,6 +171,31 @@ RETAINING_WALL — excavator sizing:
 - Lock blocks → minimum excavator_9t (9-ton). Lock blocks are too heavy for smaller iron.
 - Magnum stone blocks → excavator_4t (4-ton) is fine.
 
+PATIO (paver pad) — geometry & math:
+- Pavers are 8" × 4" = 32 sq in surface area each.
+- Coverage rule: 4.5 bricks per sq ft (144 sq in / 32 sq in per brick).
+- Brick quantity: ceil(area_sf × 4.5 × 1.05) — the 1.05 adds 5% waste for cuts/breakage.
+  Example: 250 sq ft → ceil(250 × 4.5 × 1.05) = 1,182 bricks × $1.45 = $1,713.90.
+
+PATIO — required line items on EVERY paver pad (unless contractor says otherwise):
+- Materials: paver_brick (catalogue_key `paver_brick`, unit `each`, qty = brick count). $1.45/brick.
+- Materials: sand layer — 1" of sand_uplands (default) over the base.
+  cu_yd = (area_sf × (1/12)) / 27. catalogue_key `sand_uplands` ($31/cu_yd) unless
+  contractor specifies a different supplier.
+- Materials: base — 4" of 3/4" road crush by default (range 4-6"; ask if depth unclear).
+  cu_yd = (area_sf × (depth_ft)) / 27. catalogue_key `road_crush_34_uplands` (default).
+- Equipment: excavator_4t for digging the base (mob/demob per standard rule).
+- Trucking + spoil for the excavated base depth (per standard aggregate trucking +
+  spoil dump destination rules).
+- Labour: lead_hand + helper, scaled by pad size (same brackets as concrete pads:
+  <200 sf = 1 day, 200-500 sf = 2 days, >500 sf = 3+ days).
+
+PATIO — DO NOT use rebar, forms, or concrete (those are concrete_pad lines, not paver).
+
+PATIO — clarifier:
+- ALWAYS ask base depth if contractor said "patio" without specifying (default 4").
+- ALWAYS ask if pad goes on existing surface (no dig/base/spoil) vs fresh ground.
+
 CONCRETE_PAD — geometry & math:
 - Volume math: vol_cu_m = (L_ft × W_ft × thickness_ft) / 35.3147
   - Example: 20 × 40 × 4" thick = 20 × 40 × (4/12) / 35.3147 = 7.55 cu_m
@@ -328,6 +353,8 @@ the right, no matter which spoken term Michael used; never ask to clarify):
 - "concrete" (for a pad) → concrete ($425/cu_m)
 - "rebar" (10 mm) → rebar_10mm_20ft ($14/stick)
 - "stumps", "stump disposal", "pulling stumps" → catalogue_type "spoil", catalogue_key "stump_disposal" ($195/ton) — unit "ton", quantity = total tonnage. Decent-size stump ≈ 1 ton rule of thumb.
+- "pavers", "paver bricks", "brick pavers" → paver_brick ($1.45 each, 8×4 inch = 32 sq in surface, 4.5 per sq ft, add 5% waste)
+- "sand" (for paver setting bed) → sand_uplands ($31/cu_yd) by default; sand_brownsriver ($10) for Courtenay/Comox/Cumberland
 
 If a trade term appears that's NOT in this list AND not obviously in the catalogue,
 that's a candidate for needs_catalogue_add=true with a warning.
