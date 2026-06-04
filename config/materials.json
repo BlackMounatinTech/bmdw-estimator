@@ -203,7 +203,16 @@
     "name": "Concrete (delivered, per cu m)",
     "unit": "cu_m",
     "cost_per_unit": 425.0,
-    "notes": "$425/cu m delivered. Includes delivery within ~1 hour of supplier. Loads under 3.5 cu m have a $150 small-load surcharge — see concrete_small_load_surcharge."
+    "notes": "DEFAULT for central Vancouver Island (Cobble Hill, Duncan, Mill Bay, Cowichan). $425/cu m delivered. Includes delivery within ~1 hour of supplier. Loads under 3.5 cu m have a $150 small-load surcharge — see concrete_small_load_surcharge."
+  },
+  "concrete_brownsriver": {
+    "sku": "CONC-CUM-BR",
+    "name": "Concrete (Courtenay / Comox area, per cu m)",
+    "unit": "cu_m",
+    "cost_per_unit": 340.0,
+    "supplier": "Courtenay / Comox area",
+    "serves_areas": ["Courtenay", "Comox", "Cumberland"],
+    "notes": "$340/cu m delivered for Courtenay / Comox / Cumberland jobs. Use this instead of `concrete` when the pad is in that region. Loads under 3.5 cu m still get the $150 small-load surcharge."
   },
   "concrete_small_load_surcharge": {
     "sku": "CONC-SMALL-LOAD",

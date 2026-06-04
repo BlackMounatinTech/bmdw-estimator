@@ -202,7 +202,11 @@ CONCRETE_PAD — geometry & math:
 - Pad area: area_sf = L_ft × W_ft
 
 CONCRETE_PAD — required line items on EVERY pad (unless contractor says otherwise):
-- Materials: concrete (catalogue_key `concrete`, unit `cu_m`, qty = vol_cu_m). $425/cu_m.
+- Materials: concrete. Pick the catalogue_key by REGION:
+  - Courtenay / Comox / Cumberland → catalogue_key `concrete_brownsriver` ($340/cu_m)
+  - Everywhere else (central VI default) → catalogue_key `concrete` ($425/cu_m)
+  Always unit `cu_m`, qty = vol_cu_m. If contractor explicitly names a price, use that
+  (emit a freeform Materials line with unit_cost = stated $).
 - Materials: concrete_small_load_surcharge (qty 1, unit `lump`) — ONLY add when vol_cu_m < 3.5.
 - Materials: finishing — pick by what Michael says:
   - Default / "flat finish" / unstated → catalogue_key `concrete_finish_flat`, unit `sf`, qty = area_sf ($2.15/sf)
@@ -350,7 +354,7 @@ the right, no matter which spoken term Michael used; never ask to clarify):
 - "drain rock" → drain_rock_uplands by default; drain_rock_brownsriver for north-island
 - "lock block", "lock blocks" → lock_block_no1 ($150) or lock_block_no2 ($130) — ask only if Michael didn't say which
 - "magnum stones", "magnum stone blocks" → magnum_stone_block ($205)
-- "concrete" (for a pad) → concrete ($425/cu_m)
+- "concrete" (for a pad) → concrete ($425/cu_m default for central VI); concrete_brownsriver ($340/cu_m) for Courtenay/Comox/Cumberland jobs
 - "rebar" (10 mm) → rebar_10mm_20ft ($14/stick)
 - "stumps", "stump disposal", "pulling stumps" → catalogue_type "spoil", catalogue_key "stump_disposal" ($195/ton) — unit "ton", quantity = total tonnage. Decent-size stump ≈ 1 ton rule of thumb.
 - "pavers", "paver bricks", "brick pavers" → paver_brick ($1.45 each, 8×4 inch = 32 sq in surface, 4.5 per sq ft, add 5% waste)
