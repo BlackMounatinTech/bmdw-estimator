@@ -159,6 +159,10 @@ class Quote(BaseModel):
     discount_pct: float = 0.0           # applied to subtotal after markup, before tax
     discount_flat: float = 0.0          # flat-dollar discount, additive with pct discount
     tax_pct: float = 12.0               # GST + PST flat, applied last
+    flat_price_override: Optional[float] = None  # If set, THIS is the all-in customer total the
+                                                 # customer sees (tax-INCLUDED). Bypasses the whole
+                                                 # cost→markup→discount→tax buildup. Use when you just
+                                                 # want to quote a set number (e.g. 2890).
     project_plan: List[ProjectPlanDay] = Field(default_factory=list)
     start_date: Optional[date] = None
     status: QuoteStatus = QuoteStatus.DRAFT
@@ -230,16 +234,31 @@ class Quote(BaseModel):
 
     @property
     def subtotal(self) -> float:
-        """Subtotal AFTER discount. Tax applies on this."""
+        """Subtotal AFTER discount. Tax applies on this.
+
+        FLAT-PRICE OVERRIDE: if flat_price_override is set, that number is the
+        all-in customer total (tax included), so we back the tax out to show a
+        clean subtotal that + tax = the flat number.
+        """
+        if self.flat_price_override is not None:
+            return round(self.flat_price_override / (1 + self.tax_pct / 100), 2)
         return round(self.subtotal_pre_discount - self.discount_amount, 2)
 
     @property
     def tax_amount(self) -> float:
+        if self.flat_price_override is not None:
+            return round(self.flat_price_override - self.subtotal, 2)
         return round(self.subtotal * self.tax_pct / 100, 2)
 
     @property
     def customer_total(self) -> float:
-        """The single all-in number the customer sees. Cost → markup → discount → tax."""
+        """The single all-in number the customer sees.
+
+        Normal: Cost → markup → discount → tax. With a flat_price_override set,
+        it's simply that override (the set number you typed in).
+        """
+        if self.flat_price_override is not None:
+            return round(self.flat_price_override, 2)
         return round(self.subtotal + self.tax_amount, 2)
 
     @property

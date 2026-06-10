@@ -181,7 +181,19 @@ table.lines tr.bucket-row td { background: #e9ecef; font-weight: 700;
 .outstanding { font-size: 11pt; font-weight: 700; color: #111;
                margin-bottom: 14px; }
 
-p.note { font-size: 11pt; color: #222; line-height: 1.5; margin-top: 14px; }
+p.note { font-size: 10pt; color: #555; line-height: 1.5; margin-top: 16px; }
+
+ol.plan { font-size: 11pt; color: #1f2937; line-height: 1.55; margin: 4px 0 20px;
+          padding-left: 22px; }
+ol.plan li { margin-bottom: 5px; padding-left: 4px; }
+
+.accept-box { border: 2px solid #2563eb; background: #eff6ff; border-radius: 8px;
+              padding: 16px 18px; margin: 8px 0 18px; }
+.accept-title { font-size: 14pt; font-weight: 800; color: #1d4ed8;
+                margin-bottom: 2px; }
+.accept-box p { font-size: 11pt; color: #1f2937; }
+.etransfer { font-size: 13pt; font-weight: 800; color: #1d4ed8; margin: 4px 0;
+             letter-spacing: 0.01em; }
 
 pre { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-size: 10.5pt; white-space: pre-wrap; line-height: 1.5; margin: 0;
@@ -207,11 +219,51 @@ def _short_scope_line(q: Quote) -> str:
     return " · ".join(li.label for li in q.line_items) or "Excavation work"
 
 
+def _project_plan_rows(q: Quote) -> str:
+    """Friendly numbered 'how it'll go' plan for the customer — pulled from the
+    same project-plan steps the contract uses, so they can picture the whole job.
+    Returns '' if there are no steps."""
+    pre = [
+        "We walk the site with you to confirm access and grades",
+        "We book and complete BC One Call utility locates",
+        "You send your deposit and we lock in your spot on the schedule",
+        "We bring in the equipment and materials and get started",
+    ]
+    work = []
+    for li in q.line_items:
+        plan = li.inputs.get("project_plan") if isinstance(li.inputs, dict) else None
+        for step in (plan or []):
+            desc = (step.get("description") or "").strip()
+            if desc:
+                work.append(desc)
+    if not work:
+        work = [f"We complete the {li.label.lower()}" for li in q.line_items] or \
+               ["We complete the work described above"]
+    wrap = [
+        "We clean up, haul away all waste and equipment",
+        "We walk the finished job with you to make sure you're happy",
+        "You send the final balance and we hand it over — done",
+    ]
+    steps = pre + work + wrap
+    items = "".join(f"<li>{s}</li>" for s in steps)
+    return (
+        '<div class="section-label">How the job will go</div>'
+        '<p class="work-desc" style="margin-bottom:8px;">'
+        "Here's exactly how we'll take this from start to finish, so you know what to expect:"
+        '</p>'
+        f'<ol class="plan">{items}</ol>'
+    )
+
+
 def _quote_html(q: Quote, company: dict, today: date) -> str:
-    """Customer-facing quote: ONE 'Services' line with the lump-sum total.
-    Customer never sees the bucket breakdown — that's internal only."""
+    """Customer-facing quote — the COMPLETE selling document in ONE page:
+    a friendly intro, the price, the project plan (so they can picture it),
+    and a clear e-Transfer 'ready to go' acceptance block. Customer never
+    sees the internal bucket breakdown."""
     deposit = q.customer_total * (company.get("deposit_pct", 50.0) / 100)
     remaining = q.customer_total - deposit
+    etransfer_email = company.get("email", "blackmountaindirtworks@gmail.com")
+    first_name = (q.customer.name or "there").split()[0]
 
     # Single-row services table — lump sum only
     services_table = (
@@ -222,18 +274,17 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
         '</tbody></table>'
     )
 
-    # Payment summary — total / deposit / remaining
     payment_rows = [
         '<tr><td>Total project cost (incl. tax)</td>'
         f'<td class="num">${q.customer_total:,.2f}</td></tr>',
     ]
     if deposit > 0:
         payment_rows.append(
-            '<tr><td>Deposit required (50%) — due before mobilization</td>'
+            '<tr><td>Deposit to book your spot (50%)</td>'
             f'<td class="num">${deposit:,.2f}</td></tr>'
         )
         payment_rows.append(
-            '<tr class="total"><td>Remaining balance — due upon completion</td>'
+            '<tr class="total"><td>Balance when the job is done</td>'
             f'<td class="num">${remaining:,.2f}</td></tr>'
         )
 
@@ -244,16 +295,42 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
         f'<tbody>{"".join(payment_rows)}</tbody></table>'
     )
 
+    # Friendly intro line
+    intro = (
+        f'<p class="work-desc" style="margin-bottom:16px;">Hi {first_name}, thanks for '
+        "the opportunity to quote your project. Here's everything laid out clear and simple "
+        "— what the work is, what it costs all-in, and exactly how it'll go. Any questions at "
+        "all, just reach out.</p>"
+    )
+
+    # The "ready to go" e-Transfer acceptance block
+    accept_block = (
+        '<div class="accept-box">'
+        '<div class="accept-title">Ready to go?</div>'
+        f'<p style="margin:6px 0 8px;">Booking your spot is easy — just send your deposit of '
+        f'<strong>${deposit:,.2f}</strong> by e-Transfer to:</p>'
+        f'<p class="etransfer">{etransfer_email}</p>'
+        '<p style="margin:8px 0 0;font-size:11pt;color:#444;">Sending the deposit confirms you '
+        "accept this quote and locks in your place on the schedule. That's it — no forms to "
+        "chase, no hassle. Prefer to talk it through first? Just give me a call.</p>"
+        "</div>"
+    )
+
     body = (
         _header_html(company, "QUOTE", q, today)
-        + '<div class="doc-section"><div class="section-label">DESCRIPTION OF WORK:</div>'
+        + intro
+        + '<div class="doc-section"><div class="section-label">YOUR PROJECT:</div>'
         f'<div class="work-desc">{_short_scope_line(q)}</div></div>'
         + services_table
-        + '<div class="section-label">Payment summary</div>'
+        + '<div class="section-label">Payment</div>'
         + payment_table
-        + f'<p class="note"><strong>Terms.</strong> '
-          f'{company.get("quote_terms", "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.")}'
-          f'</p>'
+        + _project_plan_rows(q)
+        + accept_block
+        + f'<p class="note"><strong>The fine print.</strong> '
+          f'{company.get("quote_terms", "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.")} '
+          "This price is all-in for the work described, based on normal ground conditions. "
+          "If something unexpected turns up underground, we'll always talk it through with you "
+          "before any extra work or cost.</p>"
     )
     return _wrap(f"Quote {q.quote_id}", body)
 

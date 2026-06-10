@@ -257,6 +257,13 @@ with controls_col:
             '<div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Adjust pricing</div>',
             unsafe_allow_html=True,
         )
+        new_flat = st.number_input(
+            "Set a flat price (overrides everything)",
+            min_value=0.0, step=10.0,
+            value=float(q.flat_price_override) if q.flat_price_override is not None else 0.0,
+            help=("Just want to quote a set number? Type it here (e.g. 2890) and it becomes the "
+                  "customer's all-in total, tax included. Leave at 0 to use the normal cost buildup below."),
+        )
         new_markup = st.number_input(
             "Markup %", min_value=0.0, max_value=300.0, step=1.0,
             value=float(q.markup.overall_pct),
@@ -282,6 +289,8 @@ with controls_col:
             help="Applied only to equipment-bucket entries flagged as insurance-eligible (excludes trucks).",
         )
         if st.form_submit_button("Apply", use_container_width=True, type="primary"):
+            # Flat price: 0 means "off" (use normal buildup); any positive number overrides.
+            q.flat_price_override = float(new_flat) if float(new_flat) > 0 else None
             q.markup.overall_pct = float(new_markup)
             q.discount_pct = float(new_discount)
             q.discount_flat = float(new_discount_flat)
@@ -289,6 +298,7 @@ with controls_col:
             q.rental_insurance_pct = float(new_insurance)
             save_quote(q)
             log_event(q.quote_id, "pricing_adjusted", {
+                "flat_price_override": q.flat_price_override,
                 "markup_pct": new_markup, "discount_pct": new_discount,
                 "discount_flat": new_discount_flat,
                 "tax_pct": new_tax, "rental_insurance_pct": new_insurance,
