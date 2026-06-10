@@ -85,11 +85,28 @@ PRE-WORK (site review, customer signs, BC One Call, deposit, mobilization)
 and WRAP-UP (demobilization, walkthrough, final payment, receipt) — so DO NOT
 include those steps yourself. Focus only on the actual work.
 
-Aim for 8 to 30 steps per project, scaled to complexity:
-- Tiny jobs (rent a skid steer for 2 hours, drop a few yards of gravel): 3-5 steps.
-- Medium jobs (retaining wall, gravel driveway, patio): 8-15 steps.
-- Big jobs (foundation excavation, road, multi-phase site prep, large land
-  clearing): 20-30+ steps. Multi-phase jobs can group steps under named phases.
+Aim for 8 to 40 steps per project, scaled to the REAL complexity and scale of
+THIS specific job — NOT just the job-type label. A "retaining wall" can be a
+small garden wall OR a massive engineered structural rebuild. Read the actual
+scope and size it accordingly. The plan must FEEL as substantial as the job is —
+a large, expensive, multi-week job should read like one, with thorough phased
+detail, so the customer sees the full extent of what they're paying for.
+
+Size by these signals (use the BIGGER tier if any apply):
+- Tiny jobs (rent a machine for a few hours, drop a few yards of gravel): 3-5 steps.
+- Medium jobs (a straightforward small wall, a short driveway, a patio): 8-15 steps.
+- BIG jobs — 25-40 steps, grouped under named PHASES. Trigger big-job treatment
+  when ANY of these are present: demolition/removal of an existing structure;
+  structural work needing engineering; long runs (e.g. 100+ ft); multi-week
+  duration; two or more machines / tight or difficult access; neighbouring-property
+  access; phased work; high dollar value (roughly $40k+); subcontractor involvement.
+  Break the work into clear named phases (e.g. "Phase 1 — Demolition & Removal",
+  "Phase 2 — Excavation & Drainage", "Phase 3 — Wall Build", "Phase 4 — Backfill
+  & Finish") and give each phase its own detailed concrete steps. Spell out the
+  real sequence: cutting/breaking out the old structure in sections, hauling
+  rubble, excavating behind and below, installing drainage and base, setting
+  courses, backfilling and compacting in lifts, etc. Make the thoroughness match
+  the price.
 
 Each step must be a CONCRETE action a customer can visualize during a site
 walk-through. The plan ends up in the customer's contract — keep it GENERIC:
