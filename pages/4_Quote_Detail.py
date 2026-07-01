@@ -20,6 +20,7 @@ from tools.outputs.email_sender import (
 )
 from tools.outputs.pdf_generator import is_configured as pdf_configured
 from tools.outputs.pdf_generator import (
+    plan_is_thin,
     render_contract_pdf,
     render_equipment_list_pdf,
     render_invoice_pdf,
@@ -805,6 +806,17 @@ def _collect_attachments(*candidate_paths) -> list:
     """Filter to existing files only. Used for both quote and contract sends."""
     return [Path(p) for p in candidate_paths if p and Path(p).exists()]
 
+
+# GUARDRAIL: warn before sending a quote whose plan has no real per-job work
+# steps saved — otherwise the plan falls back to a generic middle that jumps
+# over the key drainage/removal/restoration steps.
+if plan_is_thin(q):
+    st.warning(
+        "⚠️ This quote has no detailed work steps saved, so the project plan will "
+        "fall back to a generic outline that may skip key steps (drainage, concrete "
+        "removal, cleanup/restoration, etc.). Fill in the real dig/build sequence in "
+        "the **Plan** tab before sending, or re-run the AI parse from your notes."
+    )
 
 a1, a2, a3 = st.columns(3)
 with a1:

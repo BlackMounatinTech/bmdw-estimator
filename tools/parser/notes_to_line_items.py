@@ -80,10 +80,11 @@ retaining_wall, patio, concrete_pad, concrete_driveway, gravel_driveway,
 land_clearing, foundation, road_building, drainage, septic, site_prep, machine_hours
 
 PROJECT PLAN — produce a COMPREHENSIVE WORK-PHASE plan per project. The
-contract template will automatically wrap your work-phase steps with universal
-PRE-WORK (site review, customer signs, BC One Call, deposit, mobilization)
-and WRAP-UP (demobilization, walkthrough, final payment, receipt) — so DO NOT
-include those steps yourself. Focus only on the actual work.
+contract template will automatically wrap your work-phase steps with the fixed
+BMDW OPENING (approval, BC 1 Call utility locates, deposit, mobilize equipment)
+and CLOSING (thorough site cleanup + haul away, final walkthrough, final
+payment) — so DO NOT include those bookend steps yourself. Focus only on the
+actual work BETWEEN mobilization and cleanup.
 
 Aim for 8 to 40 steps per project, scaled to the REAL complexity and scale of
 THIS specific job — NOT just the job-type label. A "retaining wall" can be a
@@ -142,6 +143,57 @@ Examples for a gravel driveway with imported aggregate:
   Day 3 — Final grading and crowning for drainage
   Day 4 — Surface finish; final compaction
   ...
+
+⭐ REAL BMDW PROJECT OUTLINES (the gold standard — MATCH this level of detail).
+These are Michael's actual plans. Notice the specific steps a generic plan
+SKIPS — copy this thoroughness. Do NOT jump over these kinds of steps:
+
+  RETAINING WALL + DRAINAGE (work steps only):
+    - Dig out length of wall
+    - Lay gravel, grade it flat, and compact it
+    - Set all blocks
+    - Place drain tile behind the wall
+    - Backfill with drain rock, cover with fabric, then top with soil
+    - Dig a trench up the yard and across the driveway to connect drainage
+    - Remove a section of concrete at the front of the driveway
+    - Install drain tile, fabric, and drain pipe at the front of the garage
+    - Pour and finish the concrete
+
+  FOUNDATION EXCAVATION (work steps only):
+    - Layout provided by client or surveyor unless otherwise specified
+    - Establish excavation plan (dig sequence and spoil placement)
+    - Excavate foundation area to hardpan
+    - Establish corners and grade reference points
+    - Maintain consistent subgrade suitable for foundation preparation
+
+  LANDSCAPING / YARD (work steps only):
+    - Remove all waste materials, unwanted trees and debris
+    - Trench for and install irrigation lines and sprinklers
+    - Install garden in front yard, contour and landscape
+    - Install topsoil along side of house / in entirety of backyard
+    - Install blue chip gravel / build a defined garden bed along the walkway
+    - Plant tree(s) — coordinated with client
+    - Grass seed all fresh topsoil
+
+  CONCRETE FLATWORK / PATHS (work steps only):
+    - Remove all debris and existing blocks/pad
+    - Form in the stair set / landing / curving path / circular pad
+    - Pour and finish the concrete
+    - Top dress uneven sections of yard with topsoil and grade flat
+    - Grass seed the top-dressed areas
+
+⭐ COMMONLY-MISSED STEPS — actively check whether THIS job needs any of these,
+because generic plans leave them out:
+  - Drainage: drain tile / drain rock / filter fabric / drain pipe BEHIND walls
+    and connecting trenches ACROSS the yard or driveway to a discharge point.
+  - Removing/cutting existing structures (concrete sections, old pads, blocks).
+  - Compaction called out explicitly ("grade flat and compact"), not assumed.
+  - Restoration after trenching: topsoil, grade flat, grass seed disturbed areas.
+  - Client-coordinated items (tree placement, plant selection, layout sign-off).
+  - Irrigation / sprinkler lines when landscaping is involved.
+If the voice note implies any of these, INCLUDE the step. When in doubt, add it —
+a plan that lists the drainage and cleanup/restoration reads far more complete
+than one that stops at the main structure.
 
 Format as {{ "day": <int>, "description": "..." }} objects in the project_plan
 list. Use the same day number for multiple steps that happen on the same day.

@@ -80,21 +80,19 @@ def _project_plan_block(q: Quote) -> str:
     flow into one continuous 1-N list."""
     deposit = q.customer_total * (company_deposit_pct(None) / 100)
 
+    # Fixed OPENING bookend — matches Michael's real BMDW outlines exactly.
     pre_work = [
-        "Site review walk-through with the Owner — confirm access, grades, working conditions",
-        "Owner reviews and signs this contract",
-        "BC One Call utility locates booked and completed for any underground services",
+        "Owner reviews and approves this contract",
+        "Call BC 1 Call to locate all underground utilities",
         f"Receive 50% deposit (${deposit:,.2f} CAD) before equipment is mobilized",
-        "Mobilize equipment and stage materials",
+        "Mobilize and truck equipment to site",
     ]
 
+    # Fixed CLOSING bookend — matches Michael's real BMDW outlines exactly.
     wrap_up = [
-        "Internal QA of completed work — grades, drainage, surface finish",
-        "Demobilize equipment, tools, and waste from the site",
-        "Final walkthrough with the Owner — confirm completion against the scope",
-        "Address any punch-list items identified during walk",
-        "Receive remaining balance",
-        "Issue receipt for final payment; project complete",
+        "Complete a thorough site cleanup and haul away all waste and equipment",
+        "Conduct a final walkthrough with the Owner",
+        "Receive final payment, and the project is done",
     ]
 
     # Collect AI-generated work-phase steps from each project (without Day labels)

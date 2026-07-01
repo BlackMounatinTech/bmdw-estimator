@@ -128,90 +128,105 @@ def _header_html(company: dict, doc_label: str, q: Quote, today: date,
 # ---- Shared CSS — clean professional look, no marketing colors ---------
 
 _BASE_CSS = """
-/* ---- BMDW brand palette (warm, premium, earthy — not drab corporate) ----
-   Evergreen (deep brand green) + Clay/Amber (warm accent) + soft stone tints.
+/* ---- Apple / BMT-website aesthetic ------------------------------------
+   Matches blackmountaintech.ca: SF Pro, pure black/white + gray scale, NO
+   colors, hairline rules, negative letter-spacing on headings, weight 600
+   (not 800), and lots of white space. Premium through restraint + air.
 */
-@page { size: Letter; margin: 0.7in 0.75in; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-       color: #2b2620; font-size: 11pt; line-height: 1.45; }
+@page { size: Letter; margin: 1.0in 0.9in; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+       "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+       color: #262626; font-size: 10.5pt; line-height: 1.6;
+       font-weight: 400; -webkit-font-smoothing: antialiased; }
 
-.brand-block { text-align: center; margin-bottom: 20px; padding-bottom: 16px;
-               border-bottom: 3px solid #2f5233; }
-.brand-logo { max-height: 130px; max-width: 280px; margin: 0 auto 8px;
+/* ---- Brand header: quiet, centered, tons of air ---- */
+.brand-block { text-align: center; margin-bottom: 54px; }
+.brand-logo { max-height: 96px; max-width: 220px; margin: 0 auto 14px;
               display: block; }
-.brand-name { font-size: 22pt; font-weight: 800; letter-spacing: 0.04em;
-              color: #2f5233; line-height: 1.1; text-transform: uppercase; }
+.brand-name { font-size: 15pt; font-weight: 600; letter-spacing: -0.01em;
+              color: #171717; line-height: 1.2; }
 
-.owner-info { font-size: 10.5pt; color: #4a4238; margin-bottom: 22px;
-              line-height: 1.5; }
+.owner-info { font-size: 9pt; color: #737373; margin-bottom: 44px;
+              line-height: 1.7; letter-spacing: 0.01em; }
 
-.doc-section { margin-bottom: 18px; }
-.doc-label { font-size: 15pt; font-weight: 800; font-style: italic;
-             color: #b45309; margin-bottom: 6px; letter-spacing: 0.02em; }
-.doc-meta { font-size: 11pt; color: #4a4238; }
-.section-label { font-size: 12.5pt; font-weight: 800;
-                 color: #2f5233; margin-bottom: 6px; letter-spacing: 0.02em;
-                 border-left: 4px solid #c2761a; padding-left: 9px; }
-.bill-to { font-size: 11pt; color: #4a4238; line-height: 1.5; }
+/* ---- Doc title: big, light, Apple-hero style ---- */
+.doc-section { margin-bottom: 34px; }
+.doc-label { font-size: 30pt; font-weight: 600; letter-spacing: -0.03em;
+             color: #171717; margin-bottom: 14px; line-height: 1.05; }
+.doc-meta { font-size: 9.5pt; color: #a3a3a3; line-height: 1.7;
+            letter-spacing: 0.01em; }
 
-.work-desc { font-size: 11pt; color: #3a342c; margin-bottom: 10px; }
+/* ---- Section labels: small, uppercase, tracked-out (the Apple eyebrow) ---- */
+.section-label { font-size: 8.5pt; font-weight: 600; text-transform: uppercase;
+                 color: #a3a3a3; margin-bottom: 14px; letter-spacing: 0.12em; }
+.bill-to { font-size: 10.5pt; color: #404040; line-height: 1.7; }
 
-table.summary { width: 100%; border-collapse: collapse; margin-top: 6px;
-                margin-bottom: 18px; }
-table.summary th { background: #2f5233; color: #ffffff; font-weight: 700;
-                   text-align: left; padding: 9px 12px; font-size: 11pt;
-                   border: 1px solid #2f5233; }
+.work-desc { font-size: 11pt; color: #404040; margin-bottom: 14px;
+             line-height: 1.65; }
+
+/* ---- Tables: no fills, hairline rules only, generous padding ---- */
+table.summary { width: 100%; border-collapse: collapse; margin: 10px 0 34px; }
+table.summary th { background: transparent; color: #a3a3a3; font-weight: 600;
+                   text-align: left; padding: 12px 4px; font-size: 8.5pt;
+                   text-transform: uppercase; letter-spacing: 0.1em;
+                   border: none; border-bottom: 1px solid #e5e5e5; }
 table.summary th.num { text-align: right; }
-table.summary td { padding: 8px 12px; font-size: 11pt; color: #2b2620;
-                   border: 1px solid #d8cfc0; }
+table.summary td { padding: 14px 4px; font-size: 11pt; color: #262626;
+                   border: none; border-bottom: 1px solid #f5f5f5; }
 table.summary td.num { text-align: right; }
-table.summary tr:nth-child(even) td { background: #faf7f1; }
-table.summary tr.total td { font-weight: 800; background: #fbecd6;
-                            color: #7a3d06; border-top: 2px solid #c2761a; }
+table.summary tr.total td { font-weight: 600; font-size: 12pt; color: #171717;
+                            border-bottom: none; border-top: 1.5px solid #171717;
+                            padding-top: 16px; }
 
-table.lines { width: 100%; border-collapse: collapse; margin-top: 6px;
-              margin-bottom: 18px; }
-table.lines th { background: #2f5233; color: #ffffff; font-weight: 700;
-                 text-align: left; padding: 6px 10px; font-size: 10pt;
-                 border: 1px solid #2f5233; text-transform: uppercase;
-                 letter-spacing: 0.04em; }
+table.lines { width: 100%; border-collapse: collapse; margin: 10px 0 34px; }
+table.lines th { background: transparent; color: #a3a3a3; font-weight: 600;
+                 text-align: left; padding: 10px 4px; font-size: 8pt;
+                 border: none; border-bottom: 1px solid #e5e5e5;
+                 text-transform: uppercase; letter-spacing: 0.1em; }
 table.lines th.num { text-align: right; }
-table.lines td { padding: 6px 10px; font-size: 10pt; color: #2b2620;
-                 border: 1px solid #d8cfc0; }
+table.lines td { padding: 11px 4px; font-size: 10pt; color: #404040;
+                 border: none; border-bottom: 1px solid #f5f5f5; }
 table.lines td.num { text-align: right; }
-table.lines tr.bucket-row td { background: #eef2e9; font-weight: 700;
-                                color: #2f5233;
-                                font-size: 10pt; text-transform: uppercase;
-                                letter-spacing: 0.04em; }
+table.lines tr.bucket-row td { background: transparent; font-weight: 600;
+                                color: #737373; font-size: 8.5pt;
+                                text-transform: uppercase; letter-spacing: 0.1em;
+                                padding-top: 18px; }
 
-.payment-block { font-size: 11pt; color: #3a342c; line-height: 1.7;
-                 margin-bottom: 10px; }
-.outstanding { font-size: 11pt; font-weight: 700; color: #7a3d06;
-               margin-bottom: 14px; }
+.payment-block { font-size: 11pt; color: #404040; line-height: 1.9;
+                 margin-bottom: 14px; }
+.outstanding { font-size: 11pt; font-weight: 600; color: #171717;
+               margin-bottom: 18px; }
 
-p.note { font-size: 10pt; color: #6b6357; line-height: 1.5; margin-top: 16px;
-         border-top: 1px solid #e2dacb; padding-top: 10px; }
+p.note { font-size: 8.5pt; color: #a3a3a3; line-height: 1.7; margin-top: 40px;
+         border-top: 1px solid #f5f5f5; padding-top: 20px; letter-spacing: 0.01em; }
 
-ol.plan { font-size: 11pt; color: #3a342c; line-height: 1.55; margin: 4px 0 20px;
-          padding-left: 22px; }
-ol.plan li { margin-bottom: 6px; padding-left: 4px; }
-ol.plan li::marker { color: #c2761a; font-weight: 800; }
+/* ---- Plan: airy numbered list, hairline dividers between steps ---- */
+ol.plan { font-size: 11pt; color: #262626; line-height: 1.6; margin: 8px 0 34px;
+          padding: 0; list-style: none; counter-reset: step; }
+ol.plan li { margin: 0; padding: 15px 0 15px 46px; position: relative;
+             border-bottom: 1px solid #f5f5f5; counter-increment: step; }
+ol.plan li:last-child { border-bottom: none; }
+ol.plan li::before { content: counter(step, decimal-leading-zero);
+                     position: absolute; left: 0; top: 15px;
+                     font-size: 9pt; font-weight: 600; color: #d4d4d4;
+                     letter-spacing: 0.02em; }
 
-.accept-box { border: 2px solid #2f5233; background: #eef4ea; border-radius: 8px;
-              padding: 16px 18px; margin: 8px 0 18px; }
-.accept-title { font-size: 14pt; font-weight: 800; color: #2f5233;
-                margin-bottom: 2px; }
-.accept-box p { font-size: 11pt; color: #3a342c; }
-.etransfer { font-size: 13pt; font-weight: 800; color: #b45309; margin: 4px 0;
-             letter-spacing: 0.01em; }
+/* ---- Accept box: quiet framed panel, no color ---- */
+.accept-box { border: 1px solid #e5e5e5; background: #fafafa; border-radius: 14px;
+              padding: 28px 30px; margin: 20px 0 28px; }
+.accept-title { font-size: 15pt; font-weight: 600; color: #171717;
+                margin-bottom: 8px; letter-spacing: -0.02em; }
+.accept-box p { font-size: 10.5pt; color: #525252; line-height: 1.65; }
+.etransfer { font-size: 13pt; font-weight: 600; color: #171717; margin: 10px 0;
+             letter-spacing: -0.01em; }
 
-.plan-intro-box { background: #faf7f1; border-left: 4px solid #2f5233;
-                  border-radius: 4px; padding: 12px 16px; margin: 6px 0 16px;
-                  font-size: 11pt; color: #3a342c; line-height: 1.5; }
+.plan-intro-box { background: transparent; padding: 0; margin: 6px 0 30px;
+                  font-size: 12.5pt; color: #525252; line-height: 1.6;
+                  font-weight: 400; letter-spacing: -0.01em; }
 
-pre { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 10.5pt; white-space: pre-wrap; line-height: 1.5; margin: 0;
-      color: #2b2620; }
+pre { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+      Helvetica, Arial, sans-serif; font-size: 10pt; white-space: pre-wrap;
+      line-height: 1.75; margin: 0; color: #404040; }
 """
 
 
@@ -233,15 +248,39 @@ def _short_scope_line(q: Quote) -> str:
     return " · ".join(li.label for li in q.line_items) or "Excavation work"
 
 
-def _project_plan_steps(q: Quote) -> list:
-    """The ordered list of plain-language job steps (start to finish). Shared by
-    the quote, the standalone plan doc, and the contract so they never drift."""
-    pre = [
-        "We walk the site with you to confirm access and grades",
-        "We book and complete BC One Call utility locates",
-        "You send your deposit and we lock in your spot on the schedule",
-        "We bring in the equipment and materials and get started",
-    ]
+# ---- Project-plan skeleton (the GUARDRAIL) -----------------------------
+# Modelled on Michael's real BMDW project outlines. Every job, no matter the
+# type, runs on the SAME fixed bookends — these are non-negotiable and can
+# never be skipped. Only the MIDDLE (the actual work steps) changes per job.
+#
+#   OPENING (always, in this order):
+#     1. Receive approval
+#     2. Call BC 1 Call to locate underground utilities
+#     3. Receive deposit
+#     4. Mobilize equipment to site
+#   ... real work steps, in dig/build sequence ...
+#   CLOSING (always, in this order):
+#     - Thorough site cleanup, haul away all waste and equipment
+#     - Final walkthrough with the customer
+#     - Receive final payment, and the project is done
+
+_PLAN_OPENING = [
+    "Receive approval to proceed",
+    "Call BC 1 Call to locate all underground utilities",
+    "Receive deposit and lock in the schedule",
+    "Mobilize and truck equipment to site",
+]
+
+_PLAN_CLOSING = [
+    "Complete a thorough site cleanup and haul away all waste and equipment",
+    "Conduct a final walkthrough with the customer",
+    "Receive final payment, and the project is done",
+]
+
+
+def _plan_work_steps(q: Quote) -> list:
+    """The MIDDLE of the plan — the real, sequenced work for THIS job.
+    Pulled from the project-plan steps saved on the quote's line items."""
     work = []
     for li in q.line_items:
         plan = li.inputs.get("project_plan") if isinstance(li.inputs, dict) else None
@@ -249,15 +288,29 @@ def _project_plan_steps(q: Quote) -> list:
             desc = (step.get("description") or "").strip()
             if desc:
                 work.append(desc)
+    return work
+
+
+def plan_is_thin(q: Quote) -> bool:
+    """GUARDRAIL CHECK: True when the quote has no real per-job work steps saved,
+    so the plan would fall back to a generic middle. The UI uses this to WARN
+    Michael to fill in the real dig/build sequence before sending — instead of
+    silently shipping a plan that jumps over the key steps."""
+    return len(_plan_work_steps(q)) < 2
+
+
+def _project_plan_steps(q: Quote) -> list:
+    """The ordered list of plain-language job steps (start to finish). Shared by
+    the quote, the standalone plan doc, and the contract so they never drift.
+
+    Structure = fixed OPENING bookend + real work steps + fixed CLOSING bookend,
+    modelled on Michael's actual BMDW outlines. If no real work steps are saved,
+    a labelled placeholder makes the gap OBVIOUS (never a silent generic plan)."""
+    work = _plan_work_steps(q)
     if not work:
-        work = [f"We complete the {li.label.lower()}" for li in q.line_items] or \
-               ["We complete the work described above"]
-    wrap = [
-        "We clean up, haul away all waste and equipment",
-        "We walk the finished job with you to make sure you're happy",
-        "You send the final balance and we hand it over — done",
-    ]
-    return pre + work + wrap
+        work = [f"Complete the {li.label.lower()}" for li in q.line_items] or \
+               ["Complete the work described in the quote"]
+    return _PLAN_OPENING + work + _PLAN_CLOSING
 
 
 def _project_plan_rows(q: Quote) -> str:
