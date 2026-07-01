@@ -24,6 +24,7 @@ from tools.outputs.pdf_generator import (
     render_equipment_list_pdf,
     render_invoice_pdf,
     render_material_takeoff_pdf,
+    render_plan_pdf,
     render_quote_pdf,
     render_receipt_pdf,
 )
@@ -808,21 +809,25 @@ def _collect_attachments(*candidate_paths) -> list:
 a1, a2, a3 = st.columns(3)
 with a1:
     _email_ready = email_configured_method() != "none"
-    if st.button("Send Quote", use_container_width=True, disabled=not _email_ready,
-                 help=("Sends the quote PDF to the customer's email. "
+    if st.button("Send Quote + Plan", use_container_width=True, disabled=not _email_ready,
+                 help=("Sends the QUOTE and the PROJECT PLAN together (the free-value docs). "
+                       "Contract is sent separately, only after they say yes. "
                        + ("" if _email_ready else
                           "Disabled — email isn't configured. See Settings or workflows/setup_gmail.md."))):
-        # Auto-render the PDF if WeasyPrint is available, then attach.
+        # Auto-render quote + plan if WeasyPrint is available, then attach BOTH.
         quote_pdf_path = None
+        plan_pdf_path = None
         if pdf_configured():
             quote_pdf_path, _ = render_quote_pdf(q, COMPANY)
-        attachments = _collect_attachments(quote_pdf_path)
+            plan_pdf_path, _ = render_plan_pdf(q, COMPANY)
+        attachments = _collect_attachments(quote_pdf_path, plan_pdf_path)
         result = send_email(
             to=q.customer.email or "",
             subject=f"Quote {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
             body_text=(
                 f"Hi {q.customer.name},\n\n"
-                f"Please find your quote ({q.quote_id}) attached. "
+                f"Please find your quote ({q.quote_id}) attached, along with a project plan "
+                f"that lays out exactly how the job will go from start to finish. "
                 f"Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
                 f"Quote is valid for {COMPANY.get('quote_validity_days', 30)} days. "
                 f"Reply to confirm or with any questions.\n\n"
@@ -838,7 +843,7 @@ with a1:
         if not result["ok"]:
             st.warning(result["reason"])
         else:
-            st.success(f"Quote sent to {q.customer.email}.")
+            st.success(f"Quote + plan sent to {q.customer.email}.")
         st.rerun()
 with a2:
     if st.button("Send Contract", use_container_width=True, disabled=not _email_ready,
@@ -887,7 +892,7 @@ deposit_amt = q.customer_total * 0.5
 deposit_dt = _pacific_today()
 final_amt = q.customer_total - deposit_amt
 
-p1, p2 = st.columns(2)
+p1, pplan, p2 = st.columns(3)
 with p1:
     if st.button("📄 Generate Quote PDF", use_container_width=True, disabled=not pdf_configured(),
                  help="Render the customer-facing quote as a PDF."):
@@ -901,9 +906,22 @@ with p1:
                 st.download_button("⬇ Download quote.pdf", data=f.read(),
                                    file_name=f"{q.quote_id}-quote.pdf",
                                    mime="application/pdf", use_container_width=True)
+with pplan:
+    if st.button("🗺 Generate Plan PDF", use_container_width=True, disabled=not pdf_configured(),
+                 help="Render the standalone project plan (free-value doc sent with the quote)."):
+        path, err = render_plan_pdf(q, COMPANY)
+        if err:
+            st.warning(err)
+        else:
+            log_event(q.quote_id, "plan_pdf_rendered", {"path": str(path)})
+            st.success(f"Project Plan PDF saved → {path}")
+            with open(path, "rb") as f:
+                st.download_button("⬇ Download project-plan.pdf", data=f.read(),
+                                   file_name=f"{q.quote_id}-project-plan.pdf",
+                                   mime="application/pdf", use_container_width=True)
 with p2:
     if st.button("📑 Generate Contract PDF", use_container_width=True, disabled=not pdf_configured(),
-                 help="Render the (saved or auto-drafted) contract as a PDF."):
+                 help="Render the (saved or auto-drafted) contract, project plan included, as a PDF."):
         path, err = render_contract_pdf(q, COMPANY)
         if err:
             st.warning(err)

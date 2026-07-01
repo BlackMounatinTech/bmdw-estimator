@@ -128,76 +128,90 @@ def _header_html(company: dict, doc_label: str, q: Quote, today: date,
 # ---- Shared CSS — clean professional look, no marketing colors ---------
 
 _BASE_CSS = """
+/* ---- BMDW brand palette (warm, premium, earthy — not drab corporate) ----
+   Evergreen (deep brand green) + Clay/Amber (warm accent) + soft stone tints.
+*/
 @page { size: Letter; margin: 0.7in 0.75in; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-       color: #111; font-size: 11pt; line-height: 1.45; }
+       color: #2b2620; font-size: 11pt; line-height: 1.45; }
 
-.brand-block { text-align: center; margin-bottom: 22px; }
+.brand-block { text-align: center; margin-bottom: 20px; padding-bottom: 16px;
+               border-bottom: 3px solid #2f5233; }
 .brand-logo { max-height: 130px; max-width: 280px; margin: 0 auto 8px;
               display: block; }
 .brand-name { font-size: 22pt; font-weight: 800; letter-spacing: 0.04em;
-              color: #111; line-height: 1.1; text-transform: uppercase; }
+              color: #2f5233; line-height: 1.1; text-transform: uppercase; }
 
-.owner-info { font-size: 10.5pt; color: #222; margin-bottom: 22px;
+.owner-info { font-size: 10.5pt; color: #4a4238; margin-bottom: 22px;
               line-height: 1.5; }
 
 .doc-section { margin-bottom: 18px; }
-.doc-label { font-size: 14pt; font-weight: 800; font-style: italic;
-             color: #111; margin-bottom: 6px; letter-spacing: 0.02em; }
-.doc-meta { font-size: 11pt; color: #222; }
-.section-label { font-size: 12.5pt; font-weight: 800; font-style: italic;
-                 color: #111; margin-bottom: 6px; letter-spacing: 0.02em; }
-.bill-to { font-size: 11pt; color: #222; line-height: 1.5; }
+.doc-label { font-size: 15pt; font-weight: 800; font-style: italic;
+             color: #b45309; margin-bottom: 6px; letter-spacing: 0.02em; }
+.doc-meta { font-size: 11pt; color: #4a4238; }
+.section-label { font-size: 12.5pt; font-weight: 800;
+                 color: #2f5233; margin-bottom: 6px; letter-spacing: 0.02em;
+                 border-left: 4px solid #c2761a; padding-left: 9px; }
+.bill-to { font-size: 11pt; color: #4a4238; line-height: 1.5; }
 
-.work-desc { font-size: 11pt; color: #222; margin-bottom: 10px; }
+.work-desc { font-size: 11pt; color: #3a342c; margin-bottom: 10px; }
 
 table.summary { width: 100%; border-collapse: collapse; margin-top: 6px;
                 margin-bottom: 18px; }
-table.summary th { background: #cfd5dd; color: #111; font-weight: 700;
-                   text-align: left; padding: 8px 12px; font-size: 11pt;
-                   border: 1px solid #9ca3af; }
+table.summary th { background: #2f5233; color: #ffffff; font-weight: 700;
+                   text-align: left; padding: 9px 12px; font-size: 11pt;
+                   border: 1px solid #2f5233; }
 table.summary th.num { text-align: right; }
-table.summary td { padding: 8px 12px; font-size: 11pt; color: #111;
-                   border: 1px solid #9ca3af; }
+table.summary td { padding: 8px 12px; font-size: 11pt; color: #2b2620;
+                   border: 1px solid #d8cfc0; }
 table.summary td.num { text-align: right; }
-table.summary tr.total td { font-weight: 700; background: #f1f3f5; }
+table.summary tr:nth-child(even) td { background: #faf7f1; }
+table.summary tr.total td { font-weight: 800; background: #fbecd6;
+                            color: #7a3d06; border-top: 2px solid #c2761a; }
 
 table.lines { width: 100%; border-collapse: collapse; margin-top: 6px;
               margin-bottom: 18px; }
-table.lines th { background: #cfd5dd; color: #111; font-weight: 700;
+table.lines th { background: #2f5233; color: #ffffff; font-weight: 700;
                  text-align: left; padding: 6px 10px; font-size: 10pt;
-                 border: 1px solid #9ca3af; text-transform: uppercase;
+                 border: 1px solid #2f5233; text-transform: uppercase;
                  letter-spacing: 0.04em; }
 table.lines th.num { text-align: right; }
-table.lines td { padding: 6px 10px; font-size: 10pt; color: #111;
-                 border: 1px solid #9ca3af; }
+table.lines td { padding: 6px 10px; font-size: 10pt; color: #2b2620;
+                 border: 1px solid #d8cfc0; }
 table.lines td.num { text-align: right; }
-table.lines tr.bucket-row td { background: #e9ecef; font-weight: 700;
+table.lines tr.bucket-row td { background: #eef2e9; font-weight: 700;
+                                color: #2f5233;
                                 font-size: 10pt; text-transform: uppercase;
                                 letter-spacing: 0.04em; }
 
-.payment-block { font-size: 11pt; color: #222; line-height: 1.7;
+.payment-block { font-size: 11pt; color: #3a342c; line-height: 1.7;
                  margin-bottom: 10px; }
-.outstanding { font-size: 11pt; font-weight: 700; color: #111;
+.outstanding { font-size: 11pt; font-weight: 700; color: #7a3d06;
                margin-bottom: 14px; }
 
-p.note { font-size: 10pt; color: #555; line-height: 1.5; margin-top: 16px; }
+p.note { font-size: 10pt; color: #6b6357; line-height: 1.5; margin-top: 16px;
+         border-top: 1px solid #e2dacb; padding-top: 10px; }
 
-ol.plan { font-size: 11pt; color: #1f2937; line-height: 1.55; margin: 4px 0 20px;
+ol.plan { font-size: 11pt; color: #3a342c; line-height: 1.55; margin: 4px 0 20px;
           padding-left: 22px; }
-ol.plan li { margin-bottom: 5px; padding-left: 4px; }
+ol.plan li { margin-bottom: 6px; padding-left: 4px; }
+ol.plan li::marker { color: #c2761a; font-weight: 800; }
 
-.accept-box { border: 2px solid #2563eb; background: #eff6ff; border-radius: 8px;
+.accept-box { border: 2px solid #2f5233; background: #eef4ea; border-radius: 8px;
               padding: 16px 18px; margin: 8px 0 18px; }
-.accept-title { font-size: 14pt; font-weight: 800; color: #1d4ed8;
+.accept-title { font-size: 14pt; font-weight: 800; color: #2f5233;
                 margin-bottom: 2px; }
-.accept-box p { font-size: 11pt; color: #1f2937; }
-.etransfer { font-size: 13pt; font-weight: 800; color: #1d4ed8; margin: 4px 0;
+.accept-box p { font-size: 11pt; color: #3a342c; }
+.etransfer { font-size: 13pt; font-weight: 800; color: #b45309; margin: 4px 0;
              letter-spacing: 0.01em; }
+
+.plan-intro-box { background: #faf7f1; border-left: 4px solid #2f5233;
+                  border-radius: 4px; padding: 12px 16px; margin: 6px 0 16px;
+                  font-size: 11pt; color: #3a342c; line-height: 1.5; }
 
 pre { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-size: 10.5pt; white-space: pre-wrap; line-height: 1.5; margin: 0;
-      color: #222; }
+      color: #2b2620; }
 """
 
 
@@ -219,10 +233,9 @@ def _short_scope_line(q: Quote) -> str:
     return " · ".join(li.label for li in q.line_items) or "Excavation work"
 
 
-def _project_plan_rows(q: Quote) -> str:
-    """Friendly numbered 'how it'll go' plan for the customer — pulled from the
-    same project-plan steps the contract uses, so they can picture the whole job.
-    Returns '' if there are no steps."""
+def _project_plan_steps(q: Quote) -> list:
+    """The ordered list of plain-language job steps (start to finish). Shared by
+    the quote, the standalone plan doc, and the contract so they never drift."""
     pre = [
         "We walk the site with you to confirm access and grades",
         "We book and complete BC One Call utility locates",
@@ -244,7 +257,15 @@ def _project_plan_rows(q: Quote) -> str:
         "We walk the finished job with you to make sure you're happy",
         "You send the final balance and we hand it over — done",
     ]
-    steps = pre + work + wrap
+    return pre + work + wrap
+
+
+def _project_plan_rows(q: Quote) -> str:
+    """Friendly numbered 'how it'll go' plan block for the customer — pulled from
+    the shared steps so quote/plan/contract stay in sync. '' if no steps."""
+    steps = _project_plan_steps(q)
+    if not steps:
+        return ""
     items = "".join(f"<li>{s}</li>" for s in steps)
     return (
         '<div class="section-label">How the job will go</div>'
@@ -335,11 +356,44 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
     return _wrap(f"Quote {q.quote_id}", body)
 
 
+def _plan_html(q: Quote, company: dict, today: date) -> str:
+    """Standalone customer-facing PROJECT PLAN document — the free-value piece
+    sent alongside the quote so they can picture the whole job before they buy.
+    No price, no contract language — just how it'll go, start to finish."""
+    first_name = (q.customer.name or "there").split()[0]
+    intro = (
+        '<div class="plan-intro-box">'
+        f"Hi {first_name}, here's the plan for your project laid out step by step. "
+        "This is exactly how we'll run the job from the first site walk to the final "
+        "handover, so you know what to expect at every stage. No surprises."
+        "</div>"
+    )
+    body = (
+        _header_html(company, "PROJECT PLAN", q, today)
+        + intro
+        + '<div class="doc-section"><div class="section-label">YOUR PROJECT:</div>'
+        f'<div class="work-desc">{_short_scope_line(q)}</div></div>'
+        + _project_plan_rows(q)
+        + '<p class="note"><strong>Note.</strong> This plan is our roadmap for the work '
+          "described. Timing of each step can shift with weather, ground conditions, and "
+          "utility-locate scheduling — if anything changes, we talk it through with you first.</p>"
+    )
+    return _wrap(f"Project Plan {q.quote_id}", body)
+
+
 def _contract_html(q: Quote, company: dict, body_text: str, today: date) -> str:
     safe_body = body_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    # The contract INCLUDES the project plan (so the signed doc carries the full
+    # scope of how the job will run, not just the legal terms).
+    plan_block = _project_plan_rows(q)
+    plan_section = (
+        ('<div class="doc-section" style="margin-top:22px;">' + plan_block + "</div>")
+        if plan_block else ""
+    )
     body = (
         _header_html(company, "CONTRACT", q, today)
         + f"<pre>{safe_body}</pre>"
+        + plan_section
     )
     return _wrap(f"Contract {q.quote_id}", body)
 
@@ -522,6 +576,17 @@ def render_quote_pdf(q: Quote, company: dict) -> Tuple[Optional[Path], Optional[
         return None, f"WeasyPrint unavailable: {exc}"
     out_path = _ensure_dir(q.quote_id) / "quote.pdf"
     HTML(string=_quote_html(q, company, _pacific_today())).write_pdf(str(out_path))
+    return out_path, None
+
+
+def render_plan_pdf(q: Quote, company: dict) -> Tuple[Optional[Path], Optional[str]]:
+    """Standalone PROJECT PLAN PDF — the free-value doc sent with the quote."""
+    try:
+        from weasyprint import HTML  # type: ignore
+    except Exception as exc:
+        return None, f"WeasyPrint unavailable: {exc}"
+    out_path = _ensure_dir(q.quote_id) / "project-plan.pdf"
+    HTML(string=_plan_html(q, company, _pacific_today())).write_pdf(str(out_path))
     return out_path, None
 
 
