@@ -372,9 +372,9 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
     # Friendly intro line
     intro = (
         f'<p class="work-desc" style="margin-bottom:16px;">Hi {first_name}, thanks for '
-        "the opportunity to quote your project. Here's everything laid out clear and simple "
-        "— what the work is, what it costs all-in, and exactly how it'll go. Any questions at "
-        "all, just reach out.</p>"
+        "the opportunity to quote your project. Here's what the work is and what it costs "
+        "all-in. I've also included a separate project plan that walks through exactly how "
+        "it'll go from start to finish. Any questions at all, just reach out.</p>"
     )
 
     # The "ready to go" e-Transfer acceptance block
@@ -398,7 +398,6 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
         + services_table
         + '<div class="section-label">Payment</div>'
         + payment_table
-        + _project_plan_rows(q)
         + accept_block
         + f'<p class="note"><strong>The fine print.</strong> '
           f'{company.get("quote_terms", "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.")} '
