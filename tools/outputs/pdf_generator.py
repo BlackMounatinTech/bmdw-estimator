@@ -418,7 +418,7 @@ def _plan_html(q: Quote, company: dict, today: date) -> str:
         '<div class="plan-intro-box">'
         f"Hi {first_name}, here's the plan for your project laid out step by step. "
         "This is exactly how we'll run the job from the first site walk to the final "
-        "handover, so you know what to expect at every stage. No surprises."
+        "handover, so you know what to expect at every stage."
         "</div>"
     )
     body = (
