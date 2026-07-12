@@ -818,7 +818,7 @@ if plan_is_thin(q):
         "the **Plan** tab before sending, or re-run the AI parse from your notes."
     )
 
-a1, a2, a3 = st.columns(3)
+a1, a2, a3, a4 = st.columns(4)
 with a1:
     _email_ready = email_configured_method() != "none"
     if st.button("Send Quote + Plan", use_container_width=True, disabled=not _email_ready,
@@ -858,6 +858,41 @@ with a1:
             st.success(f"Quote + plan sent to {q.customer.email}.")
         st.rerun()
 with a2:
+    if st.button("Send Quote Only", use_container_width=True, disabled=not _email_ready,
+                 help=("Sends ONLY the quote PDF (no project plan). "
+                       "Use when you want to send the price without the full plan. "
+                       + ("" if _email_ready else
+                          "Disabled — email isn't configured. See Settings or workflows/setup_gmail.md."))):
+        # Render and attach the QUOTE only — no plan.
+        quote_pdf_path = None
+        if pdf_configured():
+            quote_pdf_path, _ = render_quote_pdf(q, COMPANY)
+        attachments = _collect_attachments(quote_pdf_path)
+        result = send_email(
+            to=q.customer.email or "",
+            subject=f"Quote {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
+            body_text=(
+                f"Hi {q.customer.name},\n\n"
+                f"Please find your quote ({q.quote_id}) attached. "
+                f"Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
+                f"Quote is valid for {COMPANY.get('quote_validity_days', 30)} days. "
+                f"Reply to confirm or with any questions.\n\n"
+                f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
+            ),
+            attachments=attachments,
+        )
+        log_event(q.quote_id, "quote_sent",
+                  {"to": q.customer.email, "ok": result.get("ok"),
+                   "quote_only": True,
+                   "attachments": [str(p) for p in attachments]})
+        if q.status == QuoteStatus.DRAFT and result.get("ok"):
+            mark_status(q.quote_id, QuoteStatus.SENT)
+        if not result["ok"]:
+            st.warning(result["reason"])
+        else:
+            st.success(f"Quote sent to {q.customer.email}.")
+        st.rerun()
+with a3:
     if st.button("Send Contract", use_container_width=True, disabled=not _email_ready,
                  help=("Sends the contract PDF to the customer. "
                        + ("" if _email_ready else
@@ -886,7 +921,7 @@ with a2:
         else:
             st.success(f"Contract + attachments sent to {q.customer.email}.")
         st.rerun()
-with a3:
+with a4:
     if st.button("Sync Sheets now", use_container_width=True):
         result = push_full_sync()
         if result["ok"]:
