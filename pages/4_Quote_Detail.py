@@ -835,15 +835,18 @@ with a1:
         attachments = _collect_attachments(quote_pdf_path, plan_pdf_path)
         result = send_email(
             to=q.customer.email or "",
-            subject=f"Quote {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
+            subject=f"Your excavation quote — {COMPANY.get('trading_name', 'Black Mountain Dirt Works')}",
             body_text=(
                 f"Hi {q.customer.name},\n\n"
-                f"Please find your quote ({q.quote_id}) attached, along with a project plan "
-                f"that lays out exactly how the job will go from start to finish. "
-                f"Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
+                f"Here's your quote, along with a project plan that lays out exactly how the "
+                f"job will go from start to finish. Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
+                f"Ready to go? Just reply \"yes\" and I'll get you on the schedule — no payment "
+                f"needed to approve. Once you're locked in, I'll send the deposit details to "
+                f"confirm your start date.\n\n"
                 f"Quote is valid for {COMPANY.get('quote_validity_days', 30)} days. "
-                f"Reply to confirm or with any questions.\n\n"
-                f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
+                f"Any questions, just reply.\n\n"
+                f"Thanks,\n{COMPANY.get('owner_name', 'Michael MacKrell')}\n"
+                f"{COMPANY.get('trading_name', 'Black Mountain Dirt Works')} · {COMPANY.get('phone', '')}"
             ),
             attachments=attachments,
         )
@@ -870,14 +873,17 @@ with a2:
         attachments = _collect_attachments(quote_pdf_path)
         result = send_email(
             to=q.customer.email or "",
-            subject=f"Quote {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
+            subject=f"Your excavation quote — {COMPANY.get('trading_name', 'Black Mountain Dirt Works')}",
             body_text=(
                 f"Hi {q.customer.name},\n\n"
-                f"Please find your quote ({q.quote_id}) attached. "
-                f"Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
+                f"Here's your quote. Total: ${q.customer_total:,.2f} CAD (incl. tax).\n\n"
+                f"Ready to go? Just reply \"yes\" and I'll get you on the schedule — no payment "
+                f"needed to approve. Once you're locked in, I'll send the deposit details to "
+                f"confirm your start date.\n\n"
                 f"Quote is valid for {COMPANY.get('quote_validity_days', 30)} days. "
-                f"Reply to confirm or with any questions.\n\n"
-                f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
+                f"Any questions, just reply.\n\n"
+                f"Thanks,\n{COMPANY.get('owner_name', 'Michael MacKrell')}\n"
+                f"{COMPANY.get('trading_name', 'Black Mountain Dirt Works')} · {COMPANY.get('phone', '')}"
             ),
             attachments=attachments,
         )

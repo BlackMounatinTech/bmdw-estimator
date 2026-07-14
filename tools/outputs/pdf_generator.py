@@ -82,8 +82,20 @@ def _header_html(company: dict, doc_label: str, q: Quote, today: date,
     owner = company.get("owner_name", "Michael MacKrell")
     phone = company.get("phone", "")
     email = company.get("email", "")
+    website = company.get("website", "")
+    website = "" if website.strip().upper() in ("", "TBD") else website
+    _web_display = website.replace("https://", "").replace("http://", "").rstrip("/")
     inv_num = invoice_number or q.quote_id
     logo_uri = _logo_data_uri(company)
+
+    # Label the reference number by document type — a QUOTE is not an "Invoice #".
+    _label_upper = (doc_label or "").strip().upper()
+    if _label_upper == "QUOTE":
+        num_label = "Quote #"
+    elif _label_upper in ("INVOICE", "RECEIPT"):
+        num_label = "Invoice #"
+    else:
+        num_label = f"{doc_label.title()} #" if doc_label else "Ref #"
 
     logo_html = (
         f'<img class="brand-logo" src="{logo_uri}" alt="BMDW logo" />'
@@ -105,11 +117,12 @@ def _header_html(company: dict, doc_label: str, q: Quote, today: date,
   {owner}<br>
   Phone: {phone}<br>
   Email: {email}
+  {('<br>Web: ' + _web_display) if _web_display else ''}
 </div>
 
 <div class="doc-section">
   <div class="doc-label">{doc_label}</div>
-  <div class="doc-meta">Invoice #: {inv_num}</div>
+  <div class="doc-meta">{num_label}: {inv_num}</div>
   <div class="doc-meta">Date Issued: {today.strftime("%B %d, %Y")}</div>
 </div>
 
@@ -339,6 +352,12 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
     etransfer_email = company.get("email", "blackmountaindirtworks@gmail.com")
     first_name = (q.customer.name or "there").split()[0]
 
+    # Real expiry date (not just "valid X days") — creates a concrete deadline.
+    from datetime import timedelta
+    validity_days = int(company.get("quote_validity_days", 60))
+    expiry = today + timedelta(days=validity_days)
+    expiry_str = expiry.strftime("%B %d, %Y")
+
     # Single-row services table — lump sum only
     services_table = (
         '<table class="summary"><thead><tr>'
@@ -369,41 +388,55 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
         f'<tbody>{"".join(payment_rows)}</tbody></table>'
     )
 
-    # Friendly intro line
+    # Intro line — peer-to-peer, no supplicant "thanks for the opportunity"
     intro = (
-        f'<p class="work-desc" style="margin-bottom:16px;">Hi {first_name}, thanks for '
-        "the opportunity to quote your project. Here's what the work is and what it costs "
-        "all-in. I've also included a separate project plan that walks through exactly how "
-        "it'll go from start to finish. Any questions at all, just reach out.</p>"
+        f'<p class="work-desc" style="margin-bottom:16px;">Hi {first_name}, here\'s the quote '
+        "for your project — what the work is and what it costs, all-in. I've included a project "
+        "plan too, so you can see exactly how it'll go from start to finish. Any questions, "
+        "just reach out.</p>"
     )
 
-    # The "ready to go" e-Transfer acceptance block
+    # The "ready to go" acceptance block — two steps: say YES first (no money),
+    # deposit comes after. Removes the "first action = wire thousands" wall.
     accept_block = (
         '<div class="accept-box">'
         '<div class="accept-title">Ready to go?</div>'
-        f'<p style="margin:6px 0 8px;">Booking your spot is easy — just send your deposit of '
-        f'<strong>${deposit:,.2f}</strong> by e-Transfer to:</p>'
-        f'<p class="etransfer">{etransfer_email}</p>'
-        '<p style="margin:8px 0 0;font-size:11pt;color:#444;">Sending the deposit confirms you '
-        "accept this quote and locks in your place on the schedule. That's it — no forms to "
+        '<p style="margin:6px 0 8px;"><strong>Step 1 — Lock your spot.</strong> '
+        'Just reply to this email with a "yes" (or give me a call) and I\'ll get you '
+        'on the schedule. No payment needed to approve.</p>'
+        f'<p style="margin:6px 0 8px;"><strong>Step 2 — Confirm the date.</strong> '
+        f'Once you\'re approved, I\'ll send you the deposit details '
+        f'(<strong>${deposit:,.2f}</strong>, 50%) to lock in your start date.</p>'
+        '<p style="margin:8px 0 0;font-size:11pt;color:#444;">That\'s it — no forms to '
         "chase, no hassle. Prefer to talk it through first? Just give me a call.</p>"
+        f'<p style="margin:10px 0 0;font-size:10pt;color:#737373;">The schedule fills up '
+        f'fast this time of year — the sooner you lock in, the sooner we can get you a start '
+        f'date. This quote holds until <strong>{expiry_str}</strong>.</p>'
         "</div>"
     )
+
+    # Social proof — quiet one-liner (he's proven 5-star; make it visible).
+    _proof = company.get("social_proof_line", "").strip()
+    proof_html = (
+        f'<p style="margin:-6px 0 20px;font-size:9.5pt;color:#737373;font-style:italic;">'
+        f'{_proof}</p>'
+    ) if _proof else ""
 
     body = (
         _header_html(company, "QUOTE", q, today)
         + intro
+        + proof_html
         + '<div class="doc-section"><div class="section-label">YOUR PROJECT:</div>'
         f'<div class="work-desc">{_short_scope_line(q)}</div></div>'
         + services_table
         + '<div class="section-label">Payment</div>'
         + payment_table
         + accept_block
-        + f'<p class="note"><strong>The fine print.</strong> '
+        + f'<p class="note"><strong>What\'s included.</strong> '
           f'{company.get("quote_terms", "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.")} '
-          "This price is all-in for the work described, based on normal ground conditions. "
-          "If something unexpected turns up underground, we'll always talk it through with you "
-          "before any extra work or cost.</p>"
+          "This price is all-in for the work described. In the rare case the ground throws us "
+          "a surprise, nothing changes without your say-so — we talk it through and you decide "
+          "before any extra work happens. No surprise bills, ever.</p>"
     )
     return _wrap(f"Quote {q.quote_id}", body)
 

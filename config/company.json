@@ -7,8 +7,8 @@
   "owner_title": "Owner Operator",
   "phone": "250-254-2377",
   "email": "blackmountaindirtworks@gmail.com",
-  "address": "Vancouver Island, BC",
-  "website": "TBD",
+  "address": "515 Petersen Rd, Campbell River, BC",
+  "website": "https://blackmountaindirtworks.net/",
   "logo_path": "config/branding/logo.png",
   "brand_color_primary": "#0a0f1a",
   "brand_color_secondary": "#3b82f6",
@@ -20,7 +20,9 @@
 
   "quote_number_offset": 1768,
   "quote_terms": "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.",
+  "quote_validity_days": 60,
   "deposit_pct": 50.0,
+  "social_proof_line": "Trusted by homeowners across Vancouver Island — 5-star rated on Google.",
 
   "_business_rules": {
     "tax": "12% flat (GST + PST), applied at the end of the quote.",
