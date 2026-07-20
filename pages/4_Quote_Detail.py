@@ -1003,6 +1003,33 @@ with p3:
                 st.download_button("⬇ Download invoice.pdf", data=f.read(),
                                    file_name=f"{q.quote_id}-invoice.pdf",
                                    mime="application/pdf", use_container_width=True)
+    if st.button("✉ Send Invoice", key="send_invoice", use_container_width=True,
+                 disabled=email_configured_method() == "none",
+                 help="Email the invoice to the customer."):
+        path, err = render_invoice_pdf(q, COMPANY,
+                                       deposit_received=float(deposit_amt),
+                                       deposit_received_date=deposit_dt)
+        if err:
+            st.warning(err)
+        elif not (q.customer.email or "").strip():
+            st.warning("No customer email on file — add one on the Customers page.")
+        else:
+            result = send_email(
+                to=q.customer.email,
+                subject=f"Invoice {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
+                body_text=(
+                    f"Hi {q.customer.name},\n\n"
+                    f"Please find your invoice attached.\n\n"
+                    f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
+                ),
+                attachments=_collect_attachments(path),
+            )
+            log_event(q.quote_id, "invoice_sent",
+                      {"to": q.customer.email, "ok": result.get("ok"), "amount": deposit_amt})
+            if not result["ok"]:
+                st.warning(result["reason"])
+            else:
+                st.success(f"Invoice sent to {q.customer.email}.")
 with p4:
     if st.button("✅ Generate Deposit Receipt", use_container_width=True, disabled=not pdf_configured(),
                  help="Receipt for the 50% deposit you just received."):
@@ -1020,6 +1047,34 @@ with p4:
                 st.download_button("⬇ Download deposit-receipt.pdf", data=f.read(),
                                    file_name=f"{q.quote_id}-deposit-receipt.pdf",
                                    mime="application/pdf", use_container_width=True)
+    if st.button("✉ Send Deposit Receipt", key="send_deposit", use_container_width=True,
+                 disabled=email_configured_method() == "none",
+                 help="Email the deposit receipt to the customer."):
+        path, err = render_receipt_pdf(q, COMPANY,
+                                       amount_received=float(deposit_amt),
+                                       receipt_kind="deposit",
+                                       received_date=deposit_dt)
+        if err:
+            st.warning(err)
+        elif not (q.customer.email or "").strip():
+            st.warning("No customer email on file — add one on the Customers page.")
+        else:
+            result = send_email(
+                to=q.customer.email,
+                subject=f"Deposit Receipt {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
+                body_text=(
+                    f"Hi {q.customer.name},\n\n"
+                    f"Thank you, your deposit has been received. Your receipt is attached.\n\n"
+                    f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
+                ),
+                attachments=_collect_attachments(path),
+            )
+            log_event(q.quote_id, "receipt_deposit_sent",
+                      {"to": q.customer.email, "ok": result.get("ok"), "amount": deposit_amt})
+            if not result["ok"]:
+                st.warning(result["reason"])
+            else:
+                st.success(f"Deposit receipt sent to {q.customer.email}.")
 with p5:
     if st.button("✅ Generate Final Receipt", use_container_width=True, disabled=not pdf_configured(),
                  help="Receipt for the final payment + project complete."):
@@ -1037,6 +1092,35 @@ with p5:
                 st.download_button("⬇ Download final-receipt.pdf", data=f.read(),
                                    file_name=f"{q.quote_id}-final-receipt.pdf",
                                    mime="application/pdf", use_container_width=True)
+    if st.button("✉ Send Final Receipt", key="send_final", use_container_width=True,
+                 disabled=email_configured_method() == "none",
+                 help="Email the final receipt to the customer."):
+        path, err = render_receipt_pdf(q, COMPANY,
+                                       amount_received=float(final_amt),
+                                       receipt_kind="final",
+                                       received_date=_pacific_today())
+        if err:
+            st.warning(err)
+        elif not (q.customer.email or "").strip():
+            st.warning("No customer email on file — add one on the Customers page.")
+        else:
+            result = send_email(
+                to=q.customer.email,
+                subject=f"Final Receipt {q.quote_id} — {COMPANY.get('legal_name', 'Black Mountain Dirt Works')}",
+                body_text=(
+                    f"Hi {q.customer.name},\n\n"
+                    f"Thank you, your final payment has been received and the project is complete. "
+                    f"Your receipt is attached.\n\n"
+                    f"Thanks,\n{COMPANY.get('legal_name', 'Black Mountain Dirt Works')}"
+                ),
+                attachments=_collect_attachments(path),
+            )
+            log_event(q.quote_id, "receipt_final_sent",
+                      {"to": q.customer.email, "ok": result.get("ok"), "amount": final_amt})
+            if not result["ok"]:
+                st.warning(result["reason"])
+            else:
+                st.success(f"Final receipt sent to {q.customer.email}.")
 
 
 # ---- Internal-only PDFs (NOT customer-facing) ---------------------------
