@@ -10,7 +10,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from server.schemas import CostBucket, LineItemEntry, QuoteStatus
+from server.schemas import CostBucket, LineItemEntry, ProjectPlanDay, QuoteStatus
 from tools.calculator import JOB_TYPES
 from tools.outputs.contract_drafter import draft_contract_text, draft_contract_text_ai
 from tools.outputs.contract_drafter import is_ai_configured as contract_ai_configured
@@ -726,6 +726,43 @@ with tab_plan:
 
     if q.start_date:
         st.markdown(f"**Start date:** {q.start_date.isoformat()}")
+
+    # ---- Paste in a project plan (skip the questioning flow) --------------
+    # Talk the job out, then drop the steps straight in here. These become the
+    # work steps on the plan / quote PDF (the standard start + finish steps are
+    # added automatically around them). Overrides any AI-generated plan.
+    st.markdown("&nbsp;", unsafe_allow_html=True)
+    st.markdown(
+        '<div style="color:#64748b;font-size:11px;text-transform:uppercase;'
+        'letter-spacing:0.1em;margin-bottom:8px;">Paste a project plan</div>',
+        unsafe_allow_html=True,
+    )
+    _plan_prefill = "\n".join(d.description for d in q.project_plan) if q.project_plan else ""
+    _plan_text = st.text_area(
+        "One work step per line. This becomes the middle of the plan on the PDF — "
+        "the standard start steps (approval, locate utilities, deposit, mobilize) "
+        "and finish steps (cleanup, walkthrough, final payment) are added for you.",
+        value=_plan_prefill,
+        height=180,
+        key=f"manual_plan_{q.quote_id}",
+        placeholder=(
+            "Strip the existing lawn and pile it\n"
+            "Load and haul the spoil offsite\n"
+            "Lay filter fabric across the area\n"
+            "Bring in and spread the road crush\n"
+            "Grade and compact to a finished surface"
+        ),
+    )
+    if st.button("Save project plan", key=f"save_manual_plan_{q.quote_id}",
+                 use_container_width=True, type="primary"):
+        steps = [ln.strip() for ln in _plan_text.splitlines() if ln.strip()]
+        q.project_plan = [ProjectPlanDay(day=i + 1, description=s)
+                          for i, s in enumerate(steps)]
+        save_quote(q)
+        log_event(q.quote_id, "manual_plan_saved", {"steps": len(steps)})
+        st.success(f"Saved {len(steps)} plan step{'s' if len(steps) != 1 else ''}. "
+                   "It'll show on the plan and quote PDFs.")
+        st.rerun()
 
 
 

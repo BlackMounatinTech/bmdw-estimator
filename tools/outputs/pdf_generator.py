@@ -301,7 +301,15 @@ _PLAN_CLOSING = [
 
 def _plan_work_steps(q: Quote) -> list:
     """The MIDDLE of the plan — the real, sequenced work for THIS job.
-    Pulled from the project-plan steps saved on the quote's line items."""
+
+    A manually-entered quote-level plan (q.project_plan) WINS — this lets the
+    plan be pasted in directly (talk it out, drop it in) instead of being
+    generated through the questioning flow. Falls back to the project-plan
+    steps saved on the quote's line items."""
+    manual = [(d.description or "").strip() for d in q.project_plan]
+    manual = [d for d in manual if d]
+    if manual:
+        return manual
     work = []
     for li in q.line_items:
         plan = li.inputs.get("project_plan") if isinstance(li.inputs, dict) else None
