@@ -13,6 +13,7 @@ from server.schemas import (
     CostBucket,
     Customer,
     Markup,
+    ProjectPlanDay,
     Quote,
     Urgency,
 )
@@ -578,6 +579,22 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                 help="The final number the customer sees, tax included. Tax is backed out "
                      "automatically for the breakdown.",
             )
+            qq_plan = st.text_area(
+                "Project plan (optional) — one work step per line",
+                value="",
+                height=140,
+                key="quick_quote_plan",
+                placeholder=(
+                    "Strip the existing lawn and pile it\n"
+                    "Load and haul the spoil offsite\n"
+                    "Lay filter fabric across the area\n"
+                    "Bring in and spread the road crush\n"
+                    "Grade and compact to a finished surface"
+                ),
+                help="Becomes the work steps on the plan / quote PDF. The standard start "
+                     "(approval, locate, deposit, mobilize) and finish (cleanup, walkthrough, "
+                     "final payment) steps wrap around it automatically. Leave blank to fill in later.",
+            )
             qq_ready = bool(qq_name.strip()) and qq_price > 0
             if st.button("Create quick quote →", use_container_width=True, type="primary",
                          disabled=not qq_ready, key="quick_quote_go",
@@ -586,10 +603,15 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
                 q = _draft_quote()
                 q.flat_price_override = float(qq_price)
                 q.line_items = []
+                _plan_steps = [ln.strip() for ln in qq_plan.splitlines() if ln.strip()]
+                if _plan_steps:
+                    q.project_plan = [ProjectPlanDay(day=i + 1, description=s)
+                                      for i, s in enumerate(_plan_steps)]
                 saved_id = save_quote(q)
                 st.session_state.current_editing_id = saved_id
                 log_event(saved_id, "quick_quote_created",
-                          {"flat_price": float(qq_price), "name": qq_name.strip()})
+                          {"flat_price": float(qq_price), "name": qq_name.strip(),
+                           "plan_steps": len(_plan_steps)})
                 # Stash both ways — query_params doesn't always flush before switch_page.
                 st.session_state["_pending_quote_id"] = saved_id
                 st.query_params["quote_id"] = saved_id
