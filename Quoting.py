@@ -552,6 +552,49 @@ if st.session_state.voice_edit_mode or phase in (1, 2, 3):
     # ===== PHASE 1 — INPUT DETAILS =====
     if phase == 1:
         section_header("Phase 1 — Input Details")
+
+        # ---- Quick Quote — skip the questions, just a name + price -------
+        # For when the quote is already flushed out (with Sam or in person)
+        # and you just want to drop the final number in. Sets
+        # flat_price_override, which bypasses the whole cost→markup→tax
+        # buildup: the price you type IS the customer's all-in total. Opens
+        # straight into Quote Detail, ready to send.
+        with st.expander("⚡ Quick quote — skip the questions (just a name + price)", expanded=False):
+            st.caption(
+                "Already worked the number out? Fill the customer's name + contact above, "
+                "then drop the project name and final price here. Skips straight to the "
+                "finished quote, ready to send."
+            )
+            qq_name = st.text_input(
+                "Project name",
+                value=st.session_state.draft_project_name,
+                placeholder="Kim — gravel driveway",
+                key="quick_quote_name",
+            )
+            qq_price = st.number_input(
+                "All-in price (tax included)",
+                min_value=0.0, step=50.0, value=0.0,
+                key="quick_quote_price",
+                help="The final number the customer sees, tax included. Tax is backed out "
+                     "automatically for the breakdown.",
+            )
+            qq_ready = bool(qq_name.strip()) and qq_price > 0
+            if st.button("Create quick quote →", use_container_width=True, type="primary",
+                         disabled=not qq_ready, key="quick_quote_go",
+                         help="Creates the quote at this flat price and opens it, ready to send."):
+                st.session_state.draft_project_name = qq_name.strip()
+                q = _draft_quote()
+                q.flat_price_override = float(qq_price)
+                q.line_items = []
+                saved_id = save_quote(q)
+                st.session_state.current_editing_id = saved_id
+                log_event(saved_id, "quick_quote_created",
+                          {"flat_price": float(qq_price), "name": qq_name.strip()})
+                # Stash both ways — query_params doesn't always flush before switch_page.
+                st.session_state["_pending_quote_id"] = saved_id
+                st.query_params["quote_id"] = saved_id
+                st.switch_page("pages/4_Quote_Detail.py")
+
         quick_notes = st.text_area(
             "Quick notes",
             value=st.session_state.draft_quick_notes,
