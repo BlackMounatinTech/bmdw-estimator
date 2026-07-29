@@ -233,6 +233,14 @@ ol.plan li::before { content: counter(step, decimal-leading-zero);
 .etransfer { font-size: 13pt; font-weight: 600; color: #171717; margin: 10px 0;
              letter-spacing: -0.01em; }
 
+/* ---- Price promise: the no-surprises guarantee at the bottom ---- */
+.price-promise { border: 1px solid #dbeafe; background: #f8fafc;
+                 border-left: 4px solid #3b82f6; border-radius: 10px;
+                 padding: 18px 22px; margin: 8px 0 22px; }
+.price-promise .pp-title { font-size: 11.5pt; font-weight: 600; color: #171717;
+                           margin-bottom: 6px; letter-spacing: -0.01em; }
+.price-promise p { font-size: 10pt; color: #404040; line-height: 1.6; margin: 0; }
+
 .plan-intro-box { background: transparent; padding: 0; margin: 6px 0 30px;
                   font-size: 12.5pt; color: #525252; line-height: 1.6;
                   font-weight: 400; letter-spacing: -0.01em; }
@@ -430,11 +438,16 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
         + '<div class="section-label">Payment</div>'
         + payment_table
         + accept_block
+        + '<div class="price-promise">'
+          '<div class="pp-title">Our promise on price</div>'
+          '<p>This is your final, all-in price. It covers everything for the scope of work '
+          'we have agreed on, including all labour, materials, equipment, and taxes. There are '
+          'no hidden fees and no surprise charges. If anything comes up that would change the '
+          'scope or add to the cost, we will talk it through with you and get your approval '
+          'first, before any additional work is done.</p>'
+          '</div>'
         + f'<p class="note"><strong>What\'s included.</strong> '
-          f'{company.get("quote_terms", "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.")} '
-          "This price is all-in for the work described. In the rare case the ground throws us "
-          "a surprise, nothing changes without your say-so — we talk it through and you decide "
-          "before any extra work happens. No surprise bills, ever.</p>"
+          f'{company.get("quote_terms", "Final invoice amount paid upon completion. Deposit of 50% required before equipment is mobilized.")}</p>'
     )
     return _wrap(f"Quote {q.quote_id}", body)
 
