@@ -407,8 +407,7 @@ def _quote_html(q: Quote, company: dict, today: date) -> str:
     # Intro line — peer-to-peer, no supplicant "thanks for the opportunity"
     intro = (
         f'<p class="work-desc" style="margin-bottom:16px;">Hi {first_name}, here\'s the quote '
-        "for your project — what the work is and what it costs, all-in. I've included a project "
-        "plan too, so you can see exactly how it'll go from start to finish. Any questions, "
+        "for your project — what the work is and what it costs, all-in. Any questions, "
         "just reach out.</p>"
     )
 
