@@ -125,8 +125,8 @@ async function loadDay(day) {
 }
 
 function renderRoutines() {
-  const root = $('#routines'); root.replaceChildren();
-  for (const [key, title] of [['morning', 'Morning'], ['night', 'Night']]) {
+  for (const [key, title] of [['morning', 'Morning'], ['night', 'Evening']]) {
+    const root = $('#' + key + '-routine'); root.replaceChildren();
     const card = el('section', {className: 'routine'}, el('h2', {textContent: title}));
     for (const habit of routines[key]) {
       const checkbox = el('input', {type: 'checkbox', checked: !!state.habits[habit.id]});
