@@ -70,6 +70,34 @@ def index():
     session.setdefault('csrf', secrets.token_hex(24))
     return render_template('index.html', csrf=session['csrf'])
 
+@app.get('/general')
+def general_page():
+    session.setdefault('csrf', secrets.token_hex(24))
+    return render_template('general.html', csrf=session['csrf'])
+
+@app.route('/api/general', methods=['GET', 'PUT'])
+def general_data():
+    with db() as con:
+        con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+        if request.method == 'GET':
+            row = con.execute('SELECT content, revision FROM general WHERE id=1').fetchone()
+            return jsonify(content=json.loads(row['content']) if row else {'tasks': [], 'draft': ''}, revision=row['revision'] if row else 0)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify(error='Invalid list'), 400
+        content = payload.get('content')
+        if not isinstance(content, dict) or not isinstance(content.get('tasks'), list) or not isinstance(content.get('draft', ''), str):
+            return jsonify(error='Invalid list'), 400
+        tasks = content['tasks']
+        if not all(isinstance(t, dict) and isinstance(t.get('id'), str) and isinstance(t.get('text'), str) and isinstance(t.get('done'), bool) for t in tasks) or len({t['id'] for t in tasks}) != len(tasks):
+            return jsonify(error='Invalid tasks'), 400
+        content = {'tasks': [t for t in tasks if not t['done']] + [t for t in tasks if t['done']], 'draft': content.get('draft', '')}
+        con.execute('INSERT OR IGNORE INTO general VALUES (1, ?, 0)', ('{"tasks":[],"draft":""}',))
+        result = con.execute('UPDATE general SET content=?, revision=revision+1 WHERE id=1 AND revision=?', (json.dumps(content), payload.get('revision')))
+        if result.rowcount != 1:
+            return jsonify(error='This list changed in another tab. Reload before editing.'), 409
+        return jsonify(revision=payload['revision'] + 1)
+
 @app.get('/manifest.webmanifest')
 def manifest():
     base = request.script_root

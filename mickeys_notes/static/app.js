@@ -289,6 +289,11 @@ if (Speech) {
   $('#dictate').hidden = true;
   $('#voice-status').textContent = 'Use your keyboard’s microphone to dictate.';
 }
+for (const link of document.querySelectorAll('header a')) link.onclick = async event => {
+  event.preventDefault();
+  if (recognition && listening) await stopDictation();
+  await save(); if (!dirty) location.href = link.href;
+};
 window.addEventListener('beforeunload', event => { if (dirty || saving) { event.preventDefault(); event.returnValue = ''; } });
 async function checkDayChange() {
   const today = localDate();
