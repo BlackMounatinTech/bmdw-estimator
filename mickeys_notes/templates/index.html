@@ -8,7 +8,7 @@
   <title>Mickey’s Notes</title>
   <link rel="manifest" href="{{ url_for('manifest') }}">
   <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mickey’s Notes"><meta name="theme-color" content="#f7f8f5"><link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}"><link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=dictation-top-1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=task-tap-1">
 </head>
 <body>
   <header class="app-header"><a href="{{ url_for('index') }}">Mickey’s notes</a><nav class="top-nav" aria-label="Lists"><a href="{{ url_for('index') }}" aria-current="page">Days</a><a href="{{ url_for('general_page') }}">General to-do</a></nav><span id="save-status" role="status">Loading…</span></header>
@@ -26,7 +26,7 @@
     <article id="day-page" inert>
       <div class="day-heading"><h1 id="day-title">Your day</h1><span id="day-year"></span></div>
         <div class="capture">
-          <textarea id="capture" aria-label="Type or dictate your daily list" placeholder="Brain dump your list. To change a line, say its number, like “7, load wood”." rows="3"></textarea>
+          <textarea id="capture" aria-label="Type or dictate your daily list" placeholder="Type or dictate your list. Pause between tasks." rows="3"></textarea>
           <div class="capture-actions"><button id="dictate" type="button">🎙 Dictate</button><button id="add-tasks" class="primary" type="button">Add to list</button></div>
           <p id="voice-status" role="status">You can also use your keyboard’s microphone.</p>
         </div>
@@ -40,6 +40,6 @@
     </article>
   </main>
   <p id="error" role="alert" hidden></p>
-  <script src="{{ url_for('static', filename='app.js') }}?v=dictation-top-1"></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=task-tap-1"></script>
 </body>
 </html>

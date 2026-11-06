@@ -31,3 +31,5 @@
 @media(max-width:600px){#day-page{padding:18px 15px}.layout{padding:14px}.calendar-panel{margin-bottom:18px}}
 
 #day-page>.capture{margin:0 0 18px}
+
+.task{padding:0;align-items:stretch}.task-toggle{display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:12px 0;cursor:pointer}.task-toggle>input[type=checkbox]{flex-shrink:0;margin:0}.task-toggle .task-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;padding:0}.task-toggle .task-number{min-width:18px}.task>.remove{align-self:stretch;padding:10px;min-width:40px}.task-toggle:hover{background:#f5f7f2}
