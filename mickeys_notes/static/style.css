@@ -33,3 +33,12 @@
 #day-page>.capture{margin:0 0 18px}
 
 .task{padding:0;align-items:stretch}.task-toggle{display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:12px 0;cursor:pointer}.task-toggle>input[type=checkbox]{flex-shrink:0;margin:0}.task-toggle .task-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;padding:0}.task-toggle .task-number{min-width:18px}.task>.remove{align-self:stretch;padding:10px;min-width:40px}.task-toggle:hover{background:#f5f7f2}
+
+/* Let rows grow vertically at every screen width, including long unbroken words. */
+.task{min-width:0;max-width:100%;height:auto}
+.task-toggle{flex:1 1 0;width:0;max-width:100%;align-items:flex-start}
+.task-toggle .task-text{display:block;flex:1 1 0;width:0;min-width:0;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;height:auto}
+.task-toggle>input[type=checkbox]{margin-top:2px}
+#day-page .routine label{min-width:0;max-width:100%}
+#day-page .routine label span{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.general-page{min-width:0;width:100%}
