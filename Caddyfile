@@ -1,0 +1,14 @@
+{
+    admin off
+    auto_https off
+}
+:{$PORT} {
+    @notesRoot path /notes
+    redir @notesRoot /notes/ 308
+    handle /notes/* {
+        reverse_proxy 127.0.0.1:8502
+    }
+    handle {
+        reverse_proxy 127.0.0.1:8501
+    }
+}

@@ -9,8 +9,8 @@ services:
     region: oregon
     plan: starter             # disks require Starter ($7/mo) or higher; not on free
     branch: main
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run Quoting.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
+    buildCommand: bash build.sh
+    startCommand: python serve.py
     envVars:
       # Set the actual values in the Render dashboard, not here.
       # `sync: false` means Render won't overwrite the value if you change it via UI.

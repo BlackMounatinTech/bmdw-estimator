@@ -1,0 +1,11 @@
+{
+  "id": "/",
+  "name": "Mickey’s Notes",
+  "short_name": "Mickey’s Notes",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f5",
+  "theme_color": "#f7f8f5",
+  "icons": [{"src": "/static/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]
+}
