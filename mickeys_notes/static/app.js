@@ -112,7 +112,6 @@ async function loadDay(day) {
     state = data.content; state.habits ||= {}; revision = data.revision;
     $('#day-title').textContent = dateObject(day).toLocaleDateString('en-CA', {weekday: 'long', month: 'long', day: 'numeric'});
     $('#day-year').textContent = day.slice(0, 4);
-    $('#note').value = state.note;
     $('#capture').value = state.draft || '';
     $('#save-status').textContent = 'Saved';
     clearError(); renderRoutines(); renderTasks(); renderCalendar();
@@ -236,7 +235,6 @@ function addTasks() {
 $('#add-tasks').onclick = addTasks;
 $('#capture').oninput = event => { state.draft = event.target.value; changed(); };
 $('#capture').onkeydown = event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); addTasks(); } };
-$('#note').oninput = event => { state.note = event.target.value; changed(); };
 $('#today').onclick = () => loadDay(localDate());
 for (const [id, step] of [['previous-month', -1], ['next-month', 1]]) {
   $('#' + id).onclick = () => {

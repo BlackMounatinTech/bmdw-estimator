@@ -21,8 +21,6 @@ DEFAULT_ROUTINES = {
         {'id': 'morning-bible', 'text': 'Read 1 page of the Bible'},
         {'id': 'morning-prayer', 'text': 'Pray'},
         {'id': 'morning-water', 'text': 'Drink 2 cups of copper water'},
-        {'id': 'morning-apple-cider', 'text': 'Apple cider'},
-        {'id': 'morning-shower', 'text': 'Cold shower'},
     ],
     'night': [
         {'id': 'night-visualization', 'text': '10 minutes of visualization'},
@@ -152,7 +150,9 @@ def routines():
         con.execute('CREATE TABLE IF NOT EXISTS routines (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL)')
         if request.method == 'GET':
             row = con.execute('SELECT content FROM routines WHERE id=1').fetchone()
-            return jsonify(json.loads(row['content']) if row else DEFAULT_ROUTINES)
+            content = json.loads(row['content']) if row else DEFAULT_ROUTINES
+            content = {**content, 'morning': [habit for habit in content['morning'] if habit['id'] not in {'morning-apple-cider', 'morning-shower'}]}
+            return jsonify(content)
         content=request.get_json()
         if not isinstance(content,dict) or not all(isinstance(content.get(k),list) and all(isinstance(t,dict) and isinstance(t.get('id'),str) and isinstance(t.get('text'),str) for t in content[k]) for k in ['morning','night']):
             return jsonify(error='Invalid routines'),400

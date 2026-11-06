@@ -29,3 +29,5 @@
 #day-page .evening-routine{margin-top:18px}
 #day-page .task{gap:9px;font-size:14px}
 @media(max-width:600px){#day-page{padding:18px 15px}.layout{padding:14px}.calendar-panel{margin-bottom:18px}}
+
+#day-page>.capture{margin:0 0 18px}
