@@ -42,15 +42,20 @@ def protect():
     if request.path == '/healthz' or request.path.startswith('/static/'):
         return
     password = os.environ.get('NOTES_PASSWORD')
-    if not password and os.environ.get('RENDER'):
+    public_access = app.config.get('PUBLIC_ACCESS', False)
+    if request.path == '/transfer' and public_access:
+        return 'Not found', 404
+    if not password and os.environ.get('RENDER') and not public_access:
         return 'Set NOTES_PASSWORD before using this app.', 503
-    if password and not session.get('authenticated') and request.path != '/login':
+    if password and not public_access and not session.get('authenticated') and request.path != '/login':
         return (jsonify(error='Please sign in again.'), 401) if request.path.startswith('/api/') else redirect(url_for('login'))
     if (request.method == 'PUT' or request.path == '/transfer' and request.method == 'POST') and not hmac.compare_digest(request.headers.get('X-CSRF-Token', '') or request.form.get('csrf', ''), session.get('csrf', '!')):
         return jsonify(error='Refresh the page and try again.'), 403
 
 @app.route('/login', methods=['GET','POST'])
 def login():
+    if app.config.get('PUBLIC_ACCESS', False):
+        return redirect(url_for('index'))
     error = None
     if request.method == 'POST':
         if hmac.compare_digest(request.form.get('password',''), os.environ.get('NOTES_PASSWORD','')):
