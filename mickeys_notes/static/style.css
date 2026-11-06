@@ -11,3 +11,21 @@
 .top-nav{display:flex;gap:6px;align-items:center}.app-header .top-nav a{font-size:13px;letter-spacing:0;padding:8px 11px;border-radius:8px;font-weight:500;white-space:nowrap}.top-nav a[aria-current=page]{background:#e7eddf;color:#365640}.general-page{max-width:760px;margin:0 auto;padding:32px}.general-hint{font-size:13px;line-height:1.6;color:#778279;margin:-12px 0 23px}#general-progress{font-size:12px;color:#889184;white-space:nowrap}@media(max-width:600px){.app-header{flex-wrap:wrap;gap:12px}.top-nav{order:3;width:100%}.app-header #save-status{margin-left:auto}.general-page{padding:24px 18px}.app-header .top-nav a{padding:9px 13px}}
 
 .evening-routine{margin-top:30px;margin-bottom:0}
+
+/* One shared surface for the whole day, with the same checklist rows throughout. */
+#day-page{background:#fff;border:1px solid #e1e6dd;border-radius:14px;padding:24px;min-width:0}
+#day-page .day-heading{margin:0 0 20px}
+#day-page .routines{margin:0}
+#day-page .routine{background:transparent;border:0;border-radius:0;padding:0}
+#day-page .routine h2,#day-page .section-heading h2{font-size:13px;color:#778279;font-weight:600;letter-spacing:0}
+#day-page .routine h2{margin:0 0 4px}
+#day-page .routine label{padding:12px 0;border-bottom:1px solid #e4e8e0;font-size:14px;gap:9px;line-height:1.5}
+#day-page .routine input{margin:2px 0 0;width:17px;height:17px}
+#day-page .daily-list{margin-top:18px}
+#day-page .section-heading{margin-bottom:10px}
+#day-page .capture{margin-bottom:8px}
+#day-page .notes{margin-top:18px}
+#day-page .notes label{color:#778279;font-size:13px}
+#day-page .evening-routine{margin-top:18px}
+#day-page .task{gap:9px;font-size:14px}
+@media(max-width:600px){#day-page{padding:18px 15px}.layout{padding:14px}.calendar-panel{margin-bottom:18px}}
