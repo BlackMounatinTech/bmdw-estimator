@@ -42,3 +42,7 @@
 #day-page .routine label{min-width:0;max-width:100%}
 #day-page .routine label span{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere}
 .general-page{min-width:0;width:100%}
+
+/* Touch-safe handles keep tapping the task itself available for completion. */
+.task .drag-handle{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;min-width:30px;align-self:stretch;padding:8px 4px;color:#8a9385;font-size:22px}
+.task.dragging{background:#eaf0e5;box-shadow:0 2px 10px #36564022}.task.dragging .drag-handle{cursor:grabbing}

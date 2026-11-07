@@ -41,9 +41,18 @@ function render() {
     const check = element('input', {type: 'checkbox', checked: task.done});
     check.setAttribute('aria-label', 'Complete ' + task.text); check.onchange = () => toggleTask(task, check.checked);
     const text = element('span', {className: 'task-text', textContent: task.text});
-    const remove = element('button', {type: 'button', className: 'remove', textContent: '×', onclick: () => { content.tasks = content.tasks.filter(t => t.id !== task.id); changed(); render(); }});
+    const remove = element('button', {type: 'button', className: 'remove', textContent: '×', onclick: () => {
+      if (!window.confirm('Confirm delete?\n\n' + task.text)) return;
+      content.tasks = content.tasks.filter(t => t.id !== task.id); changed(); render();
+    }});
     remove.setAttribute('aria-label', 'Remove ' + task.text);
-    root.append(element('div', {className: 'task' + (task.done ? ' done' : '')}, element('label', {className: 'task-toggle'}, check, text), remove));
+    const row = element('div', {className: 'task' + (task.done ? ' done' : '')}, element('label', {className: 'task-toggle'}, check, text), remove);
+    row.dataset.taskId = task.id;
+    row.prepend(taskDragHandle(row, root, ids => {
+      const byId = new Map(content.tasks.map(t => [t.id, t]));
+      content.tasks = orderedTasks(ids.map(id => byId.get(id))); changed(); render();
+    }));
+    root.append(row);
   }
   if (!content.tasks.length) root.append(element('p', {className: 'empty', textContent: 'Add anything you need to get done.'}));
   $('#general-progress').textContent = content.tasks.length ? `${content.tasks.filter(t => t.done).length}/${content.tasks.length} done` : '';

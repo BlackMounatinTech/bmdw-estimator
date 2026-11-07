@@ -140,9 +140,10 @@ function renderRoutines() {
     root.append(card);
   }
 }
-// Kept in the order added so line numbers never jump around.
 function taskEntries() {
-  return state.lists.flatMap(list => list.tasks.map(task => ({list, task})));
+  const order = new Map((state.taskOrder || []).map((id, index) => [id, index]));
+  return state.lists.flatMap(list => list.tasks.map(task => ({list, task})))
+    .sort((a, b) => (order.get(a.task.id) ?? order.size) - (order.get(b.task.id) ?? order.size));
 }
 function renderTasks() {
   const root = $('#tasks'); root.replaceChildren();
@@ -153,9 +154,17 @@ function renderTasks() {
     checkbox.setAttribute('aria-label', 'Complete ' + task.text);
     checkbox.onchange = () => { task.done = checkbox.checked; changed(); renderTasks(); };
     const text = el('span', {className: 'task-text', textContent: task.text});
-    const remove = el('button', {type: 'button', className: 'remove', textContent: '×', onclick: () => { list.tasks = list.tasks.filter(t => t.id !== task.id); changed(); renderTasks(); }});
+    const remove = el('button', {type: 'button', className: 'remove', textContent: '×', onclick: () => {
+      if (!window.confirm('Confirm delete?\n\n' + task.text)) return;
+      list.tasks = list.tasks.filter(t => t.id !== task.id);
+      state.taskOrder = (state.taskOrder || []).filter(id => id !== task.id);
+      changed(); renderTasks();
+    }});
     remove.setAttribute('aria-label', 'Remove ' + task.text);
-    root.append(el('div', {className: 'task' + (task.done ? ' done' : '')}, el('label', {className: 'task-toggle'}, checkbox, number, text), remove));
+    const row = el('div', {className: 'task' + (task.done ? ' done' : '')}, el('label', {className: 'task-toggle'}, checkbox, number, text), remove);
+    row.dataset.taskId = task.id;
+    row.prepend(taskDragHandle(row, root, ids => { state.taskOrder = ids; changed(); renderTasks(); }));
+    root.append(row);
   }
   if (!entries.length) root.append(el('p', {className: 'empty', textContent: 'A blank day. Add whatever you need to do.'}));
   const complete = entries.filter(({task}) => task.done).length;

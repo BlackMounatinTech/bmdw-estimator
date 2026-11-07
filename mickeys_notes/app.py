@@ -1,6 +1,8 @@
 import os, sqlite3, secrets, hmac, time, json
 from pathlib import Path
 from datetime import date, timedelta
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import calendar
 from flask import Flask, request, session, jsonify, render_template, redirect, url_for
 
@@ -181,6 +183,8 @@ def day_data(day):
     except ValueError: return jsonify(error='Invalid date'), 400
     with db() as con:
         if request.method == 'GET':
+            if day == datetime.now(ZoneInfo('America/Vancouver')).date().isoformat():
+                carry_over(con, day)
             row = con.execute('SELECT * FROM days WHERE day=?',(day,)).fetchone()
             import json
             return jsonify(content=json.loads(row['content']) if row else {'lists':[], 'note':''}, revision=row['revision'] if row else 0)
@@ -194,5 +198,40 @@ def day_data(day):
         result=con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=? AND revision=?',(json.dumps(content),day,revision))
         if result.rowcount != 1: return jsonify(error='This day changed in another tab. Reload before editing.'),409
         return jsonify(revision=revision+1)
+
+def carry_over(con, today):
+    """Move unfinished daily tasks forward atomically, including after missed days.
+
+    Routines, checked tasks and drafts stay on their original day. Revisions on
+    both days change so an older browser tab cannot silently undo the move.
+    """
+    con.execute('BEGIN IMMEDIATE')
+    row = con.execute('SELECT content FROM days WHERE day=?', (today,)).fetchone()
+    target = json.loads(row['content']) if row else {'lists': [], 'note': ''}
+    existing = {t['id'] for group in target['lists'] for t in group['tasks']}
+    incoming = []
+    for source in con.execute('SELECT day, content FROM days WHERE day < ? ORDER BY day', (today,)).fetchall():
+        content = json.loads(source['content'])
+        tasks = [t for group in content['lists'] for t in group['tasks'] if not t.get('done', False)]
+        order = {key: i for i, key in enumerate(content.get('taskOrder', []))}
+        tasks.sort(key=lambda t: order.get(t['id'], len(order)))
+        if not tasks:
+            continue
+        for task in tasks:
+            if task['id'] not in existing:
+                incoming.append(task)
+                existing.add(task['id'])
+        moved = {t['id'] for t in tasks}
+        for group in content['lists']:
+            group['tasks'] = [t for t in group['tasks'] if t['id'] not in moved]
+        content['taskOrder'] = [key for key in content.get('taskOrder', []) if key not in moved]
+        con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(content), source['day']))
+    if incoming:
+        target['lists'].append({'id': 'carry-' + secrets.token_hex(8), 'title': 'Carried over', 'priority': 'Medium', 'tasks': incoming})
+        current_order = target.get('taskOrder', [])
+        current_ids = [t['id'] for group in target['lists'][:-1] for t in group['tasks']]
+        target['taskOrder'] = [t['id'] for t in incoming] + current_order + [key for key in current_ids if key not in current_order]
+        con.execute('INSERT OR IGNORE INTO days VALUES (?, ?, 0)', (today, '{"lists":[],"note":""}'))
+        con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(target), today))
 
 if __name__ == '__main__': app.run(port=int(os.environ.get('PORT', 5055)), host='127.0.0.1')
