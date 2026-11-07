@@ -257,7 +257,7 @@ async function checkDayChange() {
   const today = localDate();
   if (today === lastToday || rollingDay) return;
   const previous = lastToday; lastToday = today; renderCalendar();
-  if (currentDay === previous) {
+  if (currentDay === previous || currentDay === today) {
     rollingDay = true; await loadDay(today); rollingDay = false;
     if (currentDay === previous) lastToday = previous;
   }
