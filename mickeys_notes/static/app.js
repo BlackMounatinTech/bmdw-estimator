@@ -265,6 +265,13 @@ async function checkDayChange() {
 document.addEventListener('visibilitychange', () => { if (document.hidden && dirty) save(); else if (!document.hidden) checkDayChange(); });
 window.addEventListener('focus', checkDayChange);
 setInterval(checkDayChange, 60000);
+// Switch at the Mac/phone's local midnight; the interval also catches sleep/wake.
+function scheduleMidnight() {
+  const now = new Date(), midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  setTimeout(async () => { await checkDayChange(); scheduleMidnight(); }, midnight - now + 20);
+}
+scheduleMidnight();
 async function init() {
   renderCalendar();
   try {

@@ -24,6 +24,7 @@ children.append(subprocess.Popen([sys.executable, '-m', 'streamlit', 'run', 'Quo
     '--server.port=8501', '--server.address=127.0.0.1', '--server.headless=true']))
 children.append(subprocess.Popen([sys.executable, '-m', 'gunicorn', '--bind', '127.0.0.1:8502',
     '--workers', '1', '--threads', '2', 'shared_notes:app']))
+children.append(subprocess.Popen([sys.executable, 'notes_rollover_worker.py']))
 children.append(subprocess.Popen(['.bin/caddy', 'run', '--config', 'Caddyfile']))
 while True:
     for child in children:

@@ -1,8 +1,7 @@
 import os, sqlite3, secrets, hmac, time, json
 from pathlib import Path
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone
 from datetime import datetime
-from zoneinfo import ZoneInfo
 import calendar
 from flask import Flask, request, session, jsonify, render_template, redirect, url_for
 
@@ -35,7 +34,12 @@ def db():
     con = sqlite3.connect(DATA / 'notes.sqlite3', timeout=20)
     con.row_factory = sqlite3.Row
     con.execute('CREATE TABLE IF NOT EXISTS days (day TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+    con.execute('CREATE TABLE IF NOT EXISTS task_rollovers (source_day TEXT NOT NULL, task_id TEXT NOT NULL, PRIMARY KEY(source_day, task_id))')
     return con
+
+def current_day():
+    # B.C. observes UTC-7 year-round from November 2026 onward.
+    return datetime.now(timezone(timedelta(hours=-7))).date().isoformat()
 
 @app.before_request
 def protect():
@@ -183,7 +187,7 @@ def day_data(day):
     except ValueError: return jsonify(error='Invalid date'), 400
     with db() as con:
         if request.method == 'GET':
-            if day == datetime.now(ZoneInfo('America/Vancouver')).date().isoformat():
+            if day == current_day():
                 carry_over(con, day)
             row = con.execute('SELECT * FROM days WHERE day=?',(day,)).fetchone()
             import json
@@ -197,41 +201,53 @@ def day_data(day):
         con.execute('INSERT OR IGNORE INTO days VALUES (?, ?, 0)', (day, '{"lists":[],"note":""}'))
         result=con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=? AND revision=?',(json.dumps(content),day,revision))
         if result.rowcount != 1: return jsonify(error='This day changed in another tab. Reload before editing.'),409
+        if day < current_day():
+            # Include a final autosave arriving just after midnight.
+            carry_over(con, current_day())
         return jsonify(revision=revision+1)
 
 def carry_over(con, today):
-    """Move unfinished daily tasks forward atomically, including after missed days.
+    """Copy each unfinished task to the following day, preserving daily history.
 
-    Routines, checked tasks and drafts stay on their original day. Revisions on
-    both days change so an older browser tab cannot silently undo the move.
+    The per-day ledger prevents old unchecked snapshots from resurrecting tasks
+    that were subsequently completed or deleted. Every midnight is processed,
+    including days when the app was closed. Morning/night habits never copy.
     """
-    con.execute('BEGIN IMMEDIATE')
-    row = con.execute('SELECT content FROM days WHERE day=?', (today,)).fetchone()
-    target = json.loads(row['content']) if row else {'lists': [], 'note': ''}
-    existing = {t['id'] for group in target['lists'] for t in group['tasks']}
-    incoming = []
-    for source in con.execute('SELECT day, content FROM days WHERE day < ? ORDER BY day', (today,)).fetchall():
+    if not con.in_transaction:
+        con.execute('BEGIN IMMEDIATE')
+    first = con.execute('SELECT MIN(day) FROM days WHERE day < ?', (today,)).fetchone()[0]
+    if not first:
+        return
+    source_day = date.fromisoformat(first)
+    while source_day.isoformat() < today:
+        day = source_day.isoformat()
+        next_day = (source_day + timedelta(days=1)).isoformat()
+        source_day += timedelta(days=1)
+        source = con.execute('SELECT content FROM days WHERE day=?', (day,)).fetchone()
+        if not source:
+            continue
         content = json.loads(source['content'])
-        tasks = [t for group in content['lists'] for t in group['tasks'] if not t.get('done', False)]
+        copied = {r['task_id'] for r in con.execute('SELECT task_id FROM task_rollovers WHERE source_day=?', (day,))}
+        tasks = [t for group in content['lists'] for t in group['tasks'] if not t.get('done', False) and t['id'] not in copied]
         order = {key: i for i, key in enumerate(content.get('taskOrder', []))}
         tasks.sort(key=lambda t: order.get(t['id'], len(order)))
         if not tasks:
             continue
+        row = con.execute('SELECT content FROM days WHERE day=?', (next_day,)).fetchone()
+        target = json.loads(row['content']) if row else {'lists': [], 'note': ''}
+        existing = {t['id'] for group in target['lists'] for t in group['tasks']}
+        incoming = []
         for task in tasks:
             if task['id'] not in existing:
-                incoming.append(task)
+                incoming.append(dict(task))
                 existing.add(task['id'])
-        moved = {t['id'] for t in tasks}
-        for group in content['lists']:
-            group['tasks'] = [t for t in group['tasks'] if t['id'] not in moved]
-        content['taskOrder'] = [key for key in content.get('taskOrder', []) if key not in moved]
-        con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(content), source['day']))
-    if incoming:
-        target['lists'].append({'id': 'carry-' + secrets.token_hex(8), 'title': 'Carried over', 'priority': 'Medium', 'tasks': incoming})
-        current_order = target.get('taskOrder', [])
-        current_ids = [t['id'] for group in target['lists'][:-1] for t in group['tasks']]
-        target['taskOrder'] = [t['id'] for t in incoming] + current_order + [key for key in current_ids if key not in current_order]
-        con.execute('INSERT OR IGNORE INTO days VALUES (?, ?, 0)', (today, '{"lists":[],"note":""}'))
-        con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(target), today))
+            con.execute('INSERT OR IGNORE INTO task_rollovers VALUES (?,?)', (day,task['id']))
+        if incoming:
+            target['lists'].append({'id': 'carry-' + secrets.token_hex(8), 'title': 'Carried over', 'priority': 'Medium', 'tasks': incoming})
+            current_order = target.get('taskOrder', [])
+            current_ids = [t['id'] for group in target['lists'][:-1] for t in group['tasks']]
+            target['taskOrder'] = [t['id'] for t in incoming] + current_order + [key for key in current_ids if key not in current_order]
+            con.execute('INSERT OR IGNORE INTO days VALUES (?, ?, 0)', (next_day, '{"lists":[],"note":""}'))
+            con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(target), next_day))
 
 if __name__ == '__main__': app.run(port=int(os.environ.get('PORT', 5055)), host='127.0.0.1')
