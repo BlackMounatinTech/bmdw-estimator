@@ -21,7 +21,7 @@ DEFAULT_ROUTINES = {
         {'id': 'morning-wake', 'text': 'Wake up between 6:00–6:45 a.m.'},
         {'id': 'morning-bible', 'text': 'Read 1 page of the Bible'},
         {'id': 'morning-prayer', 'text': 'Pray'},
-        {'id': 'morning-water', 'text': 'Drink 2 cups of copper water'},
+        {'id': 'morning-water', 'text': 'Drink water'},
     ],
     'night': [
         {'id': 'night-visualization', 'text': '10 minutes of visualization'},
