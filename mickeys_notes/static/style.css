@@ -46,3 +46,11 @@
 /* Touch-safe handles keep tapping the task itself available for completion. */
 .task .drag-handle{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;min-width:30px;align-self:stretch;padding:8px 4px;color:#8a9385;font-size:22px}
 .task.dragging{background:#eaf0e5;box-shadow:0 2px 10px #36564022}.task.dragging .drag-handle{cursor:grabbing}
+
+/* Hold a daily task, or use its accessible action button. */
+#tasks .task-toggle{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.task .task-more{color:#6f7d6c;min-width:34px;font-size:22px}
+.task-actions{width:min(420px,calc(100% - 36px));border:1px solid #dce2da;border-radius:16px;padding:24px;color:#26362a;box-shadow:0 14px 60px #172d2940}
+.task-actions::backdrop{background:#172d2966}
+.task-actions p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;margin:15px 0 24px}
+.task-action-buttons{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}

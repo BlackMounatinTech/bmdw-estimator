@@ -102,6 +102,47 @@ def general_data():
             return jsonify(error='This list changed in another tab. Reload before editing.'), 409
         return jsonify(revision=payload['revision'] + 1)
 
+@app.put('/api/days/<day>/move-to-general')
+def move_to_general(day):
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        return jsonify(error='Invalid date'), 400
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get('task_id'), str):
+        return jsonify(error='Choose a daily task to move.'), 400
+    with db() as con:
+        con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+        con.execute('BEGIN IMMEDIATE')
+        row = con.execute('SELECT * FROM days WHERE day=?', (day,)).fetchone()
+        if not row:
+            return jsonify(error='This day no longer exists. Reload and try again.'), 404
+        content = json.loads(row['content'])
+        task_id = payload['task_id']
+        task = next((t for group in content['lists'] for t in group['tasks'] if t['id'] == task_id), None)
+        general_row = con.execute('SELECT * FROM general WHERE id=1').fetchone()
+        general = json.loads(general_row['content']) if general_row else {'tasks': [], 'draft': ''}
+        existing = any(t['id'] == task_id for t in general['tasks'])
+        # Retry safely if the first response was lost after the transaction committed.
+        if task is None and existing:
+            return jsonify(content=content, revision=row['revision'])
+        if row['revision'] != payload.get('revision'):
+            return jsonify(error='This day changed in another tab. Reload before moving this task.'), 409
+        if task is None:
+            return jsonify(error='This task no longer exists. Reload and try again.'), 404
+        if existing:
+            return jsonify(error='This task is already in General to-do. Reload your lists.'), 409
+        general['tasks'].insert(0, dict(task))
+        general['tasks'] = [t for t in general['tasks'] if not t['done']] + [t for t in general['tasks'] if t['done']]
+        for group in content['lists']:
+            group['tasks'] = [t for t in group['tasks'] if t['id'] != task_id]
+        content['taskOrder'] = [key for key in content.get('taskOrder', []) if key != task_id]
+        con.execute('INSERT OR IGNORE INTO general VALUES (1, ?, 0)', ('{"tasks":[],"draft":""}',))
+        con.execute('UPDATE general SET content=?, revision=revision+1 WHERE id=1', (json.dumps(general),))
+        con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(content), day))
+        con.execute('INSERT OR IGNORE INTO task_rollovers VALUES (?,?)', (day, task_id))
+        return jsonify(content=content, revision=row['revision'] + 1)
+
 @app.get('/manifest.webmanifest')
 def manifest():
     base = request.script_root

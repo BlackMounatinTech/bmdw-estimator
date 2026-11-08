@@ -11,6 +11,7 @@ let routines = {morning: [], night: []};
 let dirty = false, saving = null, failed = false, timer, navigation = 0;
 let recognition = null, listening = false, dictationDay = null;
 let stoppingRecognition = null, lastToday = localDate(), rollingDay = false;
+let movingTask = false;
 const savedDays = new Set();
 
 function el(tag, props = {}, ...children) {
@@ -93,6 +94,7 @@ async function loadMonthEntries() {
   } catch (_) { /* The calendar still works if saved-day markers cannot load. */ }
 }
 async function loadDay(day) {
+  if (movingTask) return;
   const requestId = ++navigation;
   $('#day-page').inert = true;
   if (recognition && listening) await stopDictation();
@@ -145,6 +147,71 @@ function taskEntries() {
   return state.lists.flatMap(list => list.tasks.map(task => ({list, task})))
     .sort((a, b) => (order.get(a.task.id) ?? order.size) - (order.get(b.task.id) ?? order.size));
 }
+async function moveTaskToGeneral(task) {
+  if (movingTask) return;
+  movingTask = true; $('#day-page').inert = true;
+  try {
+    if (recognition && listening) await stopDictation();
+    await save();
+    if (dirty) return;
+    const response = await fetch(APP_BASE + '/api/days/' + currentDay + '/move-to-general', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': $('meta[name=csrf]').content},
+      body: JSON.stringify({task_id: task.id, revision}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || 'Could not move this task.');
+    state = data.content; state.habits ||= {}; revision = data.revision;
+    renderTasks();
+    // Clear Add/Undo snapshots so they cannot restore a moved task.
+    $('#voice-status').textContent = 'Moved to General to-do.';
+    $('#save-status').textContent = 'Saved'; clearError();
+  } catch (error) {
+    showError(error.message + ' Refresh before trying again.');
+  } finally {
+    movingTask = false; $('#day-page').inert = false;
+  }
+}
+function taskMoveActions(row, task) {
+  const label = row.querySelector('.task-toggle');
+  let holdTimer, startX, startY, suppressClick = false;
+  const cancelHold = () => clearTimeout(holdTimer);
+  const openActions = () => {
+    cancelHold();
+    if (movingTask || !row.isConnected) return;
+    const dialog = el('dialog', {className: 'task-actions'});
+    const title = el('h2', {textContent: 'Move this task?'});
+    title.id = 'task-action-title'; dialog.setAttribute('aria-labelledby', title.id);
+    const cancel = el('button', {type: 'button', textContent: 'Cancel', onclick: () => dialog.close()});
+    const move = el('button', {type: 'button', className: 'primary', textContent: 'Move to General to-do', onclick: () => {
+      dialog.close(); moveTaskToGeneral(task);
+    }});
+    dialog.append(title, el('p', {textContent: task.text}), el('div', {className: 'task-action-buttons'}, cancel, move));
+    dialog.onclose = () => dialog.remove();
+    document.body.append(dialog); dialog.showModal(); move.focus();
+  };
+  label.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    cancelHold(); suppressClick = false; startX = event.clientX; startY = event.clientY;
+    holdTimer = setTimeout(() => { suppressClick = true; openActions(); }, 600);
+  });
+  label.addEventListener('pointermove', event => {
+    if (Math.hypot(event.clientX - startX, event.clientY - startY) > 10) cancelHold();
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) label.addEventListener(type, cancelHold);
+  label.addEventListener('contextmenu', event => {
+    event.preventDefault();
+    if (!suppressClick) { suppressClick = true; openActions(); }
+  });
+  row.addEventListener('click', event => {
+    if (suppressClick && event.target.closest('.task-toggle')) {
+      event.preventDefault(); event.stopImmediatePropagation(); suppressClick = false;
+    }
+  }, true);
+  const more = el('button', {type: 'button', className: 'task-more', textContent: '…', onclick: openActions});
+  more.setAttribute('aria-label', 'Move ' + task.text + ' to General to-do');
+  more.title = 'Move to General to-do'; row.append(more);
+}
 function renderTasks() {
   const root = $('#tasks'); root.replaceChildren();
   const entries = taskEntries();
@@ -163,6 +230,7 @@ function renderTasks() {
     remove.setAttribute('aria-label', 'Remove ' + task.text);
     const row = el('div', {className: 'task' + (task.done ? ' done' : '')}, el('label', {className: 'task-toggle'}, checkbox, number, text), remove);
     row.dataset.taskId = task.id;
+    taskMoveActions(row, task);
     row.prepend(taskDragHandle(row, root, ids => { state.taskOrder = ids; changed(); renderTasks(); }));
     root.append(row);
   }
