@@ -30,17 +30,15 @@
           <div class="capture-actions"><button id="dictate" type="button">🎙 Dictate</button><button id="add-tasks" class="primary" type="button">Add to list</button></div>
           <p id="voice-status" role="status">You can also use your keyboard’s microphone.</p>
         </div>
-      <div id="morning-routine" class="routines"></div>
       <section class="daily-list" aria-labelledby="list-title">
         <div class="section-heading"><h2 id="list-title">Daily list</h2><span id="progress"></span></div>
         <p class="general-hint" style="margin:0 0 8px">Hold a task to move it to General to-do.</p><div id="tasks"></div>
         <p class="priority-hint" id="priority-hint" hidden>☆ marks a priority.</p>
       </section>
-      <div id="night-routine" class="routines evening-routine"></div>
     </article>
   </main>
   <p id="error" role="alert" hidden></p>
   <script src="{{ url_for('static', filename='task-drag.js') }}?v=carry-drag-1"></script>
-  <script src="{{ url_for('static', filename='app.js') }}?v=move-general-1"></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=no-routines-1"></script>
 </body>
 </html>

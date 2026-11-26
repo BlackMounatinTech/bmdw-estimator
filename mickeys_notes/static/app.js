@@ -7,7 +7,6 @@ const localDate = () => dateKey(new Date());
 const dateObject = day => new Date(day + 'T12:00:00');
 let currentDay = '', monthView = localDate().slice(0, 7);
 let state = {lists: [], note: '', habits: {}}, revision = 0;
-let routines = {morning: [], night: []};
 let dirty = false, saving = null, failed = false, timer, navigation = 0;
 let recognition = null, listening = false, dictationDay = null;
 let stoppingRecognition = null, lastToday = localDate(), rollingDay = false;
@@ -116,7 +115,7 @@ async function loadDay(day) {
     $('#day-year').textContent = day.slice(0, 4);
     $('#capture').value = state.draft || '';
     $('#save-status').textContent = 'Saved';
-    clearError(); renderRoutines(); renderTasks(); renderCalendar();
+    clearError(); renderTasks(); renderCalendar();
     loadMonthEntries();
   } catch (error) {
     if (requestId === navigation) showError(error.message, () => loadDay(day));
@@ -125,23 +124,6 @@ async function loadDay(day) {
   }
 }
 
-function renderRoutines() {
-  for (const [key, title] of [['morning', 'Morning'], ['night', 'Evening']]) {
-    const root = $('#' + key + '-routine'); root.replaceChildren();
-    const card = el('section', {className: 'routine'}, el('h2', {textContent: title}));
-    for (const habit of routines[key]) {
-      const checkbox = el('input', {type: 'checkbox', checked: !!state.habits[habit.id]});
-      const row = el('label', {className: checkbox.checked ? 'done' : ''}, checkbox, el('span', {textContent: habit.text}));
-      checkbox.onchange = () => {
-        state.habits[habit.id] = checkbox.checked;
-        row.classList.toggle('done', checkbox.checked);
-        changed();
-      };
-      card.append(row);
-    }
-    root.append(card);
-  }
-}
 function taskEntries() {
   const order = new Map((state.taskOrder || []).map((id, index) => [id, index]));
   return state.lists.flatMap(list => list.tasks.map(task => ({list, task})))
@@ -343,9 +325,7 @@ scheduleMidnight();
 async function init() {
   renderCalendar();
   try {
-    const response = await fetch(APP_BASE + '/api/routines');
-    if (!response.ok) throw Error('Could not load your routines. Refresh and sign in if needed.');
-    routines = await response.json(); await loadDay(localDate());
+    await loadDay(localDate());
   } catch (error) { showError(error.message, init); }
 }
 init();
