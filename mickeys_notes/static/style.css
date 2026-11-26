@@ -54,3 +54,6 @@
 .task-actions::backdrop{background:#172d2966}
 .task-actions p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;margin:15px 0 24px}
 .task-action-buttons{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+/* Keep all five list tabs accessible on narrow screens. */
+.app-header{flex-wrap:wrap}.top-nav{display:flex;flex-wrap:wrap;gap:8px 16px;max-width:100%}

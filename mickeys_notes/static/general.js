@@ -1,4 +1,5 @@
 const base = document.querySelector('meta[name=app-base]').content;
+const listApi = base + '/api/lists/' + document.querySelector('meta[name=list-key]').content;
 const $ = selector => document.querySelector(selector);
 let content = {tasks: [], draft: ''}, revision = 0, dirty = false, saving = null, failed = false, timer;
 function element(tag, props = {}, ...children) {
@@ -16,7 +17,7 @@ async function save() {
   const body = JSON.stringify({content, revision});
   saving = (async () => {
     try {
-      const response = await fetch(base + '/api/general', {method: 'PUT', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': $('meta[name=csrf]').content}, body});
+      const response = await fetch(listApi, {method: 'PUT', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': $('meta[name=csrf]').content}, body});
       const data = await response.json();
       if (!response.ok) throw Error(data.error || 'Could not save your list.');
       revision = data.revision; $('#save-status').textContent = dirty ? 'Unsaved' : 'Saved'; $('#error').hidden = true;
@@ -95,8 +96,8 @@ window.addEventListener('beforeunload', e => { if (dirty || saving) { e.preventD
 document.addEventListener('visibilitychange', () => { if (document.hidden && dirty) save(); });
 async function init() {
   try {
-    const response = await fetch(base + '/api/general');
-    if (!response.ok) throw Error('Could not load your general to-do list. Refresh to try again.');
+    const response = await fetch(listApi);
+    if (!response.ok) throw Error('Could not load your list. Refresh to try again.');
     const data = await response.json(); content = data.content; revision = data.revision;
     $('#general-capture').value = content.draft || ''; render(); $('#save-status').textContent = 'Saved'; $('#general-page').inert = false;
   } catch (e) { error(e.message); }

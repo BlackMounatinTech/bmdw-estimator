@@ -8,10 +8,10 @@
   <title>Mickey’s Notes</title>
   <link rel="manifest" href="{{ url_for('manifest') }}">
   <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mickey’s Notes"><meta name="theme-color" content="#f7f8f5"><link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}"><link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=move-general-1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=planning-tabs-1">
 </head>
 <body>
-  <header class="app-header"><a href="{{ url_for('index') }}">Mickey’s notes</a><nav class="top-nav" aria-label="Lists"><a href="{{ url_for('index') }}" aria-current="page">Days</a><a href="{{ url_for('general_page') }}">General to-do</a></nav><span id="save-status" role="status">Loading…</span></header>
+  <header class="app-header"><a href="{{ url_for('index') }}">Mickey’s notes</a><nav class="top-nav" aria-label="Lists"><a href="{{ url_for('index') }}"{% if not list_key %} aria-current="page"{% endif %}>Days</a>{% for key, title in [('business', 'Business'), ('week', 'This Week'), ('month', 'This Month'), ('quarter', 'This Quarter')] %}<a href="{{ url_for('list_page', list_key=key) }}"{% if list_key == key %} aria-current="page"{% endif %}>{{ title }}</a>{% endfor %}</nav><span id="save-status" role="status">Loading…</span></header>
   <main class="layout">
     <aside class="calendar-panel" aria-label="Calendar">
       <div class="month-navigation">
@@ -32,13 +32,13 @@
         </div>
       <section class="daily-list" aria-labelledby="list-title">
         <div class="section-heading"><h2 id="list-title">Daily list</h2><span id="progress"></span></div>
-        <p class="general-hint" style="margin:0 0 8px">Hold a task to move it to General to-do.</p><div id="tasks"></div>
+        <p class="general-hint" style="margin:0 0 8px">Hold a task to move it to Business.</p><div id="tasks"></div>
         <p class="priority-hint" id="priority-hint" hidden>☆ marks a priority.</p>
       </section>
     </article>
   </main>
   <p id="error" role="alert" hidden></p>
   <script src="{{ url_for('static', filename='task-drag.js') }}?v=carry-drag-1"></script>
-  <script src="{{ url_for('static', filename='app.js') }}?v=no-routines-1"></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=planning-tabs-1"></script>
 </body>
 </html>

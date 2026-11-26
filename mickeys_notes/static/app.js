@@ -146,7 +146,7 @@ async function moveTaskToGeneral(task) {
     state = data.content; state.habits ||= {}; revision = data.revision;
     renderTasks();
     // Clear Add/Undo snapshots so they cannot restore a moved task.
-    $('#voice-status').textContent = 'Moved to General to-do.';
+    $('#voice-status').textContent = 'Moved to Business.';
     $('#save-status').textContent = 'Saved'; clearError();
   } catch (error) {
     showError(error.message + ' Refresh before trying again.');
@@ -165,7 +165,7 @@ function taskMoveActions(row, task) {
     const title = el('h2', {textContent: 'Move this task?'});
     title.id = 'task-action-title'; dialog.setAttribute('aria-labelledby', title.id);
     const cancel = el('button', {type: 'button', textContent: 'Cancel', onclick: () => dialog.close()});
-    const move = el('button', {type: 'button', className: 'primary', textContent: 'Move to General to-do', onclick: () => {
+    const move = el('button', {type: 'button', className: 'primary', textContent: 'Move to Business', onclick: () => {
       dialog.close(); moveTaskToGeneral(task);
     }});
     dialog.append(title, el('p', {textContent: task.text}), el('div', {className: 'task-action-buttons'}, cancel, move));
@@ -191,8 +191,8 @@ function taskMoveActions(row, task) {
     }
   }, true);
   const more = el('button', {type: 'button', className: 'task-more', textContent: '…', onclick: openActions});
-  more.setAttribute('aria-label', 'Move ' + task.text + ' to General to-do');
-  more.title = 'Move to General to-do'; row.append(more);
+  more.setAttribute('aria-label', 'Move ' + task.text + ' to Business');
+  more.title = 'Move to Business'; row.append(more);
 }
 function renderTasks() {
   const root = $('#tasks'); root.replaceChildren();

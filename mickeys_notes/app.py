@@ -6,6 +6,7 @@ import calendar
 from flask import Flask, request, session, jsonify, render_template, redirect, url_for
 
 app = Flask(__name__)
+app.url_map.redirect_defaults = False
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Strict', SESSION_COOKIE_SECURE=os.environ.get('RENDER') == 'true', MAX_CONTENT_LENGTH=1024*1024, PERMANENT_SESSION_LIFETIME=timedelta(days=365))
 DATA = Path(os.environ.get('NOTES_DATA_DIR', Path(__file__).parent / 'data'))
@@ -74,13 +75,27 @@ def index():
     session.setdefault('csrf', secrets.token_hex(24))
     return render_template('index.html', csrf=session['csrf'])
 
+LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month', 'quarter': 'This Quarter'}
+
+@app.get('/lists/<list_key>')
+def list_page(list_key):
+    if list_key not in LIST_TITLES:
+        return 'Not found', 404
+    session.setdefault('csrf', secrets.token_hex(24))
+    return render_template('general.html', csrf=session['csrf'], list_key=list_key, list_title=LIST_TITLES[list_key])
+
 @app.get('/general')
 def general_page():
     session.setdefault('csrf', secrets.token_hex(24))
-    return render_template('general.html', csrf=session['csrf'])
+    return redirect(url_for('list_page', list_key='business'))
 
-@app.route('/api/general', methods=['GET', 'PUT'])
-def general_data():
+@app.route('/api/lists/<list_key>', methods=['GET', 'PUT'])
+@app.route('/api/general', methods=['GET', 'PUT'], defaults={'list_key': 'business'})
+def general_data(list_key):
+    if list_key not in LIST_TITLES:
+        return jsonify(error='Unknown list'), 404
+    if list_key != 'business':
+        return planning_data(list_key)
     with db() as con:
         con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
         if request.method == 'GET':
@@ -98,6 +113,28 @@ def general_data():
         content = {'tasks': [t for t in tasks if not t['done']] + [t for t in tasks if t['done']], 'draft': content.get('draft', '')}
         con.execute('INSERT OR IGNORE INTO general VALUES (1, ?, 0)', ('{"tasks":[],"draft":""}',))
         result = con.execute('UPDATE general SET content=?, revision=revision+1 WHERE id=1 AND revision=?', (json.dumps(content), payload.get('revision')))
+        if result.rowcount != 1:
+            return jsonify(error='This list changed in another tab. Reload before editing.'), 409
+        return jsonify(revision=payload['revision'] + 1)
+
+def planning_data(list_key):
+    with db() as con:
+        con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+        if request.method == 'GET':
+            row = con.execute('SELECT content, revision FROM planning_lists WHERE id=?', (list_key,)).fetchone()
+            return jsonify(content=json.loads(row['content']) if row else {'tasks': [], 'draft': ''}, revision=row['revision'] if row else 0)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify(error='Invalid list'), 400
+        content = payload.get('content')
+        if not isinstance(content, dict) or not isinstance(content.get('tasks'), list) or not isinstance(content.get('draft', ''), str):
+            return jsonify(error='Invalid list'), 400
+        tasks = content['tasks']
+        if not all(isinstance(t, dict) and isinstance(t.get('id'), str) and isinstance(t.get('text'), str) and isinstance(t.get('done'), bool) for t in tasks) or len({t['id'] for t in tasks}) != len(tasks):
+            return jsonify(error='Invalid tasks'), 400
+        content = {'tasks': [t for t in tasks if not t['done']] + [t for t in tasks if t['done']], 'draft': content.get('draft', '')}
+        con.execute('INSERT OR IGNORE INTO planning_lists VALUES (?, ?, 0)', (list_key, '{"tasks":[],"draft":""}'))
+        result = con.execute('UPDATE planning_lists SET content=?, revision=revision+1 WHERE id=? AND revision=?', (json.dumps(content), list_key, payload.get('revision')))
         if result.rowcount != 1:
             return jsonify(error='This list changed in another tab. Reload before editing.'), 409
         return jsonify(revision=payload['revision'] + 1)
@@ -131,7 +168,7 @@ def move_to_general(day):
         if task is None:
             return jsonify(error='This task no longer exists. Reload and try again.'), 404
         if existing:
-            return jsonify(error='This task is already in General to-do. Reload your lists.'), 409
+            return jsonify(error='This task is already in Business. Reload your lists.'), 409
         general['tasks'].insert(0, dict(task))
         general['tasks'] = [t for t in general['tasks'] if not t['done']] + [t for t in general['tasks'] if t['done']]
         for group in content['lists']:
