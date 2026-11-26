@@ -31,9 +31,10 @@ class PlanningListTests(unittest.TestCase):
             result = self.client.get(url)
             self.assertEqual(result.status_code, 200)
             html = result.get_data(as_text=True)
-            for title in ['Today', 'Tomorrow', *notes.LIST_TITLES.values()]:
+            for title in ['Today', 'Tomorrow', *(title for key, title in notes.LIST_TITLES.items() if key != 'business')]:
                 self.assertIn('>' + title + '</a>', html)
             self.assertNotIn('General to-do', html)
+            self.assertNotIn('>Business</a>', html)
         self.assertEqual(self.client.get('/general').location, '/lists/business')
 
     def test_today_tomorrow_have_date_heading_without_calendar(self):
