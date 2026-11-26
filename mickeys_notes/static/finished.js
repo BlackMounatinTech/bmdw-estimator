@@ -11,11 +11,22 @@ async function loadFinished() {
       const details = document.createElement('div'); details.className = 'task-text';
       const text = document.createElement('div'); text.textContent = entry.task.text;
       const meta = document.createElement('small'); meta.textContent = entry.source + ' · ' + (entry.task.completion_date_unknown ? 'Completion date not recorded' : entry.completed_on);
-      details.append(text, meta); row.append(check, details); root.append(row);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove'; remove.textContent = '×';
+      remove.setAttribute('aria-label', 'Delete ' + entry.task.text); remove.title = 'Delete finished task';
+      remove.onclick = async () => {
+        if (!window.confirm('Delete this finished task?\n\n' + entry.task.text)) return;
+        remove.disabled = true;
+        try {
+          const response = await fetch(base + '/api/finished/' + encodeURIComponent(entry.task.id) + '/delete', {method: 'PUT', headers: {'X-CSRF-Token': document.querySelector('meta[name=csrf]').content}});
+          if (!response.ok) throw Error('Could not delete this finished task. Try again.');
+          await loadFinished();
+        } catch (e) { const node = document.querySelector('#error'); node.textContent = e.message; node.hidden = false; remove.disabled = false; }
+      };
+      details.append(text, meta); row.append(check, details, remove); root.append(row);
     }
     if (!data.tasks.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Completed tasks will appear here after midnight.'; root.append(p); }
     document.querySelector('#finished-count').textContent = data.tasks.length + ' finished';
-    document.querySelector('#save-status').textContent = 'Read-only'; document.querySelector('#error').hidden = true;
+    document.querySelector('#save-status').textContent = 'Archived'; document.querySelector('#error').hidden = true;
   } catch (e) { const node = document.querySelector('#error'); node.textContent = e.message; node.hidden = false; }
 }
 loadFinished(); setInterval(loadFinished, 60000); window.addEventListener('focus', loadFinished);

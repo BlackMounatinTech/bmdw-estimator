@@ -100,7 +100,7 @@ def general_data(list_key):
             return jsonify(error='Finished Tasks is read-only.'), 403
         with db() as con:
             archive_completed(con, current_day())
-            rows = con.execute('SELECT task, completed_on, source, archived_on FROM finished_tasks ORDER BY COALESCE(completed_on, archived_on) DESC, rowid DESC').fetchall()
+            rows = con.execute('SELECT task, completed_on, source, archived_on FROM finished_tasks WHERE deleted_on IS NULL ORDER BY COALESCE(completed_on, archived_on) DESC, rowid DESC').fetchall()
             return jsonify(tasks=[dict(task=json.loads(r['task']), completed_on=r['completed_on'], source=r['source'], archived_on=r['archived_on']) for r in rows])
     if list_key not in LIST_TITLES:
         return jsonify(error='Unknown list'), 404
@@ -156,6 +156,15 @@ def planning_data(list_key):
         if result.rowcount != 1:
             return jsonify(error='This list changed in another tab. Reload before editing.'), 409
         return jsonify(revision=payload['revision'] + 1)
+
+@app.put('/api/finished/<task_id>/delete')
+def delete_finished(task_id):
+    with db() as con:
+        archive_completed(con, current_day())
+        result = con.execute('UPDATE finished_tasks SET deleted_on=COALESCE(deleted_on, ?) WHERE id=?', (current_day(), task_id))
+        if result.rowcount != 1:
+            return jsonify(error='This finished task no longer exists.'), 404
+        return jsonify(ok=True)
 
 @app.put('/api/tasks/move')
 def move_task():
@@ -397,6 +406,8 @@ def archive_completed(con, today):
     if not con.in_transaction:
         con.execute('BEGIN IMMEDIATE')
     con.execute('CREATE TABLE IF NOT EXISTS finished_tasks (id TEXT PRIMARY KEY, task TEXT NOT NULL, completed_on TEXT, source TEXT NOT NULL, archived_on TEXT NOT NULL)')
+    if 'deleted_on' not in {r['name'] for r in con.execute('PRAGMA table_info(finished_tasks)')}:
+        con.execute('ALTER TABLE finished_tasks ADD COLUMN deleted_on TEXT')
     con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
     con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
     sources = []
@@ -423,7 +434,7 @@ def archive_completed(con, today):
         if completed is None and table == 'days' and key < today:
             completed = key
         if completed and completed < today:
-            con.execute('INSERT OR IGNORE INTO finished_tasks VALUES (?,?,?,?,?)', (task_id, json.dumps(task), completed, title, today))
+            con.execute('INSERT OR IGNORE INTO finished_tasks (id, task, completed_on, source, archived_on) VALUES (?,?,?,?,?)', (task_id, json.dumps(task), completed, title, today))
             archived.add(task_id)
     for table, key, title, content in sources:
         changed = False
