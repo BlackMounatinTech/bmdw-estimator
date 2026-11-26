@@ -139,6 +139,81 @@ def planning_data(list_key):
             return jsonify(error='This list changed in another tab. Reload before editing.'), 409
         return jsonify(revision=payload['revision'] + 1)
 
+@app.put('/api/tasks/move')
+def move_task():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get('task_id'), str):
+        return jsonify(error='Choose a task to move.'), 400
+    def parse_ref(ref):
+        if not isinstance(ref, dict):
+            raise ValueError()
+        key = ref.get('list')
+        if key == 'days':
+            day = ref.get('date')
+            date.fromisoformat(day)
+            return ('days', day)
+        if key not in LIST_TITLES:
+            raise ValueError()
+        return ('general', 1) if key == 'business' else ('planning_lists', key)
+    try:
+        source, target = parse_ref(payload.get('source')), parse_ref(payload.get('target'))
+    except (TypeError, ValueError):
+        return jsonify(error='Choose a valid list and date.'), 400
+    if source == target:
+        return jsonify(error='Choose a different destination.'), 400
+    task_id = payload['task_id']
+    with db() as con:
+        con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+        con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+        con.execute('BEGIN IMMEDIATE')
+        def read(ref):
+            table, key = ref
+            column = 'day' if table == 'days' else 'id'
+            row = con.execute(f'SELECT content, revision FROM {table} WHERE {column}=?', (key,)).fetchone()
+            blank = {'lists': [], 'note': ''} if table == 'days' else {'tasks': [], 'draft': ''}
+            return (json.loads(row['content']), row['revision']) if row else (blank, 0)
+        def tasks(ref, content):
+            return [t for group in content['lists'] for t in group['tasks']] if ref[0] == 'days' else content['tasks']
+        def write(ref, content):
+            table, key = ref
+            column = 'day' if table == 'days' else 'id'
+            con.execute(f'INSERT OR IGNORE INTO {table} VALUES (?, ?, 0)', (key, json.dumps(content)))
+            con.execute(f'UPDATE {table} SET content=?, revision=revision+1 WHERE {column}=?', (json.dumps(content), key))
+        content, revision = read(source)
+        destination, _ = read(target)
+        task = next((t for t in tasks(source, content) if t['id'] == task_id), None)
+        existing = any(t['id'] == task_id for t in tasks(target, destination))
+        if task is None and existing:
+            return jsonify(content=content, revision=revision)
+        if revision != payload.get('revision'):
+            return jsonify(error='This list changed in another tab. Reload before moving.'), 409
+        if task is None:
+            return jsonify(error='This task no longer exists. Reload and try again.'), 404
+        if existing:
+            return jsonify(error='This task already exists at the destination. Reload your lists.'), 409
+        if source[0] == 'days':
+            for group in content['lists']:
+                group['tasks'] = [t for t in group['tasks'] if t['id'] != task_id]
+            content['taskOrder'] = [key for key in content.get('taskOrder', []) if key != task_id]
+            con.execute('INSERT OR IGNORE INTO task_rollovers VALUES (?,?)', (source[1], task_id))
+        else:
+            content['tasks'] = [t for t in content['tasks'] if t['id'] != task_id]
+        if target[0] == 'days':
+            group = next((g for g in destination['lists'] if g['id'] == 'daily-' + target[1]), None)
+            if group is None:
+                group = {'id': 'daily-' + target[1], 'title': 'Daily list', 'priority': 'Medium', 'tasks': []}
+                destination['lists'].append(group)
+            destination['taskOrder'] = [t['id'] for t in sorted(tasks(target, destination), key=lambda t: (destination.get('taskOrder', []).index(t['id']) if t['id'] in destination.get('taskOrder', []) else len(destination.get('taskOrder', []))))] + [task_id]
+            group['tasks'].append(dict(task))
+            # Allow a deliberately moved-back task to carry forward again.
+            con.execute('DELETE FROM task_rollovers WHERE source_day=? AND task_id=?', (target[1], task_id))
+        else:
+            destination['tasks'].insert(0, dict(task))
+            destination['tasks'] = [t for t in destination['tasks'] if not t['done']] + [t for t in destination['tasks'] if t['done']]
+        write(target, destination)
+        write(source, content)
+        return jsonify(content=content, revision=revision + 1)
+
 @app.put('/api/days/<day>/move-to-general')
 def move_to_general(day):
     try:

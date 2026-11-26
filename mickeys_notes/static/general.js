@@ -1,5 +1,7 @@
 const base = document.querySelector('meta[name=app-base]').content;
-const listApi = base + '/api/lists/' + document.querySelector('meta[name=list-key]').content;
+const listKey = document.querySelector('meta[name=list-key]').content;
+const listApi = base + '/api/lists/' + listKey;
+let movingTask = false;
 const $ = selector => document.querySelector(selector);
 let content = {tasks: [], draft: ''}, revision = 0, dirty = false, saving = null, failed = false, timer;
 function element(tag, props = {}, ...children) {
@@ -35,6 +37,24 @@ function toggleTask(task, done) {
   if (done) content.tasks.push(task); else content.tasks.unshift(task);
   changed(); render();
 }
+async function moveListTask(task, target) {
+  if (movingTask) return;
+  movingTask = true; $('#general-page').inert = true;
+  try {
+    keepListening = false;
+    if (speech && listening) speech.stop();
+    await save(); if (dirty) return;
+    const response = await fetch(base + '/api/tasks/move', {
+      method: 'PUT', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': $('meta[name=csrf]').content},
+      body: JSON.stringify({task_id: task.id, revision, source: {list: listKey}, target}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || 'Could not move this task.');
+    content = data.content; revision = data.revision; render();
+    $('#voice-status').textContent = 'Task moved.'; $('#save-status').textContent = 'Saved'; $('#error').hidden = true;
+  } catch (e) { error(e.message + ' Refresh before trying again.'); }
+  finally { movingTask = false; $('#general-page').inert = false; }
+}
 function render() {
   const root = $('#general-tasks'); root.replaceChildren();
   content.tasks = orderedTasks(content.tasks);
@@ -49,6 +69,7 @@ function render() {
     remove.setAttribute('aria-label', 'Remove ' + task.text);
     const row = element('div', {className: 'task' + (task.done ? ' done' : '')}, element('label', {className: 'task-toggle'}, check, text), remove);
     row.dataset.taskId = task.id;
+    taskMoveActions(row, task, listKey, target => moveListTask(task, target));
     row.prepend(taskDragHandle(row, root, ids => {
       const byId = new Map(content.tasks.map(t => [t.id, t]));
       content.tasks = orderedTasks(ids.map(id => byId.get(id))); changed(); render();
