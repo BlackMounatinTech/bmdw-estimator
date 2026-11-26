@@ -56,8 +56,8 @@ class MoveTaskTests(unittest.TestCase):
         self.assertEqual(self.read('general')[1], 8)
         with notes.db() as con:
             notes.carry_over(con, '2026-11-08')
-            tomorrow = json.loads(con.execute('SELECT content FROM days WHERE day=?', ('2026-11-08',)).fetchone()[0])
-        self.assertEqual([t['id'] for group in tomorrow['lists'] for t in group['tasks']], ['b'])
+            tomorrow = json.loads(con.execute("SELECT content FROM planning_lists WHERE id='unfinished'").fetchone()[0])
+        self.assertEqual([t['id'] for t in tomorrow['tasks']], ['b'])
 
     def test_stale_revision_and_csrf_leave_both_lists_unchanged(self):
         self.assertEqual(self.move(revision=3).status_code, 409)

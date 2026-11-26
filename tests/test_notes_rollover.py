@@ -1,10 +1,8 @@
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import mickeys_notes.app as notes
 
 class DailyHistoryTests(unittest.TestCase):
@@ -19,47 +17,50 @@ class DailyHistoryTests(unittest.TestCase):
     def get(self,day):
         with notes.db() as con:r=con.execute('SELECT * FROM days WHERE day=?',(day,)).fetchone()
         return dict(r,content=json.loads(r['content'])) if r else None
+    def queue(self):
+        with notes.db() as con:r=con.execute("SELECT content FROM planning_lists WHERE id='unfinished'").fetchone()
+        return json.loads(r['content'])['tasks'] if r else []
     def roll(self,day):
         with notes.db() as con:notes.carry_over(con,day)
-    def tasks(self,day):return [t for l in self.get(day)['content']['lists'] for t in l['tasks']]
-    def test_unchecked_history_and_routines_preserved(self):
-        original=self.put('2026-11-06',[{'id':'a','text':'Call customer','done':False},{'id':'b','text':'Finished','done':True}],habits={'morning-wake':True,'night-bible':False},draft='draft',taskOrder=['b','a'])
+    def test_only_unfinished_daily_tasks_roll_and_history_is_preserved(self):
+        original=self.put('2026-11-06',[{'id':'a','text':'Call','done':False},{'id':'b','text':'Finished','done':True}],habits={'old':True},draft='draft')
         self.roll('2026-11-07');self.roll('2026-11-07')
         self.assertEqual(self.get('2026-11-06')['content'],original)
         self.assertEqual(self.get('2026-11-06')['revision'],4)
-        self.assertEqual([t['id'] for t in self.tasks('2026-11-07')],['a'])
-        self.assertNotIn('habits',self.get('2026-11-07')['content'])
-        self.assertNotIn('draft',self.get('2026-11-07')['content'])
-    def test_finishing_today_does_not_check_yesterday_or_resurrect(self):
+        self.assertEqual([t['id'] for t in self.queue()],['a'])
+        self.assertIsNone(self.get('2026-11-07'))
+    def test_completed_or_deleted_queue_tasks_do_not_resurrect(self):
         self.put('2026-11-06',[{'id':'a','text':'Call','done':False}]);self.roll('2026-11-07')
-        self.put('2026-11-07',[{'id':'a','text':'Call','done':True}]);self.roll('2026-11-08')
-        self.assertFalse(self.tasks('2026-11-06')[0]['done'])
-        self.assertTrue(self.tasks('2026-11-07')[0]['done'])
-        self.assertIsNone(self.get('2026-11-08'))
-    def test_deletion_not_recreated_and_missing_days_get_history(self):
-        self.put('2026-11-06',[{'id':'a','text':'Call','done':False}]);self.roll('2026-11-09')
-        for day in ['2026-11-06','2026-11-07','2026-11-08','2026-11-09']:
-            self.assertEqual(len(self.tasks(day)),1)
-        self.put('2026-11-09',[]);self.roll('2026-11-10');self.roll('2026-11-10')
+        with notes.db() as con:con.execute("UPDATE planning_lists SET content=? WHERE id='unfinished'", ('{"tasks":[],"draft":""}',))
+        self.roll('2026-11-10');self.assertEqual(self.queue(),[])
+    def test_legacy_copies_use_latest_status_without_duplicates(self):
+        for day in ['2026-11-06','2026-11-07']:
+            self.put(day,[{'id':'a','text':'Call','done':False},{'id':'b','text':'Done later','done':False}])
+        self.put('2026-11-08',[{'id':'a','text':'Call','done':False},{'id':'b','text':'Done later','done':True}])
+        self.roll('2026-11-10')
+        self.assertEqual([t['id'] for t in self.queue()],['a'])
         self.assertIsNone(self.get('2026-11-10'))
-        self.assertEqual(self.tasks('2026-11-09'),[])
-    def test_planned_tasks_and_order_preserved(self):
+    def test_planned_days_and_other_lists_do_not_roll(self):
         self.put('2026-11-06',[{'id':'a','text':'First','done':False},{'id':'b','text':'Second','done':False}],taskOrder=['b','a'])
-        self.put('2026-11-07',[{'id':'c','text':'Planned','done':False}],habits={'morning-wake':True})
-        self.roll('2026-11-07')
-        day=self.get('2026-11-07')['content']
-        self.assertEqual(day['taskOrder'],['b','a','c'])
-        self.assertTrue(day['habits']['morning-wake'])
-    def test_final_autosave_after_midnight_is_carried_once(self):
+        planned=self.put('2026-11-07',[{'id':'c','text':'Planned','done':False}])
+        client=notes.app.test_client()
+        with client.session_transaction() as sess:sess['csrf']='test'
+        with patch.object(notes,'current_day',return_value='2026-11-07'):
+            for key in ['business','week','month','quarter']:
+                client.put('/api/lists/'+key,json={'revision':0,'content':{'tasks':[{'id':key,'text':key,'done':False}],'draft':'keep'}},headers={'X-CSRF-Token':'test'})
+            self.roll('2026-11-07')
+            self.assertEqual([t['id'] for t in self.queue()],['b','a'])
+            self.assertEqual(self.get('2026-11-07')['content'],planned)
+            for key in ['business','week','month','quarter']:
+                self.assertEqual(client.get('/api/lists/'+key).json['content']['draft'],'keep')
+    def test_late_autosave_and_unfinished_get_trigger(self):
         self.put('2026-11-06',[]);self.roll('2026-11-07')
         client=notes.app.test_client()
         with client.session_transaction() as sess:sess['csrf']='test'
         content={'lists':[{'id':'daily','tasks':[{'id':'late','text':'Last task','done':False}]}],'note':''}
         with patch.object(notes,'current_day',return_value='2026-11-07'):
             response=client.put('/api/days/2026-11-06',json={'content':content,'revision':4},headers={'X-CSRF-Token':'test'})
+            result=client.get('/api/lists/unfinished')
         self.assertEqual(response.status_code,200)
-        self.roll('2026-11-07')
-        self.assertEqual(len(self.tasks('2026-11-07')),1)
-        self.assertEqual(self.get('2026-11-06')['content'],content)
-
-if __name__=='__main__':unittest.main()
+        self.assertEqual(len(result.json['content']['tasks']),1)
+        self.assertIsNone(self.get('2026-11-07'))

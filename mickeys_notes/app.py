@@ -75,7 +75,7 @@ def index():
     session.setdefault('csrf', secrets.token_hex(24))
     return render_template('index.html', csrf=session['csrf'])
 
-LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month', 'quarter': 'This Quarter'}
+LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month', 'quarter': 'This Quarter', 'unfinished': 'Unfinished Tasks'}
 
 @app.get('/lists/<list_key>')
 def list_page(list_key):
@@ -119,6 +119,8 @@ def general_data(list_key):
 
 def planning_data(list_key):
     with db() as con:
+        if list_key == 'unfinished':
+            carry_over(con, current_day())
         con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
         if request.method == 'GET':
             row = con.execute('SELECT content, revision FROM planning_lists WHERE id=?', (list_key,)).fetchone()
@@ -360,47 +362,39 @@ def day_data(day):
         return jsonify(revision=revision+1)
 
 def carry_over(con, today):
-    """Copy each unfinished task to the following day, preserving daily history.
+    """Collect overdue daily tasks once; retain dated historical snapshots.
 
-    The per-day ledger prevents old unchecked snapshots from resurrecting tasks
-    that were subsequently completed or deleted. Every midnight is processed,
-    including days when the app was closed. Morning/night habits never copy.
+    Shared planning lists never expire. The latest dated snapshot wins over
+    older copies from the previous carry-forward system.
     """
     if not con.in_transaction:
         con.execute('BEGIN IMMEDIATE')
-    first = con.execute('SELECT MIN(day) FROM days WHERE day < ?', (today,)).fetchone()[0]
-    if not first:
-        return
-    source_day = date.fromisoformat(first)
-    while source_day.isoformat() < today:
-        day = source_day.isoformat()
-        next_day = (source_day + timedelta(days=1)).isoformat()
-        source_day += timedelta(days=1)
-        source = con.execute('SELECT content FROM days WHERE day=?', (day,)).fetchone()
-        if not source:
-            continue
-        content = json.loads(source['content'])
-        copied = {r['task_id'] for r in con.execute('SELECT task_id FROM task_rollovers WHERE source_day=?', (day,))}
-        tasks = [t for group in content['lists'] for t in group['tasks'] if not t.get('done', False) and t['id'] not in copied]
+    con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+    rows = con.execute('SELECT day, content FROM days ORDER BY day DESC').fetchall()
+    latest, incoming = set(), []
+    for row in rows:
+        content = json.loads(row['content'])
         order = {key: i for i, key in enumerate(content.get('taskOrder', []))}
+        tasks = [t for group in content['lists'] for t in group['tasks']]
         tasks.sort(key=lambda t: order.get(t['id'], len(order)))
-        if not tasks:
-            continue
-        row = con.execute('SELECT content FROM days WHERE day=?', (next_day,)).fetchone()
-        target = json.loads(row['content']) if row else {'lists': [], 'note': ''}
-        existing = {t['id'] for group in target['lists'] for t in group['tasks']}
-        incoming = []
+        processed = {r['task_id'] for r in con.execute('SELECT task_id FROM task_rollovers WHERE source_day=?', (row['day'],))}
         for task in tasks:
-            if task['id'] not in existing:
-                incoming.append(dict(task))
-                existing.add(task['id'])
-            con.execute('INSERT OR IGNORE INTO task_rollovers VALUES (?,?)', (day,task['id']))
-        if incoming:
-            target['lists'].append({'id': 'carry-' + secrets.token_hex(8), 'title': 'Carried over', 'priority': 'Medium', 'tasks': incoming})
-            current_order = target.get('taskOrder', [])
-            current_ids = [t['id'] for group in target['lists'][:-1] for t in group['tasks']]
-            target['taskOrder'] = [t['id'] for t in incoming] + current_order + [key for key in current_ids if key not in current_order]
-            con.execute('INSERT OR IGNORE INTO days VALUES (?, ?, 0)', (next_day, '{"lists":[],"note":""}'))
-            con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=?', (json.dumps(target), next_day))
+            task_id = task['id']
+            if row['day'] < today and task_id not in processed:
+                if task_id not in latest and not task.get('done', False):
+                    incoming.append(dict(task))
+                con.execute('INSERT OR IGNORE INTO task_rollovers VALUES (?,?)', (row['day'], task_id))
+            latest.add(task_id)
+    if not incoming:
+        return
+    row = con.execute("SELECT content FROM planning_lists WHERE id='unfinished'").fetchone()
+    target = json.loads(row['content']) if row else {'tasks': [], 'draft': ''}
+    existing = {t['id'] for t in target['tasks']}
+    new = [t for t in incoming if t['id'] not in existing]
+    if not new:
+        return
+    target['tasks'] = new + [t for t in target['tasks'] if not t['done']] + [t for t in target['tasks'] if t['done']]
+    con.execute('INSERT OR IGNORE INTO planning_lists VALUES (?, ?, 0)', ('unfinished', json.dumps(target)))
+    con.execute("UPDATE planning_lists SET content=?, revision=revision+1 WHERE id='unfinished'", (json.dumps(target),))
 
 if __name__ == '__main__': app.run(port=int(os.environ.get('PORT', 5055)), host='127.0.0.1')

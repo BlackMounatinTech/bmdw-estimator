@@ -124,3 +124,16 @@ async function init() {
   } catch (e) { error(e.message); }
 }
 init();
+
+// Refresh the overdue daily queue after midnight or returning to the app.
+let queueDay = new Date().toDateString(), refreshingQueue = false;
+async function refreshUnfinished() {
+  if (listKey !== 'unfinished' || refreshingQueue || movingTask || saving || dirty || listening) return;
+  const today = new Date().toDateString();
+  if (today === queueDay) return;
+  refreshingQueue = true;
+  try { await init(); queueDay = today; } finally { refreshingQueue = false; }
+}
+setInterval(refreshUnfinished, 15000);
+window.addEventListener('focus', refreshUnfinished);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshUnfinished(); });
