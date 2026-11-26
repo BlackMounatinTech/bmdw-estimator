@@ -12,7 +12,7 @@ window.taskMoveActions = function (row, task, source, move, day) {
     heading.id = 'task-move-title'; dialog.setAttribute('aria-labelledby', heading.id);
     dialog.append(heading, make('p', {textContent: task.text}));
     const destinations = make('div', {className: 'task-move-destinations'});
-    for (const [key, title] of [['days', 'Days'], ['business', 'Business'], ['week', 'This Week'], ['month', 'This Month'], ['quarter', 'This Quarter'], ['unfinished', 'Unfinished Tasks']]) {
+    for (const [key, title] of [['days', 'Days'], ['business', 'Business'], ['week', 'This Week'], ['month', 'This Month'], ['quarter', 'This Quarter'], ['bday', 'By My Bday'], ['unfinished', 'Unfinished Tasks']]) {
       if (key === source) continue;
       const button = make('button', {type: 'button', textContent: title});
       button.onclick = () => {
