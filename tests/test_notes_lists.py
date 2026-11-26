@@ -27,11 +27,19 @@ class PlanningListTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/general').json, self.client.get('/api/lists/business').json)
         self.assertEqual(self.client.get('/api/lists/invalid').status_code, 404)
     def test_navigation_and_legacy_link(self):
-        for url in ['/', *('/lists/' + key for key in notes.LIST_TITLES)]:
+        for url in ['/', '/tomorrow', *('/lists/' + key for key in notes.LIST_TITLES)]:
             result = self.client.get(url)
             self.assertEqual(result.status_code, 200)
             html = result.get_data(as_text=True)
-            for title in ['Days', *notes.LIST_TITLES.values()]:
+            for title in ['Today', 'Tomorrow', *notes.LIST_TITLES.values()]:
                 self.assertIn('>' + title + '</a>', html)
             self.assertNotIn('General to-do', html)
         self.assertEqual(self.client.get('/general').location, '/lists/business')
+
+    def test_today_tomorrow_have_date_heading_without_calendar(self):
+        for url, mode in [('/', 'today'), ('/tomorrow', 'tomorrow')]:
+            html = self.client.get(url).get_data(as_text=True)
+            self.assertIn('name="day-view" content="' + mode + '"', html)
+            self.assertIn('id="day-title"', html)
+            self.assertNotIn('calendar-panel', html)
+            self.assertNotIn('id="calendar"', html)

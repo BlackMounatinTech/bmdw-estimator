@@ -73,7 +73,12 @@ def login():
 @app.get('/')
 def index():
     session.setdefault('csrf', secrets.token_hex(24))
-    return render_template('index.html', csrf=session['csrf'])
+    return render_template('index.html', csrf=session['csrf'], day_view='today')
+
+@app.get('/tomorrow')
+def tomorrow_page():
+    session.setdefault('csrf', secrets.token_hex(24))
+    return render_template('index.html', csrf=session['csrf'], day_view='tomorrow')
 
 LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month', 'quarter': 'This Quarter', 'unfinished': 'Unfinished Tasks', 'bday': 'By My Bday'}
 
@@ -368,8 +373,7 @@ def day_data(day):
     with db() as con:
         if request.method == 'GET':
             archive_completed(con, current_day())
-            if day == current_day():
-                carry_over(con, day)
+            carry_over(con, current_day())
             row = con.execute('SELECT * FROM days WHERE day=?',(day,)).fetchone()
             import json
             return jsonify(content=json.loads(row['content']) if row else {'lists':[], 'note':''}, revision=row['revision'] if row else 0)

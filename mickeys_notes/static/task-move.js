@@ -12,10 +12,14 @@ window.taskMoveActions = function (row, task, source, move, day) {
     heading.id = 'task-move-title'; dialog.setAttribute('aria-labelledby', heading.id);
     dialog.append(heading, make('p', {textContent: task.text}));
     const destinations = make('div', {className: 'task-move-destinations'});
-    for (const [key, title] of [['days', 'Days'], ['business', 'Business'], ['week', 'This Week'], ['month', 'This Month'], ['quarter', 'This Quarter'], ['bday', 'By My Bday'], ['unfinished', 'Unfinished Tasks']]) {
-      if (key === source) continue;
+    const nowDate = new Date(), tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dates = {today: dateKey(nowDate), tomorrow: dateKey(tomorrowDate)};
+    for (const [key, title] of [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['business', 'Business'], ['week', 'This Week'], ['month', 'This Month'], ['quarter', 'This Quarter'], ['bday', 'By My Bday'], ['unfinished', 'Unfinished Tasks'], ['days', 'Another day…']]) {
+      if ((key === source && key !== 'days') || (source === 'days' && dates[key] === day)) continue;
       const button = make('button', {type: 'button', textContent: title});
       button.onclick = () => {
+        if (dates[key]) { dialog.close(); move({list: 'days', date: dates[key]}); return; }
         if (key !== 'days') { dialog.close(); move({list: key}); return; }
         destinations.replaceChildren();
         const dateLabel = make('label', {textContent: 'Choose a day'});

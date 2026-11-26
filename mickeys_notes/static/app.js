@@ -5,13 +5,14 @@ const uid = () => crypto.randomUUID();
 const dateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const localDate = () => dateKey(new Date());
 const dateObject = day => new Date(day + 'T12:00:00');
-let currentDay = '', monthView = localDate().slice(0, 7);
+const dayOffset = document.querySelector('meta[name=day-view]').content === 'tomorrow' ? 1 : 0;
+function selectedDate() { const d = new Date(); d.setDate(d.getDate() + dayOffset); return dateKey(d); }
+let currentDay = '';
 let state = {lists: [], note: '', habits: {}}, revision = 0;
 let dirty = false, saving = null, failed = false, timer, navigation = 0;
 let recognition = null, listening = false, dictationDay = null;
 let stoppingRecognition = null, lastToday = localDate(), rollingDay = false;
 let movingTask = false;
-const savedDays = new Set();
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -50,10 +51,8 @@ async function save() {
       const data = await response.json();
       if (!response.ok) throw Error(data.error || 'Could not save this day.');
       revision = data.revision;
-      savedDays.add(day);
       $('#save-status').textContent = dirty ? 'Unsaved' : 'Saved';
       clearError();
-      renderCalendar();
     } catch (error) {
       dirty = true; failed = true;
       $('#save-status').textContent = 'Not saved';
@@ -64,34 +63,6 @@ async function save() {
   if (dirty && !failed) return save();
 }
 
-function renderCalendar() {
-  const first = dateObject(monthView + '-01');
-  $('#month-title').textContent = first.toLocaleDateString('en-CA', {month: 'long', year: 'numeric'});
-  const offset = (first.getDay() + 6) % 7;
-  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-  const cells = Math.ceil((offset + lastDay) / 7) * 7;
-  const grid = $('#calendar'); grid.replaceChildren();
-  for (let i = 0; i < cells; i++) {
-    const d = new Date(first.getFullYear(), first.getMonth(), i - offset + 1, 12);
-    const day = dateKey(d);
-    const classes = [d.getMonth() !== first.getMonth() ? 'outside' : '', day === currentDay ? 'selected' : '', day === localDate() ? 'is-today' : '', savedDays.has(day) ? 'has-entry' : ''].filter(Boolean).join(' ');
-    const button = el('button', {type: 'button', textContent: d.getDate(), className: classes, onclick: () => loadDay(day)});
-    button.setAttribute('aria-label', d.toLocaleDateString('en-CA', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}));
-    button.setAttribute('aria-pressed', String(day === currentDay));
-    if (day === localDate()) button.setAttribute('aria-current', 'date');
-    grid.append(button);
-  }
-}
-async function loadMonthEntries() {
-  const month = monthView;
-  try {
-    const response = await fetch(APP_BASE + '/api/calendar/' + month);
-    if (!response.ok) return;
-    const data = await response.json();
-    for (const day of data.days) savedDays.add(day);
-    if (month === monthView) renderCalendar();
-  } catch (_) { /* The calendar still works if saved-day markers cannot load. */ }
-}
 async function loadDay(day) {
   if (movingTask) return;
   const requestId = ++navigation;
@@ -109,14 +80,13 @@ async function loadDay(day) {
     if (!response.ok) throw Error('Could not open this day. Refresh and sign in if needed.');
     const data = await response.json();
     if (requestId !== navigation) return;
-    currentDay = day; monthView = day.slice(0, 7);
+    currentDay = day;
     state = data.content; state.habits ||= {}; revision = data.revision;
     $('#day-title').textContent = dateObject(day).toLocaleDateString('en-CA', {weekday: 'long', month: 'long', day: 'numeric'});
     $('#day-year').textContent = day.slice(0, 4);
     $('#capture').value = state.draft || '';
     $('#save-status').textContent = 'Saved';
-    clearError(); renderTasks(); renderCalendar();
-    loadMonthEntries();
+    clearError(); renderTasks();
   } catch (error) {
     if (requestId === navigation) showError(error.message, () => loadDay(day));
   } finally {
@@ -143,7 +113,7 @@ async function moveDailyTask(task, target) {
     const data = await response.json();
     if (!response.ok) throw Error(data.error || 'Could not move this task.');
     state = data.content; state.habits ||= {}; revision = data.revision;
-    renderTasks(); loadMonthEntries();
+    renderTasks();
     $('#voice-status').textContent = 'Task moved.';
     $('#save-status').textContent = 'Saved'; clearError();
   } catch (error) { showError(error.message + ' Refresh before trying again.'); }
@@ -200,14 +170,6 @@ function addTasks() {
 $('#add-tasks').onclick = addTasks;
 $('#capture').oninput = event => { state.draft = event.target.value; changed(); };
 $('#capture').onkeydown = event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); addTasks(); } };
-$('#today').onclick = () => loadDay(localDate());
-for (const [id, step] of [['previous-month', -1], ['next-month', 1]]) {
-  $('#' + id).onclick = () => {
-    const d = dateObject(monthView + '-01'); d.setMonth(d.getMonth() + step);
-    monthView = dateKey(d).slice(0, 7); renderCalendar(); loadMonthEntries();
-  };
-}
-
 const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
 // One short session per phrase, restarted after each pause, so every pause becomes its own line.
 let keepListening = false;
@@ -260,12 +222,13 @@ for (const link of document.querySelectorAll('header a')) link.onclick = async e
 window.addEventListener('beforeunload', event => { if (dirty || saving) { event.preventDefault(); event.returnValue = ''; } });
 async function checkDayChange() {
   const today = localDate();
-  if (today === lastToday || rollingDay) return;
-  const previous = lastToday; lastToday = today; renderCalendar();
-  if (currentDay === previous || currentDay === today) {
-    rollingDay = true; await loadDay(today); rollingDay = false;
-    if (currentDay === previous) lastToday = previous;
-  }
+  if (today === lastToday || rollingDay || movingTask) return;
+  rollingDay = true;
+  try {
+    const target = selectedDate();
+    await loadDay(target);
+    if (currentDay === target) lastToday = today;
+  } finally { rollingDay = false; }
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && dirty) save(); else if (!document.hidden) checkDayChange(); });
 window.addEventListener('focus', checkDayChange);
@@ -278,9 +241,8 @@ function scheduleMidnight() {
 }
 scheduleMidnight();
 async function init() {
-  renderCalendar();
   try {
-    await loadDay(localDate());
+    await loadDay(selectedDate());
   } catch (error) { showError(error.message, init); }
 }
 init();
