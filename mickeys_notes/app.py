@@ -80,7 +80,7 @@ def tomorrow_page():
     session.setdefault('csrf', secrets.token_hex(24))
     return render_template('index.html', csrf=session['csrf'], day_view='tomorrow')
 
-LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month', 'quarter': 'This Quarter', 'unfinished': 'Unfinished Tasks', 'bday': 'By My Bday'}
+LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month', 'quarter': 'Three Months', 'unfinished': 'Unfinished Tasks', 'bday': 'By My Bday'}
 
 @app.get('/lists/<list_key>')
 def list_page(list_key):

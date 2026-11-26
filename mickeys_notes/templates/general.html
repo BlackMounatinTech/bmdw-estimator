@@ -5,9 +5,9 @@
 <title>{{ list_title }} · Mickey’s Notes</title>
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#f7f8f5">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=no-business-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=three-months-1">
 </head><body>
-<header class="app-header"><a href="{{ url_for('index') }}">Mickey’s notes</a><nav class="top-nav" aria-label="Lists"><a href="{{ url_for('index') }}"{% if day_view == 'today' %} aria-current="page"{% endif %}>Today</a><a href="{{ url_for('tomorrow_page') }}"{% if day_view == 'tomorrow' %} aria-current="page"{% endif %}>Tomorrow</a>{% for key, title in [('week', 'This Week'), ('month', 'This Month'), ('quarter', 'This Quarter'), ('bday', 'By My Bday'), ('unfinished', 'Unfinished Tasks'), ('finished', 'Finished Tasks')] %}<a href="{{ url_for('list_page', list_key=key) }}"{% if list_key == key %} aria-current="page"{% endif %}>{{ title }}</a>{% endfor %}</nav><span id="save-status" role="status">Loading…</span></header>
+<header class="app-header"><a href="{{ url_for('index') }}">Mickey’s notes</a><nav class="top-nav" aria-label="Lists"><a href="{{ url_for('index') }}"{% if day_view == 'today' %} aria-current="page"{% endif %}>Today</a><a href="{{ url_for('tomorrow_page') }}"{% if day_view == 'tomorrow' %} aria-current="page"{% endif %}>Tomorrow</a>{% for key, title in [('week', 'This Week'), ('month', 'This Month'), ('quarter', 'Three Months'), ('bday', 'By My Bday'), ('unfinished', 'Unfinished Tasks'), ('finished', 'Finished Tasks')] %}<a href="{{ url_for('list_page', list_key=key) }}"{% if list_key == key %} aria-current="page"{% endif %}>{{ title }}</a>{% endfor %}</nav><span id="save-status" role="status">Loading…</span></header>
 <main class="general-page" id="general-page" inert>
 <div class="day-heading"><h1>{{ list_title }}</h1><span id="general-progress"></span></div>
 <p class="general-hint">Hold a task to move it to another list. Checked tasks move to the bottom.</p>
@@ -16,7 +16,7 @@
 <p id="voice-status" role="status">You can also use your keyboard’s microphone.</p></div>
 <div id="general-tasks"></div>
 </main><p id="error" role="alert" hidden></p>
-<script src="{{ url_for('static', filename='task-move.js') }}?v=no-business-1"></script>
+<script src="{{ url_for('static', filename='task-move.js') }}?v=three-months-1"></script>
 <script src="{{ url_for('static', filename='task-drag.js') }}?v=carry-drag-1"></script>
-  <script src="{{ url_for('static', filename='general.js') }}?v=no-business-1"></script>
+  <script src="{{ url_for('static', filename='general.js') }}?v=three-months-1"></script>
 </body></html>

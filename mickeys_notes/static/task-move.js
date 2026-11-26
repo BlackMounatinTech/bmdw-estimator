@@ -15,7 +15,7 @@ window.taskMoveActions = function (row, task, source, move, day) {
     const nowDate = new Date(), tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const dates = {today: dateKey(nowDate), tomorrow: dateKey(tomorrowDate)};
-    for (const [key, title] of [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['week', 'This Week'], ['month', 'This Month'], ['quarter', 'This Quarter'], ['bday', 'By My Bday'], ['unfinished', 'Unfinished Tasks'], ['days', 'Another day…']]) {
+    for (const [key, title] of [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['week', 'This Week'], ['month', 'This Month'], ['quarter', 'Three Months'], ['bday', 'By My Bday'], ['unfinished', 'Unfinished Tasks'], ['days', 'Another day…']]) {
       if ((key === source && key !== 'days') || (source === 'days' && dates[key] === day)) continue;
       const button = make('button', {type: 'button', textContent: title});
       button.onclick = () => {
