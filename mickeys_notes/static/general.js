@@ -33,7 +33,7 @@ async function save() {
 }
 function orderedTasks(tasks) { return [...tasks.filter(t => !t.done), ...tasks.filter(t => t.done)]; }
 function toggleTask(task, done) {
-  content.tasks = content.tasks.filter(t => t.id !== task.id); task.done = done;
+  content.tasks = content.tasks.filter(t => t.id !== task.id); task.done = done; if (done) { const d = new Date(); task.completed_on = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; } else delete task.completed_on;
   if (done) content.tasks.push(task); else content.tasks.unshift(task);
   changed(); render();
 }
@@ -125,10 +125,10 @@ async function init() {
 }
 init();
 
-// Refresh the overdue daily queue after midnight or returning to the app.
+// Refresh completed-task archiving and the overdue daily queue after midnight or returning to the app.
 let queueDay = new Date().toDateString(), refreshingQueue = false;
 async function refreshUnfinished() {
-  if (listKey !== 'unfinished' || refreshingQueue || movingTask || saving || dirty || listening) return;
+  if (refreshingQueue || movingTask || saving || dirty || listening) return;
   const today = new Date().toDateString();
   if (today === queueDay) return;
   refreshingQueue = true;

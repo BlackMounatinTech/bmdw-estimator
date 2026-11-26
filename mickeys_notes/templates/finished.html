@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-base" content="{{ request.script_root }}"><meta name="list-key" content="{{ list_key }}"><meta name="csrf" content="{{ csrf }}">
+<title>Finished Tasks · Mickey’s Notes</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#f7f8f5">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=finished-1">
+</head><body>
+<header class="app-header"><a href="{{ url_for('index') }}">Mickey’s notes</a><nav class="top-nav" aria-label="Lists"><a href="{{ url_for('index') }}"{% if not list_key %} aria-current="page"{% endif %}>Days</a>{% for key, title in [('business', 'Business'), ('week', 'This Week'), ('month', 'This Month'), ('quarter', 'This Quarter'), ('unfinished', 'Unfinished Tasks'), ('finished', 'Finished Tasks')] %}<a href="{{ url_for('list_page', list_key=key) }}"{% if list_key == key %} aria-current="page"{% endif %}>{{ title }}</a>{% endfor %}</nav><span id="save-status" role="status">Loading…</span></header>
+<main class="general-page"><div class="day-heading"><h1>Finished Tasks</h1><span id="finished-count"></span></div><p class="general-hint">Completed tasks arrive here after midnight. This list is read-only.</p><div id="finished-tasks"></div></main><p id="error" role="alert" hidden></p><script src="{{ url_for('static', filename='finished.js') }}?v=finished-1"></script></body></html>

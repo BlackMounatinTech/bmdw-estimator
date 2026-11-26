@@ -25,7 +25,7 @@ class MoveAllTests(unittest.TestCase):
             for target in keys:
                 if source == target: continue
                 for file in notes.DATA.glob('*.sqlite3'): file.unlink()
-                task = {'id': 'move', 'text': 'Exact text', 'done': True, 'priority': 'High'}
+                task = {'id': 'move', 'text': 'Exact text', 'done': True, 'priority': 'High', 'completed_on': notes.current_day()}
                 content = {'lists': [{'id': 'daily', 'tasks': [task]}], 'note': 'Keep', 'draft': 'Draft', 'habits': {'old': True}, 'taskOrder': ['move']} if source == 'days' else {'tasks': [task], 'draft': 'Draft'}
                 self.assertEqual(self.client.put(url(source), json={'content': content, 'revision': 0}, headers=self.headers).status_code, 200)
                 body = {'task_id': 'move', 'revision': 1, 'source': ref(source), 'target': ref(target)}

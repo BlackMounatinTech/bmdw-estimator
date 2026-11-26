@@ -156,7 +156,7 @@ function renderTasks() {
     const number = el('span', {className: 'task-number', textContent: index + 1 + '.'});
     const checkbox = el('input', {type: 'checkbox', checked: task.done});
     checkbox.setAttribute('aria-label', 'Complete ' + task.text);
-    checkbox.onchange = () => { task.done = checkbox.checked; changed(); renderTasks(); };
+    checkbox.onchange = () => { task.done = checkbox.checked; if (task.done) task.completed_on = localDate(); else delete task.completed_on; changed(); renderTasks(); };
     const text = el('span', {className: 'task-text', textContent: task.text});
     const remove = el('button', {type: 'button', className: 'remove', textContent: '×', onclick: () => {
       if (!window.confirm('Confirm delete?\n\n' + task.text)) return;

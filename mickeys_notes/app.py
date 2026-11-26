@@ -79,6 +79,9 @@ LIST_TITLES = {'business': 'Business', 'week': 'This Week', 'month': 'This Month
 
 @app.get('/lists/<list_key>')
 def list_page(list_key):
+    if list_key == 'finished':
+        session.setdefault('csrf', secrets.token_hex(24))
+        return render_template('finished.html', csrf=session['csrf'], list_key=list_key)
     if list_key not in LIST_TITLES:
         return 'Not found', 404
     session.setdefault('csrf', secrets.token_hex(24))
@@ -92,6 +95,13 @@ def general_page():
 @app.route('/api/lists/<list_key>', methods=['GET', 'PUT'])
 @app.route('/api/general', methods=['GET', 'PUT'], defaults={'list_key': 'business'})
 def general_data(list_key):
+    if list_key == 'finished':
+        if request.method != 'GET':
+            return jsonify(error='Finished Tasks is read-only.'), 403
+        with db() as con:
+            archive_completed(con, current_day())
+            rows = con.execute('SELECT task, completed_on, source, archived_on FROM finished_tasks ORDER BY COALESCE(completed_on, archived_on) DESC, rowid DESC').fetchall()
+            return jsonify(tasks=[dict(task=json.loads(r['task']), completed_on=r['completed_on'], source=r['source'], archived_on=r['archived_on']) for r in rows])
     if list_key not in LIST_TITLES:
         return jsonify(error='Unknown list'), 404
     if list_key != 'business':
@@ -99,6 +109,7 @@ def general_data(list_key):
     with db() as con:
         con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
         if request.method == 'GET':
+            archive_completed(con, current_day())
             row = con.execute('SELECT content, revision FROM general WHERE id=1').fetchone()
             return jsonify(content=json.loads(row['content']) if row else {'tasks': [], 'draft': ''}, revision=row['revision'] if row else 0)
         payload = request.get_json(silent=True)
@@ -111,6 +122,8 @@ def general_data(list_key):
         if not all(isinstance(t, dict) and isinstance(t.get('id'), str) and isinstance(t.get('text'), str) and isinstance(t.get('done'), bool) for t in tasks) or len({t['id'] for t in tasks}) != len(tasks):
             return jsonify(error='Invalid tasks'), 400
         content = {'tasks': [t for t in tasks if not t['done']] + [t for t in tasks if t['done']], 'draft': content.get('draft', '')}
+        previous = con.execute('SELECT content FROM general WHERE id=1').fetchone()
+        stamp_completions(content['tasks'], json.loads(previous['content'])['tasks'] if previous else [])
         con.execute('INSERT OR IGNORE INTO general VALUES (1, ?, 0)', ('{"tasks":[],"draft":""}',))
         result = con.execute('UPDATE general SET content=?, revision=revision+1 WHERE id=1 AND revision=?', (json.dumps(content), payload.get('revision')))
         if result.rowcount != 1:
@@ -123,6 +136,7 @@ def planning_data(list_key):
             carry_over(con, current_day())
         con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
         if request.method == 'GET':
+            archive_completed(con, current_day())
             row = con.execute('SELECT content, revision FROM planning_lists WHERE id=?', (list_key,)).fetchone()
             return jsonify(content=json.loads(row['content']) if row else {'tasks': [], 'draft': ''}, revision=row['revision'] if row else 0)
         payload = request.get_json(silent=True)
@@ -135,6 +149,8 @@ def planning_data(list_key):
         if not all(isinstance(t, dict) and isinstance(t.get('id'), str) and isinstance(t.get('text'), str) and isinstance(t.get('done'), bool) for t in tasks) or len({t['id'] for t in tasks}) != len(tasks):
             return jsonify(error='Invalid tasks'), 400
         content = {'tasks': [t for t in tasks if not t['done']] + [t for t in tasks if t['done']], 'draft': content.get('draft', '')}
+        previous = con.execute('SELECT content FROM planning_lists WHERE id=?', (list_key,)).fetchone()
+        stamp_completions(content['tasks'], json.loads(previous['content'])['tasks'] if previous else [])
         con.execute('INSERT OR IGNORE INTO planning_lists VALUES (?, ?, 0)', (list_key, '{"tasks":[],"draft":""}'))
         result = con.execute('UPDATE planning_lists SET content=?, revision=revision+1 WHERE id=? AND revision=?', (json.dumps(content), list_key, payload.get('revision')))
         if result.rowcount != 1:
@@ -342,6 +358,7 @@ def day_data(day):
     except ValueError: return jsonify(error='Invalid date'), 400
     with db() as con:
         if request.method == 'GET':
+            archive_completed(con, current_day())
             if day == current_day():
                 carry_over(con, day)
             row = con.execute('SELECT * FROM days WHERE day=?',(day,)).fetchone()
@@ -353,6 +370,9 @@ def day_data(day):
         content = payload.get('content',{})
         if not isinstance(content,dict) or not isinstance(content.get('lists'), list) or not isinstance(content.get('note'), str): return jsonify(error='Invalid notes'),400
         revision = payload.get('revision')
+        previous = con.execute('SELECT content FROM days WHERE day=?', (day,)).fetchone()
+        old_tasks = [t for g in json.loads(previous['content'])['lists'] for t in g['tasks']] if previous else []
+        stamp_completions([t for g in content['lists'] for t in g['tasks']], old_tasks)
         con.execute('INSERT OR IGNORE INTO days VALUES (?, ?, 0)', (day, '{"lists":[],"note":""}'))
         result=con.execute('UPDATE days SET content=?, revision=revision+1 WHERE day=? AND revision=?',(json.dumps(content),day,revision))
         if result.rowcount != 1: return jsonify(error='This day changed in another tab. Reload before editing.'),409
@@ -360,6 +380,73 @@ def day_data(day):
             # Include a final autosave arriving just after midnight.
             carry_over(con, current_day())
         return jsonify(revision=revision+1)
+
+def stamp_completions(tasks, previous):
+    old = {t['id']: t for t in previous}
+    for task in tasks:
+        if task.get('done'):
+            before = old.get(task['id'], {})
+            task['completed_on'] = before.get('completed_on', current_day()) if before.get('done') else current_day()
+            if not before.get('done'):
+                task.pop('completion_date_unknown', None)
+        else:
+            task.pop('completed_on', None)
+            task.pop('completion_date_unknown', None)
+
+def archive_completed(con, today):
+    if not con.in_transaction:
+        con.execute('BEGIN IMMEDIATE')
+    con.execute('CREATE TABLE IF NOT EXISTS finished_tasks (id TEXT PRIMARY KEY, task TEXT NOT NULL, completed_on TEXT, source TEXT NOT NULL, archived_on TEXT NOT NULL)')
+    con.execute('CREATE TABLE IF NOT EXISTS general (id INTEGER PRIMARY KEY CHECK(id=1), content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+    con.execute('CREATE TABLE IF NOT EXISTS planning_lists (id TEXT PRIMARY KEY, content TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)')
+    sources = []
+    for row in con.execute('SELECT day, content FROM days ORDER BY day DESC'):
+        sources.append(('days', row['day'], 'Days · ' + row['day'], json.loads(row['content'])))
+    for row in con.execute('SELECT id, content FROM general'):
+        sources.append(('general', row['id'], 'Business', json.loads(row['content'])))
+    for row in con.execute('SELECT id, content FROM planning_lists'):
+        sources.append(('planning_lists', row['id'], LIST_TITLES.get(row['id'], row['id']), json.loads(row['content'])))
+    def tasks(table, content):
+        return [t for g in content['lists'] for t in g['tasks']] if table == 'days' else content['tasks']
+    # Prefer the newest dated snapshot, and active shared lists over old history.
+    latest = {}
+    for table, key, title, content in sources:
+        for task in tasks(table, content):
+            if task['id'] not in latest or table != 'days':
+                latest[task['id']] = (task, table, key, title)
+    archived = {r['id'] for r in con.execute('SELECT id FROM finished_tasks')}
+    for task_id, (task, table, key, title) in latest.items():
+        if task_id in archived or not task.get('done'):
+            continue
+        completed = task.get('completed_on')
+        # Historical daily tasks have a dated record; old shared tasks have no completion timestamp.
+        if completed is None and table == 'days' and key < today:
+            completed = key
+        if completed and completed < today:
+            con.execute('INSERT OR IGNORE INTO finished_tasks VALUES (?,?,?,?,?)', (task_id, json.dumps(task), completed, title, today))
+            archived.add(task_id)
+    for table, key, title, content in sources:
+        changed = False
+        for task in tasks(table, content):
+            if task.get('done') and not task.get('completed_on') and task['id'] not in archived:
+                task['completed_on'] = today
+                task['completion_date_unknown'] = True
+                changed = True
+        if table == 'days':
+            for group in content['lists']:
+                removed = [t for t in group['tasks'] if t['id'] in archived]
+                for task in removed:
+                    con.execute('INSERT OR IGNORE INTO task_rollovers VALUES (?,?)', (key, task['id']))
+                if removed:
+                    group['tasks'] = [t for t in group['tasks'] if t['id'] not in archived]; changed = True
+            content['taskOrder'] = [i for i in content.get('taskOrder', []) if i not in archived]
+        else:
+            before = len(content['tasks'])
+            content['tasks'] = [t for t in content['tasks'] if t['id'] not in archived]
+            changed = changed or len(content['tasks']) != before
+        if changed:
+            column = 'day' if table == 'days' else 'id'
+            con.execute(f'UPDATE {table} SET content=?, revision=revision+1 WHERE {column}=?', (json.dumps(content), key))
 
 def carry_over(con, today):
     """Collect overdue daily tasks once; retain dated historical snapshots.
